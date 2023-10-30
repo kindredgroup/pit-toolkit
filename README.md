@@ -48,7 +48,7 @@ The responsibility of the components are defined as:
 
 | Component | Description |
 | ----------| --------------------------------------------- |
-| Pipeline | Checks out PIT Toolkit and invokes PUT script
+| Pipeline | Checks out PIT Toolkit and invokes PIT script
 | PIT Toolkit | Provides tools for parsing `pitfile.yml` |
 | PIT Toolkit | Executes main PIT logic described above |
 | PIT Toolkit | Prepares PIT Test Runner Application with test sources |
