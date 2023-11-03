@@ -6,71 +6,78 @@ The process starts when GIT event, such as merge or push, is picked up by projec
 
 It is expected that pipeline will checkout PIT project from well-known location or alternatively, tools provided by PIT Toolkit may be pre-installed into pipeline image.
 
-PIT will locate `pitfile.yml` specification file in the repository which triggered the pipeline.
+PIT will locate specification file `pitfile.yml` in the repository which triggered the pipeline.
 
-PIT will examine the content of git event and pass it through `filters` as they are defined in the pit spec file. Filter is defined as an array of regex patterns to be applied to file names which were part of the GIT event. If some filter matches a file, then PIT will start execution of deployment process.
+PIT will examine the content of git event and pass it through `filters` as they are defined in the pit spec file. Filter is defined as an array of regex patterns to be applied to file names which were part of the GIT event. If some filter matches a file, then PIT will start execution of deployment process (The process is visualised in the diagram below).
 
-The process is visualised in the diagram below.
+The PIT spec file contains definitions of:
+- Lock Manager app
+- The list of test suites
 
-The PIT spec file contains the deployment section consisting of the following:
-- The definition of Sitrus project
-- The definition of PIT Test Runner Application
-- The definition of "Graph". The graph here is a set of applications which must be deployed into environment for testing purposes.
+PIT Toolkit has a built-in capability of deploying components into K8s namespace.
 
-PIT will check out Sitrus project, then read definition of graph and feed that graph to Sitrus. This marks the beginning of the deployment.
-
-With the help of Sitrus the PIT will prepare the deployment of PIT Test Runner Application and graph of apps under test. Tests sources will be included into PIT Test Runner App image.
-
-Sitrus, as independent utility, will checkout all projects listed in the graph, and deploy them into new namespaces in some target environment. It may be environment for long running performance tests or environment for integration tests. PIT tool does not make assumptions what environment will be targeted, if it is described in the spec file.
-
-Once Sitrus is done with deployments the control is passed back to the PIT process.
+1. PIT deploys Lock Manager app.
+2. PIT iterates over test suites and deploys required dependencies into K8s namespace (the graph).
+3. One of graph entries is known as Test Runner App. Test Runner App is an application capable of running performance or integration tests against multiple components. To start tests PIT sends HTTP request to Test Runner Application, for example `POST /start`.
 
 At this point we have:
-- Graph running in the environment
-- PIT Test Runner Application running in the environment
-    - Test sources are included in the PIT Test Runner Application container
-- PIT Test Runner Application listens to incoming HTTP requests.
+- Lock Manager app is deployed in the namespace.
+- The set of locks obtained by PIT.
+- Graph of components deployed in the namespace.
+- Test Runner App is deployed in the namespace and executing tests.
 
-PIT sends HTTP request to PIT Test Runner Application `POST /start`. This marks as the beginning of test execution.
+Upon deployment, Lock Manager will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the namespace. This DB is permanent it survives the lifespan of temporary namespace where Lock Manager is running. The DB is used to implement exclusivity over the running tests. Multiple instances of Lock Manager may be present in the K8s cluster each sitting in its own temporary namespace. With the help of locking only one test suite will ever run at the same time unless there is no dependency between tests.
 
-Application responds immediately. A simple 200 response means that request has been scheduled.
+There could be multiple Test Runner Apps deployed in the namespace. These apps may be designed to test different graphs. In such setup the invocation of these multiple Test Runner apps is orchestrated by PIT and subject to locking strategy.
 
-Upon deployment, PIT Test Runner Application will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the environment. This DB is permanent it survives the lifespan of temporary namespace where PIT Test Runner Application is running. The DB is used to implement exclusivity over the running tests. Multiple instances of Test Runner App may be present in the k8s cluster each sitting in their own temporary namespace. With the help of locking only one instance will start executing its tests.
+All tests are divided into test suites and defined in the relevant section of pitfile. Pitfile may contain a mixed definition of local and remote test suites.
 
-Once test execution is done the test report is available via dedicated endpoint, for example via `GET /reports/{$execution_id}`
+_Local_ test suites are defined in the same repository as pitfile.
+_Remote_ test suites are defined as reference to remote pitfile. In this case PIT will download the file from remote repository and use its "testSuites" section.
 
-Once report is downloaded and analysed by PIT toolkit then it may be permanently stored in one of:
-- The Project Repository
-- The repository where project tests are kept
-- The dedicated repository for tests reports
 
-The responsibility of the components are defined as:
+Once Test Runner App finishes executing the test report is available via dedicated endpoint, for example via `GET /reports/{$execution_id}`
 
-| Component | Description |
-| ----------| --------------------------------------------- |
-| Pipeline | Checks out PIT Toolkit and invokes PIT script
-| PIT Toolkit | Provides tools for parsing `pitfile.yml` |
-| PIT Toolkit | Executes main PIT logic described above |
-| PIT Toolkit | Prepares PIT Test Runner Application with test sources |
-| PIT Toolkit | Collects test report and stores it permanently |
-| Sitrus | Creates namespace, deploys, un-deploys graph and PIT Test Runner Application |
-| PIT Test Runner Application | Accepts "start" signal to schedule test |
-| PIT Test Runner Application | Deals with ordering of tests, implements locking logic |
-| PIT Test Runner Application | Runs tests |
-| PIT Test Runner Application | Exposes test report via HTTP |
-| `pitfile.yml` | Controls whether PIT should run at all based on optional filters |
-| `pitfile.yml` | Encapsulates the location of graph, Sitrus and project tests. Any compatible version/branch can be used. |
-| `pitfile.yml` | Defines what to do with test report |
+Test reports are stored permanently. Multiple reports which are obtained from different Test Runner Apps but produced in the same test session may be stitched together before storing.
 
+The responsibilities of all mentioned components are defined as:
+
+
+**Pipeline**
+
+- Checks out PIT app and launches it
+
+**PIT Toolkit**
+
+- Parses `pitfile.yml`
+- Executes main PIT logic described above
+- Creates K8s namepsace
+- Deploys Lock Manager
+- Deploys Test Runner App
+- Deploys graph
+- Collects test report and stores it permanently
+- Cleans up namespace
+
+**Lock Manager**
+
+- Exposes HTTP API for locks management
+
+**Test Runner App**
+
+- Accepts "start" signal to begin test execution
+- Runs tests
+- Exposes test report via HTTP
+
+**The YAML specification (pitfile)**
+
+- Controls whether PIT should run at all based on optional filters
+- Encapsulates the location of graph within each test suite
+- Defines what to do with test report
 
 ![](./docs/arch.png)
 
 
-
-
 ## Example of specification YAML
-
-<em>(This is not complete yet)</em>
 
 ```YAML
 projectName: Talos Certifier
@@ -118,19 +125,27 @@ testSuites:
         - componentName: Talos Certifier Test App
           location:
             type: LOCAL # optional, defautls to 'LOCAL'
-          deploymentLauncher: deployment/pit/talos-certifier-test-app/deploy.sh
+          deploymentLauncher: deployment/talos-certifier-test-app/pit/deploy.sh
 
         - componentName: Talos Certifier"
           location:
             # Lets assume that pipeline fired as a result of push into Talos Certifier project
             type: LOCAL
-          deploymentLauncher: deployment/pit/talos-certifier/deploy.sh
+          deploymentLauncher: deployment/talos-certifier/pit/deploy.sh
 
         - componentName: Talos Replicator"
           location:
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
             type: LOCAL
-          deploymentLauncher: deployment/pit/talos-replicator/deploy.sh
+          deploymentLauncher: deployment/talos-replicator/pit/deploy.sh
+
+        - componentName: Some Other Component"
+          # This is an example how to defnie the remote component
+          location:
+            type: REMOTE
+            gitRepository: git://127.0.0.1/some-other-component.git
+            gitRef: # Optional, defaults to "refs/remotes/origin/master"            
+          deploymentLauncher: deployment/pit/deploy.sh
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for Talos Certifier integrated with Messenger
     id: testset-talos-certifier-and-messenger
@@ -143,5 +158,6 @@ testSuites:
     # 1) Read pitfile from specified remote repository,
     # 2) Select subsection of file from "testSuites" node where entries are matching IDs.
     #    For example, "SELECT * FROM remote/pitfile.yml#testSuites WHERE id IN(testSuiteIds)"
+    # Optional, when not defined, all when defined as empty array then all tests are included.
     testSuiteIds: [ 'testset-talos-certifier-and-messenger' ]
 ```
