@@ -133,13 +133,13 @@ testSuites:
             type: LOCAL
           deploymentLauncher: deployment/talos-certifier/pit/deploy.sh
 
-        - componentName: Talos Replicator"
+        - componentName: Talos Replicator
           location:
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
             type: LOCAL
           deploymentLauncher: deployment/talos-replicator/pit/deploy.sh
 
-        - componentName: Some Other Component"
+        - componentName: Some Other Component
           # This is an example how to defnie the remote component
           location:
             type: REMOTE
