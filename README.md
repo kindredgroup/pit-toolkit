@@ -25,7 +25,7 @@ Sitrus, as independent utility, will checkout all projects listed in the graph, 
 
 Once Sitrus is done with deployments the control is passed back to the PIT process.
 
-At this point we have: 
+At this point we have:
 - Graph running in the environment
 - PIT Test Runner Application running in the environment
     - Test sources are included in the PIT Test Runner Application container
@@ -74,46 +74,74 @@ The responsibility of the components are defined as:
 
 ```YAML
 projectName: Talos Certifier
-devptfileVersion: 1.0
+version: "1.0"
 
 trigger:
   description: Runs only if Rust source code changed in packages impacting Talos Certifier
-  filters:
-    - name: Detect Talos Certifier changes
-      expressions: 
-        - "packages/talos_certifier/.*"
-        - "packages/talos_suffix/.*"
-        - "packages/talos_certifier_adapters/.*"
-        - "packages/talos_common_utils/.*"
-        - "packages/talos_rdkafka_utils/.*"
+  name: Detect Talos Certifier changes
+  filter:
+    expressions:
+      - "packages/talos_certifier/.*"
+      - "packages/talos_suffix/.*"
+      - "packages/talos_certifier_adapters/.*"
+      - "packages/talos_common_utils/.*"
+      - "packages/talos_rdkafka_utils/.*"
+      - "packages/cohort_sdk/.*"
 
-deployment:
-  # The location of Sitrus. This will be used for deploying the graph to namespace.
-  sitrus:
-    gitRepository: git@github.com/.../sitrus.git
-    gitRef: ${{ env.SITRUS_BRANCH }}
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - Lock-Manager is independent node app. Sources are hosted in pit-toolkit repo.
+# - The new re-defined Sitrus is also node app. Sources are hosted in the same pit-toolkit repo.
+# Given two points above it is enough to have a single fetch step for obtaining Lock Manager and "new Sitrus"
+# When it comes to deploying Lock Manager, Sitrus need to be given a location of script
+# through which to kick start the deployment. See "deploymentLauncher".
+lockManager:
+  description: Defines the Lock manager application
+  location:
+    gitRepository: git://127.0.0.1/pit-toolkit.git
+    gitRef: ${{ env.PIT_TOOLKIT_BRANCH }}
+  deploymentLauncher: deployment/pit/lock-manager/deploy.sh
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  # The reference to test bundle. Sitrus will deploy this app to the namespace before deploying
-  # a graph. This app will contain test runner along with self-contained tests.
-  testApp:
-    gitRepository: git@github.com/.../pit-runner.git
-    gitRef: ${{ env.PIT_RUNNER_VERSION }}
-    # The path to directory containin artefacts required by Sitrus deployment protocol
-    sitrusPath: ./deployment/sitrus
-    # Describes where to checkout test soruces from. May sit in the same project repository as this file or
-    # hosted separately.
-    testSources:
-        gitRepository: git@github.com/.../talos-certifier.git
-        gitRef: ${{ env.TALOS_CERTIFIER_BRANCH }}
-        checkoutPath: tests/devpt
+testSuites:
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  - name: Testset for standalone Talos Certifier
+    id: testset-talos-certifier-default
+    location.type: LOCAL # Optional. Defaults to 'LOCAL' - the definition is taken from this file
 
-  # The list of apps/components which must be deployed. This section will be used to generate 
-  # the deployment instructions for Sitrus. Every entry in the list of independent component 
-  # which should be deployed to namespace.
-  graph:
-    - componentName: "Talos Certifier"
-      gitRepository: git@github.com/.../talos-certifier.git
-      gitRef: ${{ env.TALOS_CERTIFIER_BRANCH }}
-      # The path to directory containin artefacts required by Sitrus deployment protocol
-      sitrusPath: ./deployment/sitrus
+    lock:
+      timeout: 1h
+      ids: [ lock-talos-certifier ]
+
+    trigger: # This is optional, when not defined, test will trigger when top level trigger goes off
+    deployment:
+      graph:
+        - componentName: Talos Certifier Test App
+          location:
+            type: LOCAL # optional, defautls to 'LOCAL'
+          deploymentLauncher: deployment/pit/talos-certifier-test-app/deploy.sh
+
+        - componentName: Talos Certifier"
+          location:
+            # Lets assume that pipeline fired as a result of push into Talos Certifier project
+            type: LOCAL
+          deploymentLauncher: deployment/pit/talos-certifier/deploy.sh
+
+        - componentName: Talos Replicator"
+          location:
+            # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
+            type: LOCAL
+          deploymentLauncher: deployment/pit/talos-replicator/deploy.sh
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  - name: Testset for Talos Certifier integrated with Messenger
+    id: testset-talos-certifier-and-messenger
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1/talos-perf-tests.git
+      gitRef: ${{ env.GIT_REF_TALOS_PERF_TESTS }} # Optional. Defaults to "refs/remotes/origin/master"
+      pitFile: 'pitfile.yml' # Optional, defaults to "pitfile.yml" in the project root
+    # This will:
+    # 1) Read pitfile from specified remote repository,
+    # 2) Select subsection of file from "testSuites" node where entries are matching IDs.
+    #    For example, "SELECT * FROM remote/pitfile.yml#testSuites WHERE id IN(testSuiteIds)"
+    testSuiteIds: [ 'testset-talos-certifier-and-messenger' ]
 ```

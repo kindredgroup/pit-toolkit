@@ -1,0 +1,26 @@
+{
+  "name": "pit-toolkit",
+  "version": "1.0.0",
+  "description": "Tools for deploying and executing Performance and Integration Tests",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "start-dev": "h=$(pwd) && npm run build && cd $h/dev-home; node $h/dist/index.js --workspace ./workspace --pitfile ./pitfile.yml || cd $h",  
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "winston": "^3.11.0",
+    "yaml": "^2.3.3"
+  }
+}
