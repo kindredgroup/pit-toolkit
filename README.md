@@ -122,30 +122,29 @@ testSuites:
     trigger: # This is optional, when not defined, test will trigger when top level trigger goes off
     deployment:
       graph:
-        - componentName: Talos Certifier Test App
-          location:
-            type: LOCAL # optional, defautls to 'LOCAL'
+        testApp:
+          componentName: Talos Certifier Test App
+          location.type: LOCAL # optional, defautls to 'LOCAL'
           deploymentLauncher: deployment/talos-certifier-test-app/pit/deploy.sh
 
-        - componentName: Talos Certifier"
-          location:
+        components:
+          - componentName: Talos Certifier"
             # Lets assume that pipeline fired as a result of push into Talos Certifier project
-            type: LOCAL
-          deploymentLauncher: deployment/talos-certifier/pit/deploy.sh
+            location.type: LOCAL
+            deploymentLauncher: deployment/talos-certifier/pit/deploy.sh
 
-        - componentName: Talos Replicator
-          location:
+          - componentName: Talos Replicator
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
-            type: LOCAL
-          deploymentLauncher: deployment/talos-replicator/pit/deploy.sh
+            location.type: LOCAL
+            deploymentLauncher: deployment/talos-replicator/pit/deploy.sh
 
-        - componentName: Some Other Component
-          # This is an example how to defnie the remote component
-          location:
-            type: REMOTE
-            gitRepository: git://127.0.0.1/some-other-component.git
-            gitRef: # Optional, defaults to "refs/remotes/origin/master"            
-          deploymentLauncher: deployment/pit/deploy.sh
+          - componentName: Some Other Component
+            # This is an example how to define the remote component
+            location:
+              type: REMOTE
+              gitRepository: git://127.0.0.1/some-other-component.git
+              gitRef: # Optional, defaults to "refs/remotes/origin/master"
+            deploymentLauncher: deployment/pit/deploy.sh
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for Talos Certifier integrated with Messenger
     id: testset-talos-certifier-and-messenger
