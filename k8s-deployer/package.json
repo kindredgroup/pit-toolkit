@@ -1,0 +1,26 @@
+{
+  "name": "@kindredgroup/pit-k8s-deployer",
+  "version": "0.0.1-dev",
+  "description": "The deployment utility for apps designed to run in K8s clusters",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "start-example": "npm run build && scripts/start-example.sh $@",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "winston": "^3.11.0",
+    "yaml": "^2.3.3"
+  }
+}

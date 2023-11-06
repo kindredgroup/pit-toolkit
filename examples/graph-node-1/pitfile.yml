@@ -1,0 +1,47 @@
+projectName: Node Example 1
+version: "1.0"
+
+trigger:
+  description: Runs on any source code change
+  name: Detect changes in Node 1 application
+  filter:
+    expressions:
+      - ".*package\\.json"
+      - ".*\\.ts"
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - Lock-Manager is independent node app. Sources are hosted in pit-toolkit repo.
+# - The new re-defined Sitrus is also node app. Sources are hosted in the same pit-toolkit repo.
+# Given two points above it is enough to have a single fetch step for obtaining Lock Manager and "new Sitrus"
+# When it comes to deploying Lock Manager, Sitrus need to be given a location of script
+# through which to kick start the deployment. See "deploymentLauncher".
+lockManager:
+  description: Defines the Lock manager application
+  location:
+    gitRepository: git://127.0.0.1/pit-toolkit.git
+    gitRef: ${{ env.PIT_TOOLKIT_BRANCH }}
+  deploymentLauncher: deployment/pit/lock-manager/deploy.sh
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+testSuites:
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  - name: Testset for standalone Node 1
+    id: testset-node-1-default
+    location.type: LOCAL # Optional. Defaults to 'LOCAL' - the definition is taken from this file
+
+    lock:
+      timeout: 1h
+      ids: [ lock-node-1 ]
+
+    trigger: # This is optional, when not defined, test will trigger when top level trigger goes off
+    deployment:
+      graph:
+        testApp:
+          componentName: Test App for Node 1
+          location.type: LOCAL # optional, defautls to 'LOCAL'
+          deploymentLauncher: deployment/test-app/pit/deploy.sh
+
+        components:
+          - componentName: Node 1"
+            location.type: LOCAL
+            deploymentLauncher: deployment/pit/deploy.sh
