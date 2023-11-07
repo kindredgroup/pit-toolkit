@@ -1,0 +1,25 @@
+{
+  "name": "graph-node-1-pit-test-app",
+  "version": "0.0.1-dev",
+  "description": "The example PIT Test Appliction for component named 'graph-node-1'",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "build": "npx tsc"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "winston": "^3.11.0"
+  }
+}
