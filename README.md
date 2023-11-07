@@ -160,3 +160,14 @@ testSuites:
     # Optional, when not defined, all when defined as empty array then all tests are included.
     testSuiteIds: [ 'testset-talos-certifier-and-messenger' ]
 ```
+
+# Project Layout
+
+| Directory | Description |
+|-----------|-------------|
+| `lock-manager/` | The lock management application |
+| `k8s-deployer/` | The deployment utility for apps designed to run in K8s clusters |
+| `examples/graph-node-1/` | The example of application integrated with PIT |
+| `examples/graph-node-1/deployment/` | The deployment configs for K8s |
+| `examples/graph-node-1/pit-test-app/` | The example PIT Test Appliction for component named 'graph-node-1' |
+| `examples/graph-node-1/pit-test-app/deployment/` | The deployment configs for K8s |
