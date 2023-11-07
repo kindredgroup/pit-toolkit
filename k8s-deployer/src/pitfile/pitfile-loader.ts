@@ -1,6 +1,7 @@
 import * as fs from "fs"
 import YAML from "yaml"
-import { logger } from "./logger"
+import { logger } from "../logger"
+import * as SchemaV1 from "./schema-v1"
 
 const applyEnvironment = (expression: string): string => {
   let foundVariables = []
@@ -35,7 +36,16 @@ const applyEnvironment = (expression: string): string => {
   return processedExpression
 }
 
-const readPitFile = async (filePath: string): Promise<any> => {
+const applyEnvironmentToLocation = (location: SchemaV1.Location): SchemaV1.Location => {
+  if (!location.gitRef && !location.gitRepository) return location
+  const result = { ...location }
+
+  if (result.gitRef) result.gitRef = applyEnvironment(result.gitRef)
+  if (result.gitRepository) result.gitRepository = applyEnvironment(result.gitRepository)
+  return result
+}
+
+const loadFromFile = async (filePath: string): Promise<any> => {
   try {
       await fs.promises.access(filePath, fs.constants.R_OK)
   } catch (e) {
@@ -45,10 +55,10 @@ const readPitFile = async (filePath: string): Promise<any> => {
       )
   }
 
-  const parsedPitFile = YAML.parse(fs.readFileSync(filePath, "utf8")) as any
-  parsedPitFile.lockManager.location.gitRef = applyEnvironment(parsedPitFile.lockManager.location.gitRef)
+  const parsedPitFile: SchemaV1.PitFile = YAML.parse(fs.readFileSync(filePath, "utf8"))
+  parsedPitFile.lockManager.location = applyEnvironmentToLocation(parsedPitFile.lockManager.location)
 
   return parsedPitFile
 }
 
-export { readPitFile }
+export { loadFromFile }

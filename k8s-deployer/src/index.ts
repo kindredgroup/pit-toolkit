@@ -1,12 +1,12 @@
-import { readParams } from "./bootstrap"
-import { logger } from "./logger"
-import { readPitFile } from "./pitfile"
+import { readParams } from "./bootstrap.js"
+import { logger } from "./logger.js"
+import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 
 const main = async () => {
   logger.info("main()...")
 
   const cfg = readParams()
-  const file = await readPitFile(cfg.pitfile)
+  const file = await PifFileLoader.loadFromFile(cfg.pitfile)
 
   logger.info("main(), Parsed configuration: \n%s", JSON.stringify({ ...cfg, params: Object.fromEntries(cfg.params)}, null, 2))
   logger.info("main(), Loaded pitfile: \n%s", JSON.stringify({ lockManager: file.lockManager }, null, 2))

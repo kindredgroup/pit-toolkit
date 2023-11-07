@@ -41,8 +41,8 @@ WORKSPACE=$(pwd)
 mkdir $WORKSPACE/ci-home
 
 clear='\033[0m'
-red='\033[0;31m'
-echo -e "${red}"
+grey='\033[0;90m'
+echo -e "${grey}"
 rsync -avh --executability --progress $PROJECT_DIR/ $WORKSPACE/ci-home/
 echo -e "${clear}"
 

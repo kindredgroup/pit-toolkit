@@ -2,6 +2,7 @@
   "name": "@kindredgroup/pit-k8s-deployer",
   "version": "0.0.1-dev",
   "description": "The deployment utility for apps designed to run in K8s clusters",
+  "type": "module",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
