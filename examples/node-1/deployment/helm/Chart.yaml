@@ -1,0 +1,6 @@
+apiVersion: v2
+name: node-1
+description: Helm chart for deploying "node-1" in the "dev" namespace
+type: application
+version: 0.1.0
+appVersion: ""

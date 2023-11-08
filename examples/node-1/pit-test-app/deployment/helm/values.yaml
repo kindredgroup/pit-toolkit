@@ -1,0 +1,7 @@
+pod.repository: ""
+image.tag: ""
+service:
+  name: ""
+  port:
+
+TARGET_SERVICE_URL: 
