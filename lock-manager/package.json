@@ -1,0 +1,29 @@
+{
+  "name": "lock-manager",
+  "version": "0.0.1-dev",
+  "description": "The lock manager application of PIT toolkit",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/express": "^4.17.20",
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "dev.start": "npm run build && node dist/index.js",
+    "dev.build-image": "source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "winston": "^3.11.0"
+  }
+}

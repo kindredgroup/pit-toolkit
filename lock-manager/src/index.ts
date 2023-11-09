@@ -3,15 +3,23 @@ import express, { Express, Request, Response } from 'express'
 import { logger } from "./logger.js"
 import * as ConfigReader from "./configuration.js"
 
-const DEFAULT_PORT = 62001
+const DEFAULT_PORT = 60001
 
 const main = async () => {
   const app: Express = express()
-  app.get('/time', (_req: Request, res: Response) => {
+  app.get('/', (_req: Request, res: Response) => {
     res.send({
-      app: "node-1",
+      app: "lock-manager",
       time: new Date()
     })
+  })
+
+  app.post('/locks/acquire', (_req: Request, res: Response) => {
+    res.send()
+  })
+
+  app.post('/locks/release', (_req: Request, res: Response) => {
+    res.send()
   })
 
   const servicePort = ConfigReader.getParam("--service-port", DEFAULT_PORT)

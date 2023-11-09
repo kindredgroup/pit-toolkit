@@ -30,6 +30,3 @@ spec:
             requests:
               cpu: "1"
               memory: "128Mi"
-          env:
-            - name: TARGET_SERVICE_URL
-              value: {{ .Values.environment.TARGET_SERVICE_URL }}

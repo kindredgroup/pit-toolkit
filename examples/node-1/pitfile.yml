@@ -20,7 +20,7 @@ lockManager:
   location:
     gitRepository: git://127.0.0.1/pit-toolkit.git
     gitRef: ${{ env.PIT_TOOLKIT_BRANCH }}
-  deploymentLauncher: deployment/pit/lock-manager/deploy.sh
+  deploymentLauncher: lock-manager/deployment/pit/deploy.sh
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 testSuites:
@@ -39,7 +39,7 @@ testSuites:
         testApp:
           componentName: Test App for Node 1
           location.type: LOCAL # optional, defautls to 'LOCAL'
-          deploymentLauncher: deployment/test-app/pit/deploy.sh
+          deploymentLauncher: pit-test-app/deployment/pit/deploy.sh
 
         components:
           - componentName: Node 1"

@@ -2,41 +2,10 @@ import fetch from "node-fetch"
 import express, { Express, Request, Response, response } from 'express'
 
 import { logger } from "./logger.js"
+import * as ConfigReader from "./configuration.js"
 
 const DEFAULT_PORT = 62002
 const TARGET_SERVICE_URL = "http://localhost"
-
-const getParam = (name: String, defaultValue: string | number): string | number => {
-  if (process.argv.length > 2) {
-    for (let i = 2; i + 1 < process.argv.length; i++) {
-      if (process.argv[i].toLowerCase() !== name) continue
-      if (typeof(defaultValue) == 'string') return process.argv[i + 1]
-
-      const numValue = parseInt(process.argv[i + 1])
-      if (isNaN(numValue)) {
-        logger.warn("Cannot parse parameter '%s' into number. Given value: '%s'. Using default: %s.", name, process.argv[i + 1], defaultValue)
-        return defaultValue
-      }
-
-      return numValue
-    }
-  }
-
-  const envName = name.replaceAll("--", "").replaceAll("-", "_").toUpperCase()
-  logger.info("Cannot find parameter '%s'. Reading environment varialbe: %s", name, envName)
-
-  const envValue = process.env[envName]
-  if (!envValue) return defaultValue
-
-  if (typeof(defaultValue) == 'string') return envValue + ""
-  const numValue = parseInt(envValue)
-  if (isNaN(numValue)) {
-    logger.warn("Cannot parse environemnt variable '%s' into number. Given value: '%s'. Using default: %s.", envName, envValue, defaultValue)
-    return defaultValue
-  }
-
-  return numValue
-}
 
 const collectStats = (stats: any, startedAtMs: number) => {
   const duration = new Date().getTime() - startedAtMs
@@ -100,7 +69,7 @@ const main = async () => {
   // This is samle Test App, it does not do much of testing, simply calls
   // some HTTP endpoint
 
-  const targetServiceUrl = getParam("--target-service-url", TARGET_SERVICE_URL)
+  const targetServiceUrl = ConfigReader.getParam("--target-service-url", TARGET_SERVICE_URL)
   logger.info("Test app will be connecting to: %s", targetServiceUrl)
 
   const app: Express = express()
@@ -151,20 +120,29 @@ const main = async () => {
     const sessionMeta = { sessionId, test: { testSuiteName, params: { iterationsCount } } }
 
     try {
-      sessions.set(sessionId, { status: 'PENDING', ...sessionMeta })
+      sessions.set(sessionId, { status: "PENDING", ...sessionMeta })
 
       logger.info("Running test: '%s', iterationsCount: %s", testSuiteName, iterationsCount)
 
-      const report = await runTests({ sessions, sessionId }, targetServiceUrl as string, testSuiteName as string, { iterationsCount })
-      sessions.set(sessionId, { status: 'COMPLETED', report, ...sessionMeta })
+      setTimeout(async () => {
+        try {
+          const report = await runTests({ sessions, sessionId }, targetServiceUrl as string, testSuiteName as string, { iterationsCount })
+          sessions.set(sessionId, { status: "COMPLETED", report, ...sessionMeta })
+        } catch (e) {
+          sessions.set(sessionId, { status: "ERROR", error: e.message, ...sessionMeta })
+          logger.error("Message: %s", e.message)
+          if (e.cause) logger.error(e.cause)
+          if (e.stack) logger.error("Stack:\n%s", e.stack)
+        }
+      }, 1)
+
       res.send({
         testSuiteName,
         iterationsCount,
-        report,
         sessionId
       })
     } catch (e) {
-      sessions.set(sessionId, { status: 'ERROR', error: e.message, ...sessionMeta })
+      sessions.set(sessionId, { status: "ERROR", error: e.message, ...sessionMeta })
       logger.error("Message: %s", e.message)
       if (e.cause) logger.error(e.cause)
       if (e.stack) logger.error("Stack:\n%s", e.stack)
@@ -172,7 +150,7 @@ const main = async () => {
     }
   })
 
-  const servicePort = getParam("--service-port", DEFAULT_PORT)
+  const servicePort = ConfigReader.getParam("--service-port", DEFAULT_PORT)
   app.listen(servicePort, () => {
     logger.info("HTTP server is running at http://localhost:%d", servicePort);
   })

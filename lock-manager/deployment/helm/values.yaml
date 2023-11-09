@@ -3,6 +3,3 @@ image.tag: ""
 service:
   name: ""
   port:
-
-environment:
-  TARGET_SERVICE_URL:
