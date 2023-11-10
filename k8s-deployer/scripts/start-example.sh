@@ -14,39 +14,45 @@
 echo "Starting k8s-deployer application..."
 
 # There is no need to validate parameters, application will take care of it
-WORKSPACE=$1
+EXAMPLES_TEMP_DIR=$1
+# The project where push happened. For example directory pointing to node-1 in the examples.
 PROJECT_DIR=$2
 PROJECT_ROOT=$(pwd)
 
-echo "WORKSPACE=$WORKSPACE"
+echo "EXAMPLES_TEMP_DIR=$EXAMPLES_TEMP_DIR"
 echo "PROJECT_DIR=$PROJECT_DIR"
 echo "Current director is \"$PROJECT_ROOT\""
 
-if [ "${WORKSPACE}" == "" ];
+if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then
-  echo "Missing first parameter: the workspace location"
+  echo "Missing first parameter: the temporary directory to be used when running examples"
   exit 1
 fi
 
-if [ ! -d "${WORKSPACE}" ];
+if [ ! -d "${EXAMPLES_TEMP_DIR}" ];
 then
-  echo "Creating workspace"
-  WORKSPACE="tmp/workspace"
-  mkdir -p $WORKSPACE || true
+  echo "Creating temporary directory"
+  EXAMPLES_TEMP_DIR="tmp"
+  mkdir $EXAMPLES_TEMP_DIR || true
 fi
 
-cd $WORKSPACE
-WORKSPACE=$(pwd)
+cd $EXAMPLES_TEMP_DIR
+EXAMPLES_TEMP_DIR=$(pwd)
 
-mkdir $WORKSPACE/ci-home
+CI_HOME_DIR=$EXAMPLES_TEMP_DIR/ci-home
+mkdir -p $CI_HOME_DIR
+
+# Lets simulate the checkout of project as it is done by CI
 
 clear='\033[0m'
 grey='\033[0;90m'
 echo -e "${grey}"
-rsync -avh --executability --progress $PROJECT_DIR/ $WORKSPACE/ci-home/
+rsync -avhq --delete --executability $PROJECT_DIR $CI_HOME_DIR/
 echo -e "${clear}"
 
-node $PROJECT_ROOT/dist/index.js --workspace $WORKSPACE --pitfile $PROJECT_DIR/pitfile.yml
+cd $CI_HOME_DIR
+APP_NAME=$(basename $PROJECT_DIR)
+node $PROJECT_ROOT/dist/index.js --workspace $CI_HOME_DIR --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml
 returnStatus=$(($?+0))
 
 cd $PROJECT_ROOT

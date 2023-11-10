@@ -1,7 +1,8 @@
 import * as fs from "fs"
 import YAML from "yaml"
-import { logger } from "../logger"
-import * as SchemaV1 from "./schema-v1"
+
+import { logger } from "../logger.js"
+import * as SchemaV1 from "./schema-v1.js"
 
 const applyEnvironment = (expression: string): string => {
   let foundVariables = []
@@ -45,7 +46,7 @@ const applyEnvironmentToLocation = (location: SchemaV1.Location): SchemaV1.Locat
   return result
 }
 
-const loadFromFile = async (filePath: string): Promise<any> => {
+const loadFromFile = async (filePath: string): Promise<SchemaV1.PitFile> => {
   try {
       await fs.promises.access(filePath, fs.constants.R_OK)
   } catch (e) {
@@ -56,6 +57,7 @@ const loadFromFile = async (filePath: string): Promise<any> => {
   }
 
   const parsedPitFile: SchemaV1.PitFile = YAML.parse(fs.readFileSync(filePath, "utf8"))
+  logger.debug("parsedPitFile: \n%s", JSON.stringify(parsedPitFile, null, 2))
   parsedPitFile.lockManager.location = applyEnvironmentToLocation(parsedPitFile.lockManager.location)
 
   return parsedPitFile

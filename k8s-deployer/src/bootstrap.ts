@@ -1,5 +1,5 @@
-import { Config } from "./config"
-import { logger } from "./logger"
+import { Config } from "./config.js"
+import { logger } from "./logger.js"
 
 const PARAM_WORKSPACE = "--workspace"
 const PARAM_PITFILE = "--pitfile"

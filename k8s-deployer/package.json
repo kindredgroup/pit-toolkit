@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "start-example": "npm run build && scripts/start-example.sh $@",
+    "dev.start-example": "npm run build && scripts/start-example.sh $@",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

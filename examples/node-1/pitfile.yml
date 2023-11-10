@@ -17,17 +17,20 @@ trigger:
 # through which to kick start the deployment. See "deploymentLauncher".
 lockManager:
   description: Defines the Lock manager application
+  name: Lock Manager
+  id: lock-manager
   location:
-    gitRepository: git://127.0.0.1/pit-toolkit.git
-    gitRef: ${{ env.PIT_TOOLKIT_BRANCH }}
-  deploymentLauncher: lock-manager/deployment/pit/deploy.sh
+    type: REMOTE
+    gitRepository: http://127.0.0.1:/pit-toolkit.git
+  deploymentLauncher: deployment/pit/deploy.sh
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 testSuites:
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for standalone Node 1
     id: testset-node-1-default
-    location.type: LOCAL # Optional. Defaults to 'LOCAL' - the definition is taken from this file
+    location:
+      type: LOCAL # Optional. Defaults to 'LOCAL' - the definition is taken from this file
 
     lock:
       timeout: 1h
@@ -37,11 +40,16 @@ testSuites:
     deployment:
       graph:
         testApp:
-          componentName: Test App for Node 1
-          location.type: LOCAL # optional, defautls to 'LOCAL'
-          deploymentLauncher: pit-test-app/deployment/pit/deploy.sh
+          name: Test App for Node 1
+          id: node-1-test-app
+          location:
+            type: LOCAL # optional, defautls to 'LOCAL'
+            path: node-1/pit-test-app
+          deploymentLauncher: deployment/pit/deploy.sh
 
         components:
-          - componentName: Node 1"
-            location.type: LOCAL
+          - name: Node 1
+            id: node-1
+            location:
+              type: LOCAL
             deploymentLauncher: deployment/pit/deploy.sh
