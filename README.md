@@ -103,17 +103,20 @@ trigger:
 # through which to kick start the deployment. See "deploymentLauncher".
 lockManager:
   description: Defines the Lock manager application
+  name: Lock Manager
+  id: lock-manager
   location:
-    gitRepository: git://127.0.0.1/pit-toolkit.git
-    gitRef: ${{ env.PIT_TOOLKIT_BRANCH }}
-  deploymentLauncher: deployment/pit/lock-manager/deploy.sh
+    type: REMOTE
+    gitRepository: http://127.0.0.1:/pit-toolkit.git
+  deploymentLauncher: deployment/pit/deploy.sh
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 testSuites:
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for standalone Talos Certifier
     id: testset-talos-certifier-default
-    location.type: LOCAL # Optional. Defaults to 'LOCAL' - the definition is taken from this file
+    location:
+      type: LOCAL # Optional. Defaults to 'LOCAL' - the definition is taken from this file
 
     lock:
       timeout: 1h
@@ -124,18 +127,21 @@ testSuites:
       graph:
         testApp:
           componentName: Talos Certifier Test App
-          location.type: LOCAL # optional, defautls to 'LOCAL'
+          location:
+            type: LOCAL # optional, defautls to 'LOCAL'
           deploymentLauncher: deployment/talos-certifier-test-app/pit/deploy.sh
 
         components:
           - componentName: Talos Certifier"
             # Lets assume that pipeline fired as a result of push into Talos Certifier project
-            location.type: LOCAL
+            location:
+              type: LOCAL
             deploymentLauncher: deployment/talos-certifier/pit/deploy.sh
 
           - componentName: Talos Replicator
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
-            location.type: LOCAL
+            location:
+              type: LOCAL
             deploymentLauncher: deployment/talos-replicator/pit/deploy.sh
 
           - componentName: Some Other Component
@@ -166,8 +172,121 @@ testSuites:
 | Directory | Description |
 |-----------|-------------|
 | `lock-manager/` | The lock management application |
+| `lock-manager/deployment/helm` | The deployment configs for K8s |
+| `lock-manager/deployment/pit` | The deployment logic |
 | `k8s-deployer/` | The deployment utility for apps designed to run in K8s clusters |
+| `k8s-deployer/tmp` | Temporary directory which is used when running local deployer during development |
 | `examples/graph-node-1/` | The example of application integrated with PIT |
-| `examples/graph-node-1/deployment/` | The deployment configs for K8s |
+| `examples/graph-node-1/deployment/helm` | The deployment configs for K8s |
+| `examples/graph-node-1/deployment/pit` | The deployment logic |
 | `examples/graph-node-1/pit-test-app/` | The example PIT Test Appliction for component named 'graph-node-1' |
-| `examples/graph-node-1/pit-test-app/deployment/` | The deployment configs for K8s |
+| `examples/graph-node-1/pit-test-app/deployment/helm` | The deployment configs for K8s |
+| `examples/graph-node-1/pit-test-app/deployment/pit` | The deployment logic |
+
+# Local development
+
+## Preprequisites:
+
+- Docker is installed and available globally as `docker`
+- Helm is installed and available globally as `helm`
+- Kubectl is installed and available globally as `kubectl`
+- Local K8s cluster is setup
+- There is namespace "dev" or any other matching variable .env/K8S_NAMESPACE
+- RSync is installed and available globally as `rsync`
+- Node 16.13.2 (or compatible) is installed
+- Git is installed and available globally as `git`
+- The following ports are free:
+  - 60001 lock manager,
+  - 62001 node-1,
+  - 62002 node-1-test-app.
+
+## Build docker images
+
+### Image for Lock Manager
+
+```bash
+cd lock-manager/
+
+# Make sure there is lock-manager/.env with the following variables:
+# - REGISTRY_URL=ksp
+# - IMAGE_TAG= # can be any value or script reading current commit-sha: IMAGE_TAG=$(git rev-parse --short HEAD)
+npm run dev-build-image
+```
+
+### Image for Node-1 sample component
+
+```bash
+cd examples/node-1/
+
+# Make sure there is examples/node-1/.env with the following variables (see Lock Manager info)
+npm run dev-build-image
+```
+
+### Image for example Test application targetting Node-1 sample component
+
+```bash
+cd examples/node-1/pit-test-app
+
+# .env file is used from the parent directory (node-1)
+npm run dev-build-image
+```
+
+# Deploy to k8s
+## Manually deploy to local kubernetes cluster under "dev" namespace
+
+```bash
+cd pit-toolkit/
+
+# Deploying Lock manager
+
+# Make sure there is lock-manager/.env file with the following variables:
+# - K8S_NAMESPACE=dev
+# - REGISTRY_URL=ksp
+# - IMAGE_TAG=$(git rev-parse --short HEAD)
+# - SERVICE_NAME=lock-manager
+# - SERVICE_PORT=60001
+make deploy.lock-manager
+
+# Deploying node-1 and node-1-test-app
+
+# Make sure there is examples/node-1/.env file with the following variables:
+# - K8S_NAMESPACE=dev
+# - REGISTRY_URL=ksp
+# - IMAGE_TAG=$(git rev-parse --short HEAD)
+# - SERVICE_NAME=node-1
+# - SERVICE_PORT=62001
+# - TEST_APP_SERVICE_NAME=node-1-test-app
+# - TEST_APP_SERVICE_PORT=62002
+
+make deploy.node-1
+make deploy.node-1-test-app
+
+# check
+helm -n dev list
+kubectl -n dev get pods
+```
+## Deploy to local kubernetes using k8s-deployer app
+
+This is main approach intented to be used on CIs. For example, when we need to trigger tests on commit into some project integrated with PIT there will be some pipeline implemented on CI which will start executing as a result of push commit into GIT repo.
+
+It is ispected that CI will check out project into some temporary directory and launch k8s-deployer app. Below are instructions how to simluate this scenario locally.
+
+```bash
+cd pit-toolkit/k8s-deploy
+
+# Make sure there are docker images in your local registry:
+# - ksp/lock-manager:<tag>
+# - ksp/node-1:<tag>
+# - ksp/node-1-test-app:<tag>
+# where <tag> is value from .env/IMAGE_TAG of the corresponding project.
+
+mkdir ./tmp
+
+# Parameters:
+#   1: Temporary directory which will be used by k8s-deployer
+#   2: Path to application under test. This is application whose pitfile will be processed.
+#      It is expected that there is "pitfile.yml" at the root of the project,
+#      such as "$(pwd)/examples/node-1/pitfile.yml".
+npm run dev.start-example $(pwd)/tmp $(pwd)/examples/node-1
+
+```
