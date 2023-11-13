@@ -27,6 +27,14 @@ const waitForLogFile = async (logFile: string, timeoutMs: number): Promise<fs.pr
   }
 }
 
+const isExecutable = async (filePath: string) => {
+  try {
+    await fs.promises.access(filePath, fs.constants.X_OK)
+  } catch (e) {
+      throw new Error(`There is no ${filePath} or it is not executable.`, { cause: e })
+  }
+}
+
 const monitorProgress = async (logFile: string, startedAt: number, deploymentTimeoutMs: number) => {
   let stopLineFound = false
   let logFileHandle = await waitForLogFile(logFile, 3000)
@@ -77,19 +85,46 @@ const monitorProgress = async (logFile: string, startedAt: number, deploymentTim
   }
 }
 
-const deployApplication = async (appName: string, appDirectory: string, deploymentLauncher: string) => {
+const deployApplication = async (appName: string, appDirectory: string, instructions: pitfile.DeployInstructions) => {
   const startedAt = new Date().getTime()
   const logFileName = `${appName}-deploy.log`
   const logFile = `${appDirectory}/${logFileName}`
 
+  await isExecutable(`${appDirectory}/${instructions.command}`)
+
   try {
     // Invoke deployment script
-    Shell.exec(`cd ${appDirectory}; ${deploymentLauncher} ${STATUS_DONE} ${STATUS_ERROR} > ./${logFileName} 2>&1`)
+    Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR} > ./${logFileName} 2>&1`)
   } catch (e) {
-    throw new Error(`Error invoking deployment launcher: '${deploymentLauncher}'`, { cause: e })
+    throw new Error(`Error invoking deployment launcher: '${instructions.command}'`, { cause: e })
   }
 
-  await monitorProgress(logFile, startedAt, 60_000)
+  await monitorProgress(logFile, startedAt, (instructions.timeoutSeconds || 60) * 1_000)
+
+  if (!instructions.statusCheck) return
+
+  await isExecutable(`${appDirectory}/${instructions.statusCheck.command}`)
+  const timeoutSeconds = instructions.statusCheck.timeoutSeconds || 60
+  logger.info("Invoking %s for \"%s\" with timeout of %s seconds", instructions.statusCheck.command, appName, timeoutSeconds)
+  const checkStartedAt = new Date().getTime()
+  while (true) {
+    const sleep = new Promise(resolve => setTimeout(resolve, 5_000))
+    await sleep
+
+    const elapsed = new Date().getTime() - checkStartedAt
+    if (elapsed >= instructions.statusCheck.timeoutSeconds * 1_000) {
+      throw new Error(`Timeout while checking for ready status of ${appName}. See logs for details.`)
+    }
+    try {
+      const checkLog = Shell.execSync(`cd ${appDirectory}; ${instructions.statusCheck.command}`)
+      logger.info("Success", checkLog)
+      logger.info("Output: %s", checkLog)
+      break
+    } catch (e) {
+      // Not paniking yet, keep trying
+      logger.info(e)
+    }
+  }
 }
 
 const deployLockManager = async (spec: pitfile.LockManager) => {
@@ -105,7 +140,7 @@ const deployLockManager = async (spec: pitfile.LockManager) => {
     logger.info("\n%s", Shell.execSync(`rsync -avhq --delete --executability ../../../${appDirectory} .`))
   }
 
-  await deployApplication("lock-manager", appDirectory, spec.deploymentLauncher)
+  await deployApplication("lock-manager", appDirectory, spec.deploy)
 }
 
 const deployComponent = async (spec: pitfile.DeployableComponent) => {
@@ -116,7 +151,7 @@ const deployComponent = async (spec: pitfile.DeployableComponent) => {
     appDir = spec.location.path
   }
 
-  await deployApplication(spec.id, appDir, spec.deploymentLauncher)
+  await deployApplication(spec.id, appDir, spec.deploy)
 }
 
 export { deployLockManager, deployComponent, deployApplication }

@@ -108,7 +108,16 @@ lockManager:
   location:
     type: REMOTE
     gitRepository: http://127.0.0.1:/pit-toolkit.git
-  deploymentLauncher: deployment/pit/deploy.sh
+  deploy:
+    timeoutSeconds: 60 # Optional. Defaults to 60 sec
+    command: deployment/pit/deploy.sh
+    # PIT has no knowledge how to check whether deployment went well
+    # When using helm for deployment, even if deployment of chart was successful
+    # there could be problems creating pods and getting them into healthy state. App developer is encouraged
+    # to implement more thorough checking rather than just "helm -n <NS> list | grep ...".
+    statusCheck:
+      timeoutSeconds: 60 # Optional. Defaults to 60 sec
+      command: deployment/pit/is-deployment-ready.sh
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 testSuites:
@@ -129,20 +138,29 @@ testSuites:
           componentName: Talos Certifier Test App
           location:
             type: LOCAL # optional, defautls to 'LOCAL'
-          deploymentLauncher: deployment/talos-certifier-test-app/pit/deploy.sh
+          deploy:
+            command: deployment/talos-certifier-test-app/pit/deploy.sh
+            statusCheck:
+              command: deployment/talos-certifier-test-app/pit/is-deployment-ready.sh
 
         components:
           - componentName: Talos Certifier"
             # Lets assume that pipeline fired as a result of push into Talos Certifier project
             location:
               type: LOCAL
-            deploymentLauncher: deployment/talos-certifier/pit/deploy.sh
+            deploy:
+              command: deployment/talos-certifier/pit/deploy.sh
+              statusCheck:
+                command: deployment/talos-certifier/pit/is-deployment-ready.sh
 
           - componentName: Talos Replicator
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
             location:
               type: LOCAL
-            deploymentLauncher: deployment/talos-replicator/pit/deploy.sh
+            deploy:
+              command: deployment/talos-replicator/pit/deploy.sh
+              statusCheck:
+                command: deployment/talos-replicator/pit/is-deployment-ready.sh
 
           - componentName: Some Other Component
             # This is an example how to define the remote component
@@ -150,7 +168,9 @@ testSuites:
               type: REMOTE
               gitRepository: git://127.0.0.1/some-other-component.git
               gitRef: # Optional, defaults to "refs/remotes/origin/master"
-            deploymentLauncher: deployment/pit/deploy.sh
+            deploy:
+              command: deployment/pit/deploy.sh
+
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for Talos Certifier integrated with Messenger
     id: testset-talos-certifier-and-messenger

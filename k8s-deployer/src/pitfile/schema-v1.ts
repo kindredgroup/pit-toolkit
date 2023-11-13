@@ -28,12 +28,29 @@ export class Location {
   gitRef?: string
 }
 
+/**
+ * PIT has no knowledge how to check whether deployment went well. When using helm for deployment,
+ * even if deployment of chart was successful there could be problems creating pods and getting them
+ * into healthy state.
+ * App developer is encouraged to implement more thorough checking rather than just "helm -n <NS> list | grep ...".
+ */
+export class StatusCheck {
+  timeoutSeconds?: number
+  command: string
+}
+
+export class DeployInstructions {
+  timeoutSeconds?: number
+  command: string
+  statusCheck?: StatusCheck
+}
+
 export class LockManager {
   name: string
   id: string
   description: string
   location: Location
-  deploymentLauncher: string
+  deploy: DeployInstructions
 }
 
 // Test suite
@@ -47,7 +64,7 @@ export class DeployableComponent {
   name: string
   id: string
   location: Location
-  deploymentLauncher: string
+  deploy: DeployInstructions
 }
 
 export class Graph {
