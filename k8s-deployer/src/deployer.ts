@@ -146,10 +146,7 @@ const deployLockManager = async (spec: pitfile.LockManager) => {
 const deployComponent = async (spec: pitfile.DeployableComponent) => {
   // TODO: check location
 
-  let appDir = spec.id
-  if (spec.location.path) {
-    appDir = spec.location.path
-  }
+  let appDir = spec.location.path || spec.id
 
   await deployApplication(spec.id, appDir, spec.deploy)
 }
