@@ -4,6 +4,7 @@ import { logger } from "./logger.js"
 import * as Shell from "child_process"
 import * as fs from "fs"
 import { open } from "fs/promises"
+import { Config } from "./config.js"
 
 const STATUS_DONE = "Status=DONE"
 const STATUS_ERROR = "Status=ERROR"
@@ -33,6 +34,13 @@ const isExecutable = async (filePath: string) => {
   } catch (e) {
       throw new Error(`There is no ${filePath} or it is not executable.`, { cause: e })
   }
+}
+
+const cloneFromGit = (application: string, location: pitfile.Location, targetDirectory: string) => {
+  logger.info("The '%s' will be copied from '%s' into %s' using '%s'", application, location.gitRepository, targetDirectory, location.gitRef)
+  logger.info("\n%s",
+    Shell.execSync(`k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`)
+  )
 }
 
 const monitorProgress = async (logFile: string, startedAt: number, deploymentTimeoutMs: number) => {
@@ -94,6 +102,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
 
   try {
     // Invoke deployment script
+    logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR} > ./${logFileName} 2>&1`)
   } catch (e) {
     throw new Error(`Error invoking deployment launcher: '${instructions.command}'`, { cause: e })
@@ -105,7 +114,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
 
   await isExecutable(`${appDirectory}/${instructions.statusCheck.command}`)
   const timeoutSeconds = instructions.statusCheck.timeoutSeconds || 60
-  logger.info("Invoking %s for \"%s\" with timeout of %s seconds", instructions.statusCheck.command, appName, timeoutSeconds)
+  logger.info("Invoking '%s/%s' for '%s' with timeout of %s seconds", appDirectory, instructions.statusCheck.command, appName, timeoutSeconds)
   const checkStartedAt = new Date().getTime()
   while (true) {
     const sleep = new Promise(resolve => setTimeout(resolve, 5_000))
@@ -127,26 +136,29 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
   }
 }
 
-const deployLockManager = async (spec: pitfile.LockManager) => {
-  if (spec.location.type === pitfile.LocationType.Local) {
-    logger.info("deploying Lock Manager from local sources")
-  } else {
-    logger.info("deploying Lock Manager from '%s' using '%s'", spec.location.gitRepository, spec.location.gitRef)
+const deployLockManager = async () => {
+  const spec: pitfile.LockManager = {
+    name: "Lock Manager",
+    id: "lock-manager",
+    deploy: {
+      command: "deployment/pit/deploy.sh",
+      statusCheck: {
+        command: "deployment/pit/is-deployment-ready.sh"
+      }
+    }
   }
 
-  const appDirectory = "lock-manager"
-  if (process.env["PIT_DEV_MODE"]) {
-    logger.info("PIT_DEV_MODE is on. Lock Manager will be copied from project root")
-    logger.info("\n%s", Shell.execSync(`rsync -avhq --delete --executability ../../../${appDirectory} .`))
-  }
-
-  await deployApplication("lock-manager", appDirectory, spec.deploy)
+  await deployApplication(spec.id, spec.id, spec.deploy)
 }
 
-const deployComponent = async (spec: pitfile.DeployableComponent) => {
-  // TODO: check location
-
-  let appDir = spec.location.path || spec.id
+const deployComponent = async (config: Config, spec: pitfile.DeployableComponent) => {
+  const locationType = spec.location.type || pitfile.LocationType.Local
+  let appDir = spec.id
+  if (locationType === pitfile.LocationType.Remote) {
+    cloneFromGit(spec.id, spec.location, appDir)
+  } else {
+    appDir = spec.location.path || spec.id
+  }
 
   await deployApplication(spec.id, appDir, spec.deploy)
 }

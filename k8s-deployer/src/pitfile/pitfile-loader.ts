@@ -3,6 +3,9 @@ import YAML from "yaml"
 
 import { logger } from "../logger.js"
 import * as SchemaV1 from "./schema-v1.js"
+import { type } from "os"
+
+const DEFAULT_GIT_REFERENCE = "refs/remotes/origin/master"
 
 const applyEnvironment = (expression: string): string => {
   let foundVariables = []
@@ -46,6 +49,39 @@ const applyEnvironmentToLocation = (location: SchemaV1.Location): SchemaV1.Locat
   return result
 }
 
+const applyDefaultsToLocation = (name: string, input: SchemaV1.Location): SchemaV1.Location => {
+  let location = !input ? new SchemaV1.Location() : {...input}
+
+  if (!location.type) {
+    location.type = SchemaV1.LocationType.Local
+  } else if (location.type === SchemaV1.LocationType.Remote) {
+    if (!location.gitRepository) {
+      throw new Error(`Invalid configiuration for '${name}'. The 'location.gitRepository' is required when location.type is ${SchemaV1.LocationType.Remote}`)
+    }
+    if (!location.gitRef) {
+      location.gitRef = DEFAULT_GIT_REFERENCE
+    }
+  }
+
+  return applyEnvironmentToLocation(location)
+}
+
+const applyDefaults = (file: SchemaV1.PitFile): SchemaV1.PitFile => {
+  const result = {...file}
+  for (const testSuite of result.testSuites) {
+    testSuite.location = applyDefaultsToLocation(testSuite.id, testSuite.location)
+
+    const testApp = testSuite.deployment.graph.testApp
+    testApp.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph."${testApp.id}"`, testApp.location)
+
+    for (const component of testSuite.deployment.graph.components) {
+      component.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph.components."${component.id}"`, component.location)
+    }
+  }
+
+  return result
+}
+
 const loadFromFile = async (filePath: string): Promise<SchemaV1.PitFile> => {
   try {
       await fs.promises.access(filePath, fs.constants.R_OK)
@@ -57,10 +93,9 @@ const loadFromFile = async (filePath: string): Promise<SchemaV1.PitFile> => {
   }
 
   const parsedPitFile: SchemaV1.PitFile = YAML.parse(fs.readFileSync(filePath, "utf8"))
-  logger.debug("parsedPitFile: \n%s", JSON.stringify(parsedPitFile, null, 2))
-  parsedPitFile.lockManager.location = applyEnvironmentToLocation(parsedPitFile.lockManager.location)
+  logger.info("parsedPitFile: \n%s", JSON.stringify(parsedPitFile, null, 2))
 
-  return parsedPitFile
+  return applyDefaults(parsedPitFile)
 }
 
 export { loadFromFile }

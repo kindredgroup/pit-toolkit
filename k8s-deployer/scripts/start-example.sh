@@ -18,10 +18,12 @@ EXAMPLES_TEMP_DIR=$1
 # The project where push happened. For example directory pointing to node-1 in the examples.
 PROJECT_DIR=$2
 PROJECT_ROOT=$(pwd)
+APP_NAME=$(basename $PROJECT_DIR)
 
 echo "EXAMPLES_TEMP_DIR=$EXAMPLES_TEMP_DIR"
 echo "PROJECT_DIR=$PROJECT_DIR"
 echo "Current director is \"$PROJECT_ROOT\""
+echo "Application under test is \"$APP_NAME\""
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then
@@ -42,16 +44,42 @@ EXAMPLES_TEMP_DIR=$(pwd)
 CI_HOME_DIR=$EXAMPLES_TEMP_DIR/ci-home
 mkdir -p $CI_HOME_DIR
 
+
+
 # Lets simulate the checkout of project as it is done by CI
 
 clear='\033[0m'
+green='\033[1;32m'
 grey='\033[0;90m'
+
+echo -e "${green}"
+echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+
+echo "simulating CI activity: checkout of k8s-deployer app"
+echo -e "${grey}"
+rsync -avhq --delete --executability $PROJECT_ROOT/../k8s-deployer $CI_HOME_DIR/
+ls -lah $CI_HOME_DIR
+
+echo -e "${green}"
+echo "simulating CI activity: checkout of lock-manager app"
+echo -e "${grey}"
+rsync -avhq --delete --executability $PROJECT_ROOT/../lock-manager $CI_HOME_DIR/
+ls -lah $CI_HOME_DIR
+
+echo -e "${green}"
+echo "simulating CI activity: checkout of $APP_NAME app"
 echo -e "${grey}"
 rsync -avhq --delete --executability $PROJECT_DIR $CI_HOME_DIR/
+ls -lah $CI_HOME_DIR
+
+echo -e "${green}"
+echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+echo ""
+echo "Launching k8s-deployer"
+echo ""
 echo -e "${clear}"
 
 cd $CI_HOME_DIR
-APP_NAME=$(basename $PROJECT_DIR)
 node $PROJECT_ROOT/dist/index.js --workspace $CI_HOME_DIR --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml
 returnStatus=$(($?+0))
 

@@ -47,18 +47,19 @@ then
   exit $returnStatus
 fi
 
-cp -R $PROJECT_DIR/ $TMP_PATH/
+rsync -avhq --executability --exclude node_modules --exclude dist --exclude tmp $PROJECT_DIR/ $TMP_PATH/
 cd $TMP_PATH
-git checkout -b master
-git add --all
-git commit -a -m "Initial commit"
+git checkout -b master && git add --all && git commit -a -m "Initial commit" 1> /dev/null
 
 cd ..
 mv ./tmp/.git .git
 rm -rf ./tmp
 cd .git
-git config core.bare true
+git config --bool core.bare true
 
 cd $CURRENT_DIR
 
+echo ""
+echo "Launching git server. Checkout your project from git://127.0.0.1:${PORT}/$(basename $PROJECT_DIR).git"
+echo ""
 git daemon --export-all --port=$PORT --base-path=$GIT_SERVER_HOME

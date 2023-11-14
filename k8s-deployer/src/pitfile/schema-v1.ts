@@ -22,7 +22,7 @@ export enum LocationType {
 }
 
 export class Location {
-  type: LocationType = LocationType.Local
+  type: LocationType
   path?: string
   gitRepository?: string
   gitRef?: string
@@ -46,10 +46,9 @@ export class DeployInstructions {
 }
 
 export class LockManager {
+  enabled?: boolean
   name: string
   id: string
-  description: string
-  location: Location
   deploy: DeployInstructions
 }
 
