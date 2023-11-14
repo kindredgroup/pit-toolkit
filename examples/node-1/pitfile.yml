@@ -1,4 +1,3 @@
-projectName: Node Example 1
 version: "1.0"
 
 trigger:
@@ -48,3 +47,10 @@ testSuites:
               statusCheck:
                 timeoutSeconds: 60
                 command: deployment/pit/is-deployment-ready.sh
+
+  - name: K6 testset for Node 1
+    id: node-1-k6-tests
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1:60100/graph-perf-test-app.git
+    testSuiteIds: [] # Empty array is interpreted as "run all tests"

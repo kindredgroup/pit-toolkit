@@ -3,10 +3,14 @@ import YAML from "yaml"
 
 import { logger } from "../logger.js"
 import * as SchemaV1 from "./schema-v1.js"
-import { type } from "os"
 
 const DEFAULT_GIT_REFERENCE = "refs/remotes/origin/master"
 
+/**
+ * The pattern for environment variable injection is "{{ env.VARIABLE_NAME }}"
+ * @param expression containing injection pattern.
+ * @returns expression with substituted value instead of env variable.
+ */
 const applyEnvironment = (expression: string): string => {
   let foundVariables = []
   let iteration = 0

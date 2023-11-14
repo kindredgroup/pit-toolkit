@@ -80,7 +80,6 @@ The responsibilities of all mentioned components are defined as:
 ## Example of specification YAML
 
 ```YAML
-projectName: Talos Certifier
 version: "1.0"
 
 trigger:
