@@ -2,8 +2,14 @@
 
 # Checks for pods to become available in the namespace
 
+NS=$1
+
 set -o allexport
 source ../.env
+if [ "$NS" != "" ];
+then
+  K8S_NAMESPACE="$NS"
+fi
 set +o allexport
 
 readyReplicas=$(\

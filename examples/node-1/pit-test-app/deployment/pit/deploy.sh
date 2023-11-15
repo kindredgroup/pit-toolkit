@@ -2,10 +2,15 @@
 
 STATUS_DONE=$1
 STATUS_ERROR=$2
+NS=$3
 
 set -o allexport
 source ../.env
 echo ""
+if [ "$NS" != "" ];
+then
+  K8S_NAMESPACE="$NS"
+fi
 set +o allexport
 
 # echo "D: ----------------------------"

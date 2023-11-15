@@ -4,7 +4,8 @@ import YAML from "yaml"
 import { logger } from "../logger.js"
 import * as SchemaV1 from "./schema-v1.js"
 
-const DEFAULT_GIT_REFERENCE = "refs/remotes/origin/master"
+export const DEFAULT_GIT_REFERENCE = "refs/remotes/origin/master"
+export const DEFAULT_PITFILE_NAME = "pitfile.yml"
 
 /**
  * The pattern for environment variable injection is "{{ env.VARIABLE_NAME }}"
@@ -75,11 +76,13 @@ const applyDefaults = (file: SchemaV1.PitFile): SchemaV1.PitFile => {
   for (const testSuite of result.testSuites) {
     testSuite.location = applyDefaultsToLocation(testSuite.id, testSuite.location)
 
-    const testApp = testSuite.deployment.graph.testApp
-    testApp.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph."${testApp.id}"`, testApp.location)
+    if (testSuite.location.type === SchemaV1.LocationType.Local) {
+      const testApp = testSuite.deployment.graph.testApp
+      testApp.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph."${testApp.id}"`, testApp.location)
 
-    for (const component of testSuite.deployment.graph.components) {
-      component.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph.components."${component.id}"`, component.location)
+      for (const component of testSuite.deployment.graph.components) {
+        component.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph.components."${component.id}"`, component.location)
+      }
     }
   }
 
@@ -97,9 +100,11 @@ const loadFromFile = async (filePath: string): Promise<SchemaV1.PitFile> => {
   }
 
   const parsedPitFile: SchemaV1.PitFile = YAML.parse(fs.readFileSync(filePath, "utf8"))
-  logger.info("parsedPitFile: \n%s", JSON.stringify(parsedPitFile, null, 2))
+  logger.debug("parsedPitFile: \n%s", JSON.stringify(parsedPitFile, null, 2))
 
   return applyDefaults(parsedPitFile)
 }
 
-export { loadFromFile }
+export {
+  loadFromFile
+}

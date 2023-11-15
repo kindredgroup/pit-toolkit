@@ -14,4 +14,5 @@ const logger = createLogger({
     ],
 })
 
+export const LOG_SEPARATOR_LINE = "* * * * * * * * * * * * *"
 export { logger }

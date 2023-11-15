@@ -26,6 +26,7 @@ export class Location {
   path?: string
   gitRepository?: string
   gitRef?: string
+  pitFile?: string
 }
 
 /**

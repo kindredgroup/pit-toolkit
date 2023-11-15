@@ -1,10 +1,9 @@
-import * as pitfile from "./pitfile/schema-v1.js"
 import { logger } from "./logger.js"
+import * as SchemaV1 from "./pitfile/schema-v1.js"
 
 import * as Shell from "child_process"
 import * as fs from "fs"
 import { open } from "fs/promises"
-import { Config } from "./config.js"
 
 const STATUS_DONE = "Status=DONE"
 const STATUS_ERROR = "Status=ERROR"
@@ -36,7 +35,7 @@ const isExecutable = async (filePath: string) => {
   }
 }
 
-const cloneFromGit = (application: string, location: pitfile.Location, targetDirectory: string) => {
+const cloneFromGit = (application: string, location: SchemaV1.Location, targetDirectory: string) => {
   logger.info("The '%s' will be copied from '%s' into %s' using '%s'", application, location.gitRepository, targetDirectory, location.gitRef)
   logger.info("\n%s",
     Shell.execSync(`k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`)
@@ -93,7 +92,7 @@ const monitorProgress = async (logFile: string, startedAt: number, deploymentTim
   }
 }
 
-const deployApplication = async (appName: string, appDirectory: string, instructions: pitfile.DeployInstructions) => {
+const deployApplication = async (appName: string, appDirectory: string, instructions: SchemaV1.DeployInstructions, namespace?: string) => {
   const startedAt = new Date().getTime()
   const logFileName = `${appName}-deploy.log`
   const logFile = `${appDirectory}/${logFileName}`
@@ -103,7 +102,11 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
   try {
     // Invoke deployment script
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
-    Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR} > ./${logFileName} 2>&1`)
+    if (namespace) {
+      Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR} ${namespace}> ./${logFileName} 2>&1`)
+    } else {
+      Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR}> ./${logFileName} 2>&1`)
+    }
   } catch (e) {
     throw new Error(`Error invoking deployment launcher: '${instructions.command}'`, { cause: e })
   }
@@ -125,7 +128,13 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
       throw new Error(`Timeout while checking for ready status of ${appName}. See logs for details.`)
     }
     try {
-      const checkLog = Shell.execSync(`cd ${appDirectory}; ${instructions.statusCheck.command}`)
+      let checkLog: Buffer
+      if (namespace) {
+        checkLog = Shell.execSync(`cd ${appDirectory}; ${instructions.statusCheck.command} ${namespace}`)
+      } else {
+        checkLog = Shell.execSync(`cd ${appDirectory}; ${instructions.statusCheck.command}`)
+      }
+
       logger.info("Success", checkLog)
       logger.info("Output: %s", checkLog)
       break
@@ -137,7 +146,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
 }
 
 const deployLockManager = async () => {
-  const spec: pitfile.LockManager = {
+  const spec: SchemaV1.LockManager = {
     name: "Lock Manager",
     id: "lock-manager",
     deploy: {
@@ -151,16 +160,21 @@ const deployLockManager = async () => {
   await deployApplication(spec.id, spec.id, spec.deploy)
 }
 
-const deployComponent = async (config: Config, spec: pitfile.DeployableComponent) => {
-  const locationType = spec.location.type || pitfile.LocationType.Local
-  let appDir = spec.id
-  if (locationType === pitfile.LocationType.Remote) {
+const deployComponent = async (workspace: string, spec: SchemaV1.DeployableComponent, namespace: string) => {
+  const locationType = spec.location.type || SchemaV1.LocationType.Local
+  let appDir = `${workspace}/${spec.id}`
+  if (locationType === SchemaV1.LocationType.Remote) {
     cloneFromGit(spec.id, spec.location, appDir)
   } else {
     appDir = spec.location.path || spec.id
   }
 
-  await deployApplication(spec.id, appDir, spec.deploy)
+  await deployApplication(spec.id, appDir, spec.deploy, namespace)
 }
 
-export { deployLockManager, deployComponent, deployApplication }
+export {
+  cloneFromGit,
+  deployApplication,
+  deployComponent,
+  deployLockManager
+}
