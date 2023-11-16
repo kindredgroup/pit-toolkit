@@ -83,6 +83,8 @@ export class TestSuite {
   lock?: Lock
   trigger?: Trigger
   deployment: Deployment
+  lockManagerPort?: number
+  testSuiteIds: [string] | undefined
 }
 
 // End of Test suite

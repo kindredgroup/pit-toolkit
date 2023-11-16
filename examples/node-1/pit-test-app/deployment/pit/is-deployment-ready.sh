@@ -12,6 +12,8 @@ then
 fi
 set +o allexport
 
+echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
+
 readyReplicas=$(\
   kubectl -n ${K8S_NAMESPACE} get deployments \
     -l app.kubernetes.io/name=${TEST_APP_SERVICE_NAME} \

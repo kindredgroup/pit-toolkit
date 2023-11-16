@@ -1,8 +1,9 @@
-import { Config } from "./config.js"
+import { Config, DEFAULT_NAMESPACE_TIMEOUT } from "./config.js"
 import { logger } from "./logger.js"
 
 const PARAM_WORKSPACE = "--workspace"
 const PARAM_PITFILE = "--pitfile"
+const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -23,7 +24,16 @@ const readParams = (): Config => {
       throw new Error(`Missing required parameter: "${ PARAM_WORKSPACE }"`)
   }
 
-  return { workspace, pitfile: params.get(PARAM_PITFILE), params }
+  const nsTimeout = params.get(PARAM_NAMESPACE_TIMEOUT)
+  let namespaceTimeoutSeconds = DEFAULT_NAMESPACE_TIMEOUT
+  if (nsTimeout?.trim().length > 0) {
+    namespaceTimeoutSeconds = parseInt(nsTimeout)
+    if (isNaN(namespaceTimeoutSeconds)) {
+      throw new Error(`Invalid value "${nsTimeout}" for parameter "${ PARAM_NAMESPACE_TIMEOUT }"`)
+    }
+  }
+
+  return { namespaceTimeoutSeconds, workspace, pitfile: params.get(PARAM_PITFILE), params }
 }
 
 export {

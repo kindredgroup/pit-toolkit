@@ -13,6 +13,8 @@ then
 fi
 set +o allexport
 
+echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
+
 # echo "D: ----------------------------"
 # env | sort
 # echo "D: ----------------------------"

@@ -2,12 +2,25 @@
 
 STATUS_DONE=$1
 STATUS_ERROR=$2
+NS=$3
+PORT=$4
 
 cat .env
 set -o allexport
 source .env
+if [ "$NS" != "" ];
+then
+  K8S_NAMESPACE="$NS"
+fi
+if [ "$PORT" != "" ];
+then
+  SERVICE_PORT="$PORT"
+fi
 echo ""
 set +o allexport
+
+echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
+echo "SERVICE_PORT=${SERVICE_PORT}"
 
 # echo "D: ----------------------------"
 # env | sort

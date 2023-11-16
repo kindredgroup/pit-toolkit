@@ -2,7 +2,7 @@ version: "1.0"
 lockManager:
   enabled: true
 testSuites:
-  - name:
+  - name: "K6 tests for 'GET /test'"
     id: node-1-k6-tests
     lock:
       timeout: 1h

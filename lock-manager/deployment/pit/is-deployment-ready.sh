@@ -2,9 +2,18 @@
 
 # Checks for pods to become available in the namespace
 
+NS=$1
+
 set -o allexport
 source .env
+if [ "$NS" != "" ];
+then
+  K8S_NAMESPACE="$NS"
+fi
 set +o allexport
+
+echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
+echo "SERVICE_PORT=${SERVICE_PORT}"
 
 readyReplicas=$(\
   kubectl -n ${K8S_NAMESPACE} get deployments \

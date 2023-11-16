@@ -19,6 +19,7 @@ testSuites:
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for standalone Node 1
     id: testset-node-1-default
+    lockManagerPort: 63001
     lock:
       timeout: 1h
       ids: [ lock-node-1 ]
@@ -50,6 +51,7 @@ testSuites:
 
   - name: K6 testset for Node 1
     id: node-1-k6-tests
+    lockManagerPort: 63002
     location:
       type: REMOTE
       gitRepository: git://127.0.0.1:60100/graph-perf-test-app.git

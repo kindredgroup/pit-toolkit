@@ -1,31 +1,9 @@
 import { logger } from "./logger.js"
 import * as SchemaV1 from "./pitfile/schema-v1.js"
+import * as TailLog from "./tail-log.js"
 
 import * as Shell from "child_process"
 import * as fs from "fs"
-import { open } from "fs/promises"
-
-const STATUS_DONE = "Status=DONE"
-const STATUS_ERROR = "Status=ERROR"
-
-const waitForLogFile = async (logFile: string, timeoutMs: number): Promise<fs.promises.FileHandle> => {
-  const startedAt = new Date().getTime()
-  let logFileHandle: fs.promises.FileHandle
-  while (!logFileHandle) {
-    const sleep = new Promise(resolve => setTimeout(resolve, 500))
-    await sleep
-    try {
-      logFileHandle = await open(logFile)
-      return logFileHandle
-    } catch (e) {
-      const elapsed = new Date().getTime() - startedAt
-      if (elapsed >= timeoutMs) {
-        throw new Error(`No log file found after ${elapsed}ms. Expected file at: ${logFile}`)
-      }
-      logger.info("Still waiting for %s...", logFile)
-    }
-  }
-}
 
 const isExecutable = async (filePath: string) => {
   try {
@@ -42,57 +20,7 @@ const cloneFromGit = (application: string, location: SchemaV1.Location, targetDi
   )
 }
 
-const monitorProgress = async (logFile: string, startedAt: number, deploymentTimeoutMs: number) => {
-  let stopLineFound = false
-  let logFileHandle = await waitForLogFile(logFile, 3000)
-  let deploymentError = false
-  let printedLines = 0
-  const watcher: fs.FSWatcher = fs.watch(logFile, async (_event) => {
-    try {
-      const logContent = fs.readFileSync(logFile).toString("utf-8")
-      const lines = logContent.split("\n")
-      for (let lineNr = printedLines; lineNr < lines.length; lineNr++) {
-        printedLines = lineNr
-
-        const line = lines[lineNr]
-        if (line === STATUS_DONE) {
-          stopLineFound = true
-          return
-        }
-        if (line == STATUS_ERROR) {
-          stopLineFound = true
-          deploymentError = true
-          return
-        }
-        if (line.toLowerCase().startsWith("error:")) {
-          logger.error("%s", line)
-        } else {
-          logger.info("%s", line)
-        }
-      }
-    } catch (e) {
-      logger.error("Error processing file watcher event")
-      logger.error(e)
-    }
-  })
-
-  while (!stopLineFound) {
-    const elapsed = new Date().getTime() - startedAt
-    if (elapsed >= deploymentTimeoutMs) {
-      throw new Error(`Timeout deploying app. Waited for: ${elapsed}ms. See log for more details: '${logFile}'`)
-    }
-    const sleep = new Promise(resolve => setTimeout(resolve, 1000))
-    await sleep
-  }
-  logFileHandle?.close()
-  watcher?.close()
-
-  if (deploymentError) {
-    throw new Error(`Error deploying app, see log for more details: '${logFile}'`)
-  }
-}
-
-const deployApplication = async (appName: string, appDirectory: string, instructions: SchemaV1.DeployInstructions, namespace?: string) => {
+const deployApplication = async (appName: string, appDirectory: string, instructions: SchemaV1.DeployInstructions, namespace?: string, servicePort?: number) => {
   const startedAt = new Date().getTime()
   const logFileName = `${appName}-deploy.log`
   const logFile = `${appDirectory}/${logFileName}`
@@ -103,15 +31,19 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
     // Invoke deployment script
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     if (namespace) {
-      Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR} ${namespace}> ./${logFileName} 2>&1`)
+      if (servicePort) {
+        Shell.exec(`cd ${appDirectory}; ${instructions.command} ${TailLog.STATUS_DONE} ${TailLog.STATUS_ERROR} ${namespace} ${servicePort} > ./${logFileName} 2>&1`)
+      } else {
+        Shell.exec(`cd ${appDirectory}; ${instructions.command} ${TailLog.STATUS_DONE} ${TailLog.STATUS_ERROR} ${namespace} > ./${logFileName} 2>&1`)
+      }
     } else {
-      Shell.exec(`cd ${appDirectory}; ${instructions.command} ${STATUS_DONE} ${STATUS_ERROR}> ./${logFileName} 2>&1`)
+      Shell.exec(`cd ${appDirectory}; ${instructions.command} ${TailLog.STATUS_DONE} ${TailLog.STATUS_ERROR} > ./${logFileName} 2>&1`)
     }
   } catch (e) {
     throw new Error(`Error invoking deployment launcher: '${instructions.command}'`, { cause: e })
   }
 
-  await monitorProgress(logFile, startedAt, (instructions.timeoutSeconds || 60) * 1_000)
+  await TailLog.monitorProgress(logFile, startedAt, (instructions.timeoutSeconds || 60) * 1_000)
 
   if (!instructions.statusCheck) return
 
@@ -135,8 +67,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
         checkLog = Shell.execSync(`cd ${appDirectory}; ${instructions.statusCheck.command}`)
       }
 
-      logger.info("Success", checkLog)
-      logger.info("Output: %s", checkLog)
+      logger.info("Success")
       break
     } catch (e) {
       // Not paniking yet, keep trying
@@ -145,7 +76,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
   }
 }
 
-const deployLockManager = async () => {
+const deployLockManager = async (namespace: string, servicePort: number) => {
   const spec: SchemaV1.LockManager = {
     name: "Lock Manager",
     id: "lock-manager",
@@ -157,16 +88,21 @@ const deployLockManager = async () => {
     }
   }
 
-  await deployApplication(spec.id, spec.id, spec.deploy)
+  await deployApplication(spec.id, spec.id, spec.deploy, namespace, servicePort)
 }
 
 const deployComponent = async (workspace: string, spec: SchemaV1.DeployableComponent, namespace: string) => {
-  const locationType = spec.location.type || SchemaV1.LocationType.Local
   let appDir = `${workspace}/${spec.id}`
-  if (locationType === SchemaV1.LocationType.Remote) {
+  if (spec.location.type === SchemaV1.LocationType.Remote) {
     cloneFromGit(spec.id, spec.location, appDir)
   } else {
-    appDir = spec.location.path || spec.id
+    if (spec.location.path) {
+      appDir = spec.location.path
+      logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
+    } else {
+      appDir = spec.id
+      logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
+    }
   }
 
   await deployApplication(spec.id, appDir, spec.deploy, namespace)
