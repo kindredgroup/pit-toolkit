@@ -1,5 +1,8 @@
 #!/bin/bash
 
+STATUS_DONE="Status=DONE"
+STATUS_ERROR="Status=ERROR"
+
 k=$(which kubectl)
 if [ "${k}" == "" ]
 then
@@ -12,8 +15,6 @@ PARENT_NS=$1
 ACTION=$2
 NS=$3
 TIMEOUT_SECONDS=$4
-STATUS_DONE=$5
-STATUS_ERROR=$6
 
 if [ "${PARENT_NS}" == "" ];
 then

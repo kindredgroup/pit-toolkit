@@ -2,13 +2,13 @@
 
 # Checks for pods to become available in the namespace
 
-NS=$1
+OVERWRITE_K8S_NAMESPACE=$1
 
 set -o allexport
 source .env
-if [ "$NS" != "" ];
+if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
-  K8S_NAMESPACE="$NS"
+  K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
 fi
 set +o allexport
 

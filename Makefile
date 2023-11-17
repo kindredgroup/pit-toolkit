@@ -66,6 +66,7 @@ deploy.graph-perf-test-app:
 		set -o allexport; source .env-tmp; set +o allexport; rm .env-tmp; \
 		echo "Deploying $$SERVICE_NAME".; \
 		CHART_PACKAGE="$$SERVICE_NAME-0.1.0.tgz"; \
+		K8S_NAMESPACE="ns1105-2e1-1"; \
 		helm package ./deployment/helm --debug --app-version=$$IMAGE_TAG; \
 		helm upgrade --install \
 			--timeout 60s \
@@ -75,6 +76,6 @@ deploy.graph-perf-test-app:
 			--set service.port=$$SERVICE_PORT \
 			--set environment.TARGET_SERVICE_URL="http://$$SERVICE_NAME_NODE_1:$$SERVICE_PORT_NODE_1" \
 			$$SERVICE_NAME ./$$CHART_PACKAGE; \
-			rm $$CHART_PACKAGE; \
-		sleep 10; \
-		kubectl -n $$K8S_NAMESPACE port-forward service/$$SERVICE_NAME $$SERVICE_PORT:http'
+			rm $$CHART_PACKAGE'
+		#sleep 10; \
+		#kubectl -n $$K8S_NAMESPACE port-forward service/$$SERVICE_NAME $$SERVICE_PORT:http'

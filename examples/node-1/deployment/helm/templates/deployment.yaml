@@ -22,7 +22,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-              #hostPort: {{ .Values.service.port }}
           resources:
             limits:
               cpu: "1"

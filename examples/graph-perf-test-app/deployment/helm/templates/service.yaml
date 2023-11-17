@@ -5,11 +5,16 @@ metadata:
   labels:
     {{- include "application.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  # type: ClusterIP
+  # ports:
+  #   - port: {{ .Values.service.port }}
+  #     targetPort: http
+  #     protocol: TCP
+  #     name: http
+  type: NodePort
   ports:
     - port: {{ .Values.service.port }}
       targetPort: http
-      protocol: TCP
-      name: http
+      #nodePort: {{ .Values.service.port }}
   selector:
     {{- include "application.selectorLabels" . | nindent 4 }}

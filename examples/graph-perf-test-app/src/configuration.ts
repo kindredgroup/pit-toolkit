@@ -20,7 +20,11 @@ const getParam = (name: String, defaultValue: string | number): string | number 
   logger.info("Cannot find parameter '%s'. Reading environment varialbe: %s", name, envName)
 
   const envValue = process.env[envName]
-  if (!envValue) return defaultValue
+  if (!envValue) {
+    logger.warn("Env variable not found: '%s'", envName)
+    logger.warn(process.env)
+    return defaultValue
+  }
 
   if (typeof(defaultValue) == 'string') return envValue + ""
   const numValue = parseInt(envValue)

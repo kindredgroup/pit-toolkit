@@ -1,15 +1,15 @@
 #!/bin/bash
 
-STATUS_DONE=$1
-STATUS_ERROR=$2
-NS=$3
+STATUS_DONE="Status=DONE"
+STATUS_ERROR="Status=ERROR"
+OVERWRITE_K8S_NAMESPACE=$1
 
 set -o allexport
 source ../.env
 echo ""
-if [ "$NS" != "" ];
+if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
-  K8S_NAMESPACE="$NS"
+  K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
 fi
 set +o allexport
 

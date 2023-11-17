@@ -33,7 +33,7 @@ const deployGraph = async (graph: SchemaV1.Graph, workspace: string, namespace: 
 }
 
 const downloadRemotePitFile = async (testSuite: SchemaV1.TestSuite, destination: string): Promise<SchemaV1.PitFile> => {
-  Deployer.cloneFromGit(testSuite.name, testSuite.location, destination)
+  await Deployer.cloneFromGit(testSuite.name, testSuite.location, destination)
   logger.info("Loading pitfile from remote test suite '%s'", testSuite.name)
   const pitFileName = testSuite.location.pitFile || PifFileLoader.DEFAULT_PITFILE_NAME
   // TODO how to add test app directory name here??
@@ -108,6 +108,7 @@ const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile,
   const remotePitFile = await downloadRemotePitFile(testSuite, destination)
 
   // Extract test suites from remote file where IDs are matching definition of local ones
+  // and deploy them one by one
   for (let subSeqNr = 0; subSeqNr < remotePitFile.testSuites.length; subSeqNr++) {
     const remoteTestSuite = remotePitFile.testSuites[subSeqNr]
     const ids = testSuite.testSuiteIds || []
@@ -117,10 +118,9 @@ const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile,
       continue
     }
 
-    const combinedSeqNumber = `${seqNumber}s${(subSeqNr+1)}`
+    const combinedSeqNumber = `${seqNumber}e${(subSeqNr+1)}`
     remoteTestSuite.lockManagerPort = testSuite.lockManagerPort
     const testAppDirForRemoteTestSuite = destination
-    logger.info("testAppDirForRemoteTestSuite='%s'", testAppDirForRemoteTestSuite)
     await deploy(config, pitfile, combinedSeqNumber, remoteTestSuite, workspace, testAppDirForRemoteTestSuite)
   }
 }

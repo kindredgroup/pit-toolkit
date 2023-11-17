@@ -1,20 +1,20 @@
 #!/bin/bash
 
-STATUS_DONE=$1
-STATUS_ERROR=$2
-NS=$3
-PORT=$4
+STATUS_DONE="Status=DONE"
+STATUS_ERROR="Status=ERROR"
+OVERWRITE_K8S_NAMESPACE=$1
+OVERWRITE_SERVICE_PORT=$2
 
 cat .env
 set -o allexport
 source .env
-if [ "$NS" != "" ];
+if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
-  K8S_NAMESPACE="$NS"
+  K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
 fi
-if [ "$PORT" != "" ];
+if [ "$OVERWRITE_SERVICE_PORT" != "" ];
 then
-  SERVICE_PORT="$PORT"
+  SERVICE_PORT="$OVERWRITE_SERVICE_PORT"
 fi
 echo ""
 set +o allexport
