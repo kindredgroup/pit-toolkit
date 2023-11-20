@@ -43,6 +43,7 @@ export class StatusCheck {
 export class DeployInstructions {
   timeoutSeconds?: number
   command: string
+  params?: [string]
   statusCheck?: StatusCheck
 }
 
@@ -83,7 +84,6 @@ export class TestSuite {
   lock?: Lock
   trigger?: Trigger
   deployment: Deployment
-  lockManagerPort?: number
   testSuiteIds: [string] | undefined
 }
 

@@ -22,7 +22,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-              hostPort: {{ .Values.service.port }}
           resources:
             limits:
               cpu: "1"
@@ -30,3 +29,6 @@ spec:
             requests:
               cpu: "1"
               memory: "128Mi"
+          env:
+            - name: SERVICE_PORT
+              value: "{{ .Values.service.port }}"

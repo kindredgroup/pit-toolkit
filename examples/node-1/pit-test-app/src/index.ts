@@ -1,5 +1,5 @@
 import fetch from "node-fetch"
-import express, { Express, Request, Response, response } from 'express'
+import express, { Express, Request, Response } from 'express'
 
 import { logger } from "./logger.js"
 import * as ConfigReader from "./configuration.js"

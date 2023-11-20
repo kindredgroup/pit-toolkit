@@ -3,7 +3,7 @@
 STATUS_DONE="Status=DONE"
 STATUS_ERROR="Status=ERROR"
 OVERWRITE_K8S_NAMESPACE=$1
-OVERWRITE_SERVICE_PORT=$2
+WEB_APP_CONTEXT_ROOT=$2
 
 cat .env
 set -o allexport
@@ -12,15 +12,11 @@ if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
   K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
 fi
-if [ "$OVERWRITE_SERVICE_PORT" != "" ];
-then
-  SERVICE_PORT="$OVERWRITE_SERVICE_PORT"
-fi
 echo ""
 set +o allexport
 
 echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
-echo "SERVICE_PORT=${SERVICE_PORT}"
+echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
 
 # echo "D: ----------------------------"
 # env | sort
@@ -35,6 +31,7 @@ helm upgrade --install \
   --set image.tag=$IMAGE_TAG \
   --set pod.repository=$REGISTRY_URL/$SERVICE_NAME \
   --set service.port=$SERVICE_PORT \
+  --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \
   $SERVICE_NAME ./$CHART_PACKAGE
 returnStatus=$(($?+0))
 rm $CHART_PACKAGE

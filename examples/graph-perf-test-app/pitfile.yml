@@ -17,6 +17,8 @@ testSuites:
             type: LOCAL
           deploy:
             command: deployment/pit/deploy.sh
+            params:
+              - 'node-1' # The name of target service. Deployer will compose it into the full URL
             statusCheck:
               command: deployment/pit/is-deployment-ready.sh
         components:

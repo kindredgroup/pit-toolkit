@@ -7,7 +7,7 @@ import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as k8s from "./k8s.js"
 
-const deployGraph = async (graph: SchemaV1.Graph, workspace: string, namespace: string, testAppDirForRemoteTestSuite?: string) => {
+const deployGraph = async (testSuiteId: string, graph: SchemaV1.Graph, workspace: string, namespace: string, testAppDirForRemoteTestSuite?: string) => {
   for (let i = 0; i < graph.components.length; i++) {
     const comonentSpec = graph.components[i]
     logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, comonentSpec.name)
@@ -28,7 +28,8 @@ const deployGraph = async (graph: SchemaV1.Graph, workspace: string, namespace: 
     )
     graph.testApp.location.path = testAppDirForRemoteTestSuite
   }
-  await Deployer.deployComponent(workspace, graph.testApp, namespace)
+  const params = [ testSuiteId ]
+  await Deployer.deployComponent(workspace, graph.testApp, namespace, params)
   logger.info("")
 }
 
@@ -56,11 +57,11 @@ const createWorkspace = async (path: string, suiteName: string) => {
   fs.mkdirSync(path)
 }
 
-const deployLockManager = async (isEnabled: boolean, namespace: string, lockManagerPort: number) => {
+const deployLockManager = async (isEnabled: boolean, namespace: string) => {
   if (isEnabled) {
-    logger.info("%s Deploying 'Lock Manager' on port %s %s", LOG_SEPARATOR_LINE, lockManagerPort, LOG_SEPARATOR_LINE)
+    logger.info("%s Deploying 'Lock Manager' %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
     logger.info("")
-    await Deployer.deployLockManager(namespace, lockManagerPort)
+    await Deployer.deployLockManager(namespace)
     logger.info("")
   } else {
     logger.info("%s The 'Lock Manager' will not be deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
@@ -80,9 +81,9 @@ const deploy = async (
   const namespace = await k8s.generateNamespaceName(seqNumber)
   await k8s.createNamespace(namespace, config.namespaceTimeoutSeconds, workspace)
 
-  await deployLockManager(pitfile.lockManager.enabled, namespace, testSuite.lockManagerPort)
+  await deployLockManager(pitfile.lockManager.enabled, namespace)
 
-  await deployGraph(testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
+  await deployGraph(testSuite.id, testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
 }
 
 const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile, seqNumber: string, testSuite: SchemaV1.TestSuite) => {
@@ -119,7 +120,6 @@ const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile,
     }
 
     const combinedSeqNumber = `${seqNumber}e${(subSeqNr+1)}`
-    remoteTestSuite.lockManagerPort = testSuite.lockManagerPort
     const testAppDirForRemoteTestSuite = destination
     await deploy(config, pitfile, combinedSeqNumber, remoteTestSuite, workspace, testAppDirForRemoteTestSuite)
   }

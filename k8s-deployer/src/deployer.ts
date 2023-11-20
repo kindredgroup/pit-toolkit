@@ -4,6 +4,12 @@ import * as Shell2 from "./shell-facade.js"
 
 import * as fs from "fs"
 
+export class DeployOptions {
+  namespace?: string
+  servicePort?: number
+  deployerParams?: Array<string>
+}
+
 const isExecutable = async (filePath: string) => {
   try {
     await fs.promises.access(filePath, fs.constants.X_OK)
@@ -19,15 +25,32 @@ const cloneFromGit = async (application: string, location: SchemaV1.Location, ta
   )
 }
 
-const deployApplication = async (appName: string, appDirectory: string, instructions: SchemaV1.DeployInstructions, namespace?: string, servicePort?: number) => {
+const deployApplication = async (
+  appName: string,
+  appDirectory: string,
+  instructions: SchemaV1.DeployInstructions,
+  options?: DeployOptions) => {
   await isExecutable(`${appDirectory}/${instructions.command}`)
 
   try {
     // Invoke deployment script
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     let command = instructions.command
-    if (namespace) command = `${command} ${namespace}`
-    if (servicePort) command = `${command} ${servicePort}`
+    if (options?.namespace) command = `${command} ${options.namespace}`
+    if (options?.servicePort) command = `${command} ${options.servicePort}`
+
+    const allParams = new Array()
+    // first pass params delcared in the pitfile
+    if (instructions.params) {
+      instructions.params.forEach(v => allParams.push(v))
+    }
+    // then pass additional params computed by deployer
+    if (options?.deployerParams) {
+      options.deployerParams.forEach(v => allParams.push(v))
+    }
+    for (let param of allParams) {
+      command = `${command} ${param}`
+    }
 
     const timeoutMs = instructions.timeoutSeconds * 1_000
     const logFileName = `${appName}-deploy.log`
@@ -62,7 +85,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
 
     try {
       let command = instructions.statusCheck.command
-      if (namespace) command = `${command} ${namespace}`
+      if (options?.namespace) command = `${command} ${options?.namespace}`
       await Shell2.exec(command, { homeDir: appDirectory })
 
       logger.info("Success")
@@ -74,7 +97,7 @@ const deployApplication = async (appName: string, appDirectory: string, instruct
   }
 }
 
-const deployLockManager = async (namespace: string, servicePort: number) => {
+const deployLockManager = async (namespace: string) => {
   const spec: SchemaV1.LockManager = {
     name: "Lock Manager",
     id: "lock-manager",
@@ -86,10 +109,14 @@ const deployLockManager = async (namespace: string, servicePort: number) => {
     }
   }
 
-  await deployApplication(spec.id, spec.id, spec.deploy, namespace, servicePort)
+  await deployApplication(spec.id, spec.id, spec.deploy, { namespace, deployerParams: [ 'lock-manager' ] })
 }
 
-const deployComponent = async (workspace: string, spec: SchemaV1.DeployableComponent, namespace: string) => {
+const deployComponent = async (
+    workspace: string,
+    spec: SchemaV1.DeployableComponent,
+    namespace: string,
+    deployerParams?: Array<string>) => {
   let appDir = `${workspace}/${spec.id}`
   if (spec.location.type === SchemaV1.LocationType.Remote) {
     await cloneFromGit(spec.id, spec.location, appDir)
@@ -103,7 +130,7 @@ const deployComponent = async (workspace: string, spec: SchemaV1.DeployableCompo
     }
   }
 
-  await deployApplication(spec.id, appDir, spec.deploy, namespace)
+  await deployApplication(spec.id, appDir, spec.deploy, { namespace, deployerParams })
 }
 
 export {

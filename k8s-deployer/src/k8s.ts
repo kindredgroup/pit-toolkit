@@ -10,7 +10,7 @@ const withLeadingZero = (value: number): string => {
 const generateNamespaceName = async (seqNumber: string, attempt?: number) => {
   const date = new Date()
   const attemptNr = attempt || 1
-  const namespace = `ns${withLeadingZero(date.getMonth()+1)}${withLeadingZero(date.getDay())}-${seqNumber}-${attemptNr}`
+  const namespace = `ns${withLeadingZero(date.getMonth()+1)}${withLeadingZero(date.getDate())}-${seqNumber}-${attemptNr}`
   return namespace
 }
 
