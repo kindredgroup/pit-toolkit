@@ -58,7 +58,7 @@ export class LockManager {
 // - - - - - - - - - - - - - - - - - - - - - -
 export class Lock {
   timeout: string
-  ids: [string]
+  ids: Array<string>
 }
 
 export class DeployableComponent {

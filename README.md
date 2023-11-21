@@ -140,6 +140,9 @@ testSuites:
             type: LOCAL # optional, defautls to 'LOCAL'
           deploy:
             command: deployment/talos-certifier-test-app/pit/deploy.sh
+            params: # Optional command line parameters
+              - param1
+              - param2
             statusCheck:
               command: deployment/talos-certifier-test-app/pit/is-deployment-ready.sh
 
@@ -197,12 +200,15 @@ testSuites:
 | `lock-manager/deployment/pit` | The deployment logic |
 | `k8s-deployer/` | The deployment utility for apps designed to run in K8s clusters |
 | `k8s-deployer/tmp` | Temporary directory which is used when running local deployer during development |
-| `examples/graph-node-1/` | The example of application integrated with PIT |
-| `examples/graph-node-1/deployment/helm` | The deployment configs for K8s |
-| `examples/graph-node-1/deployment/pit` | The deployment logic |
-| `examples/graph-node-1/pit-test-app/` | The example PIT Test Appliction for component named 'graph-node-1' |
-| `examples/graph-node-1/pit-test-app/deployment/helm` | The deployment configs for K8s |
-| `examples/graph-node-1/pit-test-app/deployment/pit` | The deployment logic |
+| `examples/node-1/` | The example of application integrated with PIT |
+| `examples/node-1/deployment/helm` | The deployment configs for K8s |
+| `examples/node-1/deployment/pit` | The deployment logic |
+| `examples/node-1/pit-test-app/` | The example PIT Test Appliction for component named 'graph-node-1' |
+| `examples/node-1/pit-test-app/deployment/helm` | The deployment configs for K8s |
+| `examples/node-1/pit-test-app/deployment/pit` | The deployment logic |
+| `examples/graph-perf-test-app/` | The example of project where more complex tests are defined in their own pitfile. |
+| `examples/graph-perf-test-app/deployment/helm` | The deployment configs for K8s |
+| `examples/graph-perf-test-app/deployment/pit` | The deployment logic |
 
 # Local development
 
@@ -216,10 +222,7 @@ testSuites:
 - RSync is installed and available globally as `rsync`
 - Node 16.13.2 (or compatible) is installed
 - Git is installed and available globally as `git`
-- The following ports are free:
-  - 60001 lock manager,
-  - 62001 node-1,
-  - 62002 node-1-test-app.
+- The port 80 is free. Port 80 is used by ingress controller in your local desktop-docker.
 
 ## Build docker images
 
@@ -239,7 +242,14 @@ npm run dev-build-image
 ```bash
 cd examples/node-1/
 
-# Make sure there is examples/node-1/.env with the following variables (see Lock Manager info)
+# Make sure there is examples/node-1/.env with the following variables
+# - K8S_NAMESPACE=dev
+# - REGISTRY_URL=ksp
+# - IMAGE_TAG= # can be any value or script reading current commit-sha: IMAGE_TAG=$(git rev-parse --short HEAD)
+# - SERVICE_NAME=node-1
+# - SERVICE_PORT=62001
+# - TEST_APP_SERVICE_NAME=node-1-test-app
+# - TEST_APP_SERVICE_PORT=62002
 npm run dev-build-image
 ```
 
@@ -249,6 +259,22 @@ npm run dev-build-image
 cd examples/node-1/pit-test-app
 
 # .env file is used from the parent directory (node-1)
+npm run dev-build-image
+```
+### Image for standalone example Test application targetting Node-1 sample component
+
+```bash
+cd examples/graph-perf-test-app
+
+# Make sure there is examples/graph-perf-test-app/.env with the following variables
+# - K8S_NAMESPACE=dev
+# - REGISTRY_URL=ksp
+# - SERVICE_NAME=graph-perf-test-app
+# - SERVICE_PORT=32003
+# - IMAGE_TAG= # can be any value or script reading current commit-sha: IMAGE_TAG=$(git rev-parse --short HEAD)
+# The internal port of node-1 app.
+# Must match the value used in "node1/.env" and "node1/deployment/helm#service.port"
+# - TARGET_SERVICE_PORT=62001
 npm run dev-build-image
 ```
 
@@ -326,7 +352,7 @@ Lets expose in local git server on port 60100 (the default)
 # create directory outside of current git project
 mkdir /tmp/remote-sample
 
-# Run git server
+# Run git server for node-1 project
 scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/examples/node-1
 
 Using default port: 60100
@@ -349,5 +375,9 @@ Initialized empty Git repository in /tmp/remote-sample/git-server/node-1.git/tmp
 Switched to a new branch 'master'
 
 Launching git server. Checkout your project from git://127.0.0.1:60100/node-1.git
+```
 
+Similarly run gir server for "remote test app"
+```bash
+scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/examples/graph-perf-test-app
 ```

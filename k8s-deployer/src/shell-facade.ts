@@ -1,8 +1,8 @@
-import { logger } from "./logger.js"
-
 import * as Shell from "node:child_process"
 import * as fs from "fs"
 import { open } from "fs/promises"
+
+import { logger } from "./logger.js"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // These two constants are shared with our 'deployment/pit/deploy.sh' scripts

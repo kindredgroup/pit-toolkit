@@ -1,13 +1,14 @@
 import * as fs from "fs"
 
 import { LOG_SEPARATOR_LINE, logger } from "./logger.js"
-import * as SchemaV1 from "./pitfile/schema-v1.js"
+import { DeployedTestSuite, Namespace, Schema } from "./model.js"
 import * as Deployer from "./deployer.js"
 import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
-import * as k8s from "./k8s.js"
+import * as K8s from "./k8s.js"
+import * as TestRunner from "./test-runner.js"
 
-const deployGraph = async (testSuiteId: string, graph: SchemaV1.Graph, workspace: string, namespace: string, testAppDirForRemoteTestSuite?: string) => {
+const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: string, namespace: Namespace, testAppDirForRemoteTestSuite?: string) => {
   for (let i = 0; i < graph.components.length; i++) {
     const comonentSpec = graph.components[i]
     logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, comonentSpec.name)
@@ -33,7 +34,7 @@ const deployGraph = async (testSuiteId: string, graph: SchemaV1.Graph, workspace
   logger.info("")
 }
 
-const downloadRemotePitFile = async (testSuite: SchemaV1.TestSuite, destination: string): Promise<SchemaV1.PitFile> => {
+const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string): Promise<Schema.PitFile> => {
   await Deployer.cloneFromGit(testSuite.name, testSuite.location, destination)
   logger.info("Loading pitfile from remote test suite '%s'", testSuite.name)
   const pitFileName = testSuite.location.pitFile || PifFileLoader.DEFAULT_PITFILE_NAME
@@ -57,7 +58,7 @@ const createWorkspace = async (path: string, suiteName: string) => {
   fs.mkdirSync(path)
 }
 
-const deployLockManager = async (isEnabled: boolean, namespace: string) => {
+const deployLockManager = async (isEnabled: boolean, namespace: Namespace) => {
   if (isEnabled) {
     logger.info("%s Deploying 'Lock Manager' %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
     logger.info("")
@@ -69,24 +70,31 @@ const deployLockManager = async (isEnabled: boolean, namespace: string) => {
   }
 }
 
-const deploy = async (
+const deployLocal = async (
     config: Config,
-    pitfile: SchemaV1.PitFile,
+    pitfile: Schema.PitFile,
     seqNumber: string,
-    testSuite: SchemaV1.TestSuite,
+    testSuite: Schema.TestSuite,
     workspace: string,
-    testAppDirForRemoteTestSuite?: string) => {
+    testAppDirForRemoteTestSuite?: string): Promise<DeployedTestSuite> => {
   logger.info("%s Processing test suite '%s' %s", LOG_SEPARATOR_LINE, testSuite.name, LOG_SEPARATOR_LINE)
-  logger.info("deploy(): testSuite: '%s', workspace='%s'", testSuite.name, workspace)
-  const namespace = await k8s.generateNamespaceName(seqNumber)
-  await k8s.createNamespace(namespace, config.namespaceTimeoutSeconds, workspace)
+
+  const namespace = await K8s.generateNamespaceName(seqNumber)
+  await K8s.createNamespace(namespace, config.namespaceTimeoutSeconds, workspace)
 
   await deployLockManager(pitfile.lockManager.enabled, namespace)
 
   await deployGraph(testSuite.id, testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
+
+  return { namespace, testSuite }
 }
 
-const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile, seqNumber: string, testSuite: SchemaV1.TestSuite) => {
+const deployRemote = async (
+  config: Config,
+  pitfile: Schema.PitFile,
+  seqNumber: string,
+  testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
+  const list = new Array<DeployedTestSuite>()
   // - - - - - - - - - - - - - - - - - - - - -
   // Prepare destination directory name
   const date = new Date()
@@ -106,7 +114,7 @@ const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile,
   destination = `${destination}/${testSuite.id}`
   // - - - - - - - - - - - - - - - - - - - - -
 
-  const remotePitFile = await downloadRemotePitFile(testSuite, destination)
+  const remotePitFile = await downloadPitFile(testSuite, destination)
 
   // Extract test suites from remote file where IDs are matching definition of local ones
   // and deploy them one by one
@@ -121,17 +129,33 @@ const processRemoteTestSuite = async (config: Config, pitfile: SchemaV1.PitFile,
 
     const combinedSeqNumber = `${seqNumber}e${(subSeqNr+1)}`
     const testAppDirForRemoteTestSuite = destination
-    await deploy(config, pitfile, combinedSeqNumber, remoteTestSuite, workspace, testAppDirForRemoteTestSuite)
+    const summary = await deployLocal(config, pitfile, combinedSeqNumber, remoteTestSuite, workspace, testAppDirForRemoteTestSuite)
+    list.push(summary)
   }
+
+  return list
 }
 
-const processTestSuite = async (config: Config, pitfile: SchemaV1.PitFile, seqNumber: string, testSuite: SchemaV1.TestSuite) => {
-  if (testSuite.location.type === SchemaV1.LocationType.Local) {
+export const deployAll = async (config: Config, pitfile: Schema.PitFile, seqNumber: string, testSuite: Schema.TestSuite) => {
+
+  const deployedSuites = new Array<DeployedTestSuite>()
+  if (testSuite.location.type === Schema.LocationType.Local) {
     const workspace = "."
-    await deploy(config, pitfile, seqNumber, testSuite, workspace)
+    const summary = await deployLocal(config, pitfile, seqNumber, testSuite, workspace)
+    deployedSuites.push(summary)
   } else {
-    await processRemoteTestSuite(config, pitfile, seqNumber, testSuite)
+    const list = await deployRemote(config, pitfile, seqNumber, testSuite)
+    list.forEach(i => deployedSuites.push(i))
   }
+
+  return deployedSuites
 }
 
-export { processTestSuite }
+export const processTestSuite = async (config: Config, pitfile: Schema.PitFile, seqNumber: string, testSuite: Schema.TestSuite) => {
+  // By default assume processing strategy to be "deploy all then run tests one by one"
+  const list = await deployAll(config, pitfile, seqNumber, testSuite)
+
+  logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+
+  await TestRunner.runAll(list)
+}

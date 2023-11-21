@@ -22,7 +22,7 @@ const getParam = (name: String, defaultValue: string | number): string | number 
   const envValue = process.env[envName]
   if (!envValue) {
     logger.warn("Env variable not found: '%s'", envName)
-    logger.warn(process.env)
+    logger.warn(JSON.stringify(process.env, null, 2))
     return defaultValue
   }
 

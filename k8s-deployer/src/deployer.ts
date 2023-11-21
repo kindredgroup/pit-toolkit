@@ -1,11 +1,11 @@
-import { logger } from "./logger.js"
-import * as SchemaV1 from "./pitfile/schema-v1.js"
-import * as Shell2 from "./shell-facade.js"
-
 import * as fs from "fs"
 
+import { logger } from "./logger.js"
+import { Namespace, Schema } from "./model.js"
+import * as Shell from "./shell-facade.js"
+
 export class DeployOptions {
-  namespace?: string
+  namespace?: Namespace
   servicePort?: number
   deployerParams?: Array<string>
 }
@@ -18,17 +18,17 @@ const isExecutable = async (filePath: string) => {
   }
 }
 
-const cloneFromGit = async (application: string, location: SchemaV1.Location, targetDirectory: string) => {
+const cloneFromGit = async (application: string, location: Schema.Location, targetDirectory: string) => {
   logger.info("The '%s' will be copied from '%s' into %s' using '%s'", application, location.gitRepository, targetDirectory, location.gitRef)
   logger.info("\n%s",
-    await Shell2.exec(`k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`)
+    await Shell.exec(`k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`)
   )
 }
 
 const deployApplication = async (
   appName: string,
   appDirectory: string,
-  instructions: SchemaV1.DeployInstructions,
+  instructions: Schema.DeployInstructions,
   options?: DeployOptions) => {
   await isExecutable(`${appDirectory}/${instructions.command}`)
 
@@ -54,7 +54,7 @@ const deployApplication = async (
 
     const timeoutMs = instructions.timeoutSeconds * 1_000
     const logFileName = `${appName}-deploy.log`
-    await Shell2.exec(command, { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: line => {
+    await Shell.exec(command, { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: line => {
       if (line.toLowerCase().startsWith("error:")) {
         logger.error("%s", line)
       } else {
@@ -86,7 +86,7 @@ const deployApplication = async (
     try {
       let command = instructions.statusCheck.command
       if (options?.namespace) command = `${command} ${options?.namespace}`
-      await Shell2.exec(command, { homeDir: appDirectory })
+      await Shell.exec(command, { homeDir: appDirectory })
 
       logger.info("Success")
       break
@@ -97,8 +97,8 @@ const deployApplication = async (
   }
 }
 
-const deployLockManager = async (namespace: string) => {
-  const spec: SchemaV1.LockManager = {
+const deployLockManager = async (namespace: Namespace) => {
+  const spec: Schema.LockManager = {
     name: "Lock Manager",
     id: "lock-manager",
     deploy: {
@@ -114,11 +114,11 @@ const deployLockManager = async (namespace: string) => {
 
 const deployComponent = async (
     workspace: string,
-    spec: SchemaV1.DeployableComponent,
-    namespace: string,
+    spec: Schema.DeployableComponent,
+    namespace: Namespace,
     deployerParams?: Array<string>) => {
   let appDir = `${workspace}/${spec.id}`
-  if (spec.location.type === SchemaV1.LocationType.Remote) {
+  if (spec.location.type === Schema.LocationType.Remote) {
     await cloneFromGit(spec.id, spec.location, appDir)
   } else {
     if (spec.location.path) {
