@@ -17,7 +17,7 @@ const getParam = (name: String, defaultValue: string | number): string | number 
   }
 
   const envName = name.replaceAll("--", "").replaceAll("-", "_").toUpperCase()
-  logger.info("Cannot find parameter '%s'. Reading environment varialbe: %s", name, envName)
+  logger.info("Cannot find parameter '%s'. Reading environment variable: %s", name, envName)
 
   const envValue = process.env[envName]
   if (!envValue) return defaultValue

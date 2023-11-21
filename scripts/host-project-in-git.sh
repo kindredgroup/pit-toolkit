@@ -1,6 +1,6 @@
 #!/bin/bash
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# This scirpts takes pathof the project and exposes it through locally running
+# This script takes pathof the project and exposes it through locally running
 # git server. Useful when testing PIT functionality which expect location.type
 # to be REMOTE.
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

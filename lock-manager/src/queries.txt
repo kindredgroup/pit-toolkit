@@ -1,0 +1,11 @@
+INSERT INTO  keys_holder values  ('265d2770-84ed-11ee-b9d1-0242ac120002','2023-11-16');
+
+DELETE from keys_holder where lock_key='265d2770-84ed-11ee-b9d1-0242ac120002';
+
+ CREATE TABLE IF NOT EXISTS keys_table( 
+   lock_key uuid,
+   expiration timestamptz NOT NULL,
+   created timestamptz NOT NULL,
+   owner varchar NOT NULL,
+   PRIMARY KEY ("lock_key")
+);
