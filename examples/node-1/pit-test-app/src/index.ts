@@ -1,161 +1,25 @@
-import fetch from "node-fetch"
-import express, { Express, Request, Response } from 'express'
+import express, { Express } from 'express'
 
 import { logger } from "./logger.js"
 import * as ConfigReader from "./configuration.js"
+import { WebService } from "./web-api/service.js"
 
 const DEFAULT_PORT = 62002
 const TARGET_SERVICE_URL = "http://localhost"
 
-const collectStats = (stats: any, startedAtMs: number) => {
-  const duration = new Date().getTime() - startedAtMs
-  if (stats.min == -1) {
-    stats.min = duration
-    stats.max = duration
-    stats.avg = duration
-    stats.requests = 1
-    stats.duration = duration
-  } else {
-    stats.requests++
-    stats.min = Math.min(stats.min, duration)
-    stats.max = Math.max(stats.max, duration)
-    stats.duration += duration
-    stats.avg = stats.duration / stats.requests
-  }
-}
-
-const runTests = async (state: any, serviceUrl: string, testName: string, params: any): Promise<any> => {
-  const endpoint = `${ serviceUrl }/${ testName }`
-
-  const startedAt = new Date()
-  const errors = {
-    system: 0,
-    api: 0
-  }
-
-  const stats = { min: -1, max: -1, avg: -1, duration: 0, requests: 0 }
-  const iterationsCount = parseInt(params.iterationsCount)
-  for (let i = 1; i <= iterationsCount; i++) {
-    state.sessions.get(state.sessionId).status = 'RUNNING'
-    try {
-      const start = new Date()
-      const response = await fetch(endpoint)
-      if (!response.ok) {
-        errors.api++
-        continue
-      }
-      collectStats(stats, start.getTime())
-
-      const _data = await response.json()
-      // logger.info("i: %s, data: %s", i, JSON.stringify(_data))
-    } catch (e) {
-      logger.error(e)
-      errors.system++
-    }
-  }
-  const finishedAt = new Date()
-  const report = {
-    startedAt,
-    finishedAt,
-    durationMs: finishedAt.getTime() - startedAt.getTime(),
-    errors,
-    stats
-  }
-
-  return report
-}
-
 const main = async () => {
-  // This is samle Test App, it does not do much of testing, simply calls
-  // some HTTP endpoint
+  const app: Express = express()
+  app.use(express.json())
 
   const targetServiceUrl = ConfigReader.getParam("--target-service-url", TARGET_SERVICE_URL)
+  const _service = new WebService(app, targetServiceUrl as string)
+
   logger.info("Test app will be connecting to: %s", targetServiceUrl)
-
-  const app: Express = express()
-  let globalSessionId = 0
-  const sessions: Map<number, any> = new Map()
-
-  app.get('/report', async (req: Request, res: Response) => {
-    let sessionId: any = req.query["sessionId"]
-    if (!sessionId) {
-      res.status(402).send('Invalid parameter "sessionId"')
-      return
-    }
-
-    sessionId = parseInt(sessionId + "")
-    if (!sessions.has(sessionId)) {
-      res.status(404).send('No such session')
-      return
-    }
-
-    const data = sessions.get(sessionId)
-    if (data.status !== 'COMPLETED') {
-      res.send({ status: data.status })
-    } else {
-      res.send({ status: data.status, report: data.report })
-    }
-  })
-
-  app.get('/status', async (req: Request, res: Response) => {
-    let sessionId: any = req.query["sessionId"]
-    if (!sessionId) {
-      res.status(402).send('Invalid parameter "sessionId"')
-      return
-    }
-
-    sessionId = parseInt(sessionId + "")
-    if (!sessions.has(sessionId)) {
-      res.status(404).send('No such session')
-      return
-    }
-
-    res.send(sessions.get(sessionId))
-  })
-
-  app.get('/start', async (req: Request, res: Response) => {
-    const sessionId = ++globalSessionId
-    const testSuiteName = req.query["testSuite"]
-    const iterationsCount = req.query["iterationsCount"]
-    const sessionMeta = { sessionId, test: { testSuiteName, params: { iterationsCount } } }
-
-    try {
-      sessions.set(sessionId, { status: "PENDING", ...sessionMeta })
-
-      logger.info("Running test: '%s', iterationsCount: %s", testSuiteName, iterationsCount)
-
-      setTimeout(async () => {
-        try {
-          const report = await runTests({ sessions, sessionId }, targetServiceUrl as string, testSuiteName as string, { iterationsCount })
-          sessions.set(sessionId, { status: "COMPLETED", report, ...sessionMeta })
-        } catch (e) {
-          sessions.set(sessionId, { status: "ERROR", error: e.message, ...sessionMeta })
-          logger.error("Message: %s", e.message)
-          if (e.cause) logger.error(e.cause)
-          if (e.stack) logger.error("Stack:\n%s", e.stack)
-        }
-      }, 1)
-
-      res.send({
-        testSuiteName,
-        iterationsCount,
-        sessionId
-      })
-    } catch (e) {
-      sessions.set(sessionId, { status: "ERROR", error: e.message, ...sessionMeta })
-      logger.error("Message: %s", e.message)
-      if (e.cause) logger.error(e.cause)
-      if (e.stack) logger.error("Stack:\n%s", e.stack)
-      res.sendStatus(500)
-    }
-  })
 
   const servicePort = ConfigReader.getParam("--service-port", DEFAULT_PORT)
   app.listen(servicePort, () => {
     logger.info("HTTP server is running at http://localhost:%d", servicePort);
   })
-
-  //logger.info("Finished: \n%s", JSON.stringify(report, null, 2))
 }
 
 main()

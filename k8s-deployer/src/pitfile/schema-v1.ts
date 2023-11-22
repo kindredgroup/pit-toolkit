@@ -1,8 +1,7 @@
-export enum PitFileSchemaVersion {
-  VERSION_1_0 = "1.0"
-}
-
 // Trigger
+
+import { SchemaVersion } from "./version.js"
+
 // - - - - - - - - - - - - - - - - - - - - - -
 export class Filter {
   expressions: [RegExp]
@@ -92,7 +91,7 @@ export class TestSuite {
 
 export class PitFile {
   projectName: string
-  version: PitFileSchemaVersion = PitFileSchemaVersion.VERSION_1_0
+  version = SchemaVersion.VERSION_1_0
 
   trigger?: Trigger
   lockManager: LockManager

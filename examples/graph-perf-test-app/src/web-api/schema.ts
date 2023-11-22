@@ -1,4 +1,4 @@
-import * as report from "./report-schema.js"
+import * as report from "../report/schema-v1.js"
 
 export enum TestStatus {
   PENDING = 'PENDING',
@@ -24,8 +24,15 @@ export class StatusResponse {
   ) {}
 }
 
-export class ReportInfo {
-  constructor(readonly pitTestReport: report.TestScenario, readonly  nativeReport?: any) {}
+export class NativeReport {
+  static fromFile(file: string): NativeReport {
+    return new NativeReport(null, file)
+  }
+  constructor(readonly data?: string, readonly file?: string) {}
+}
+
+export class ReportEnvelope {
+  constructor(readonly pitScenarioReport: report.TestScenario, readonly nativeReport?: NativeReport) {}
 }
 
 export class ReportResponse {
@@ -33,7 +40,7 @@ export class ReportResponse {
     readonly sessionId: string,
     readonly testSuiteId: string,
     readonly status: TestStatus,
-    readonly report?: ReportInfo,
+    readonly data?: ReportEnvelope,
     readonly error?: string
   ) {}
 }

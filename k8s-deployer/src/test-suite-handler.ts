@@ -6,7 +6,7 @@ import * as Deployer from "./deployer.js"
 import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as K8s from "./k8s.js"
-import * as TestRunner from "./test-runner.js"
+import * as TestRunner from "./test-app-client/test-runner.js"
 
 const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: string, namespace: Namespace, testAppDirForRemoteTestSuite?: string) => {
   for (let i = 0; i < graph.components.length; i++) {
@@ -42,7 +42,7 @@ const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string)
   const pitfilePath = `${destination}/${pitFileName}`
 
   const remotePitFile = await PifFileLoader.loadFromFile(pitfilePath)
-  logger.info("\n%s", JSON.stringify(remotePitFile, null, 2))
+  //logger.info("\n%s", JSON.stringify(remotePitFile, null, 2))
 
   return remotePitFile
 }
@@ -86,7 +86,7 @@ const deployLocal = async (
 
   await deployGraph(testSuite.id, testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
 
-  return { namespace, testSuite }
+  return new DeployedTestSuite(namespace, testSuite, workspace)
 }
 
 const deployRemote = async (
@@ -136,7 +136,7 @@ const deployRemote = async (
   return list
 }
 
-export const deployAll = async (config: Config, pitfile: Schema.PitFile, seqNumber: string, testSuite: Schema.TestSuite) => {
+export const deployAll = async (config: Config, pitfile: Schema.PitFile, seqNumber: string, testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
 
   const deployedSuites = new Array<DeployedTestSuite>()
   if (testSuite.location.type === Schema.LocationType.Local) {
@@ -151,11 +151,20 @@ export const deployAll = async (config: Config, pitfile: Schema.PitFile, seqNumb
   return deployedSuites
 }
 
-export const processTestSuite = async (config: Config, pitfile: Schema.PitFile, seqNumber: string, testSuite: Schema.TestSuite) => {
+export const processTestSuite = async (
+  config: Config,
+  pitfile: Schema.PitFile,
+  seqNumber: string,
+  testSuite: Schema.TestSuite) => {
   // By default assume processing strategy to be "deploy all then run tests one by one"
   const list = await deployAll(config, pitfile, seqNumber, testSuite)
 
+  logger.info("")
   logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+  logger.info("")
 
-  await TestRunner.runAll(list)
+  const report = await TestRunner.runAll(list)
+
+  // TODO: do something woth report, otherwise just log it
+  logger.info("\n%s", JSON.stringify(report, null, 2))
 }
