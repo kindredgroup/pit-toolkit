@@ -229,7 +229,7 @@ testSuites:
   - Installing via kubectl plugin named "krew" is not a good idea as it will pull the latest version which might not work. Hense, [install kubectl-hns v0.9.0 plugin via this link](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v0.9.0) following "Manual steps"
     - `HNC_VERSION=v0.9.0 HNC_PLATFORM=darwin_amd64 curl -L https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/download/${HNC_VERSION}/kubectl-hns_${HNC_PLATFORM} -o ./kubectl-hns && chmod +x ./kubectl-hns`
 - Ingress Controller named kubernetes-ingress
-  - All your namespaces are being observed by HNC system. When installing NGINX ingress controller it will create its own namespace and HNC system will complain. TO prevent that we need to exclude namespace used by NGINC insgress controller from HNC.
+  - All your namespaces are being observed by HNC system. When installing NGINX ingress controller it will create its own namespace and HNC system will complain. To prevent that we need to exclude namespace used by NGINX insgress controller from HNC.
   - Use inline editing method: `kubectl edit -n hnc-system deploy hnc-controller-manager` find deployment with name "name: hnc-controller-manager" and add one more entry into the list under `spec/containers/args`. Entry looks like this: `--excluded-namespace=ingress-nginx`
 - The port 80 is free. Port 80 is used by ingress controller in your local desktop-docker.
 
