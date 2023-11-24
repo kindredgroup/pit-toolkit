@@ -222,7 +222,7 @@ testSuites:
 - RSync is installed and available globally as `rsync`
 - Node 16.13.2 (or compatible) is installed
 - Git is installed and available globally as `git`
-- HNC Manager is installed in your local kuberentes. [We need version 0.9.0](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v0.9.0)
+- HNC Manager is installed in your local kubernetes. [We need version 0.9.0](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v0.9.0)
   - Versions 1.0.0 and 1.1.0 are faulty and will not work properly on Mac.
   - Install is easy: `HNC_VERSION=v0.9.0 kubectl apply -f https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/download/${HNC_VERSION}/hnc-manager.yaml`
 - Kubectl plugin named "kubectl-hns" version 0.9.0 is installed on your system.
