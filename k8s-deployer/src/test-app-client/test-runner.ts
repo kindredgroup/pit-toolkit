@@ -13,7 +13,9 @@ export const runAll = async (testSuites: Array<DeployedTestSuite>): Promise<repo
   for (let suite of testSuites) {
     try {
       const reportEnvelope = await runSuite(suite)
-      scenarios.push(reportEnvelope.pitScenarioReport)
+      for (let scenario of reportEnvelope.scenarios) {
+        scenarios.push(scenario)
+      }
 
     } catch (e) {
       logger.error("Error executing test: '%s'", suite.testSuite.id)
@@ -80,7 +82,11 @@ const runSuite = async (spec: DeployedTestSuite): Promise<webapi.ReportEnvelope>
         logger.info("%s", JSON.stringify(nativeReport?.data, null, 2))
 
       } else if (nativeReport?.file) {
-        reportResponse.data.pitScenarioReport.metadata = { nativeReport: { file: nativeReport.file } }
+        for (let scenario of reportResponse.data.scenarios) {
+          scenario.metadata = {
+            nativeReport: { file: nativeReport.file }
+          }
+        }
         await downloadNativeReport(api, testSuiteId, startResult.sessionId, spec.workspace, nativeReport.file)
 
       }

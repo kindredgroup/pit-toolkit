@@ -34,7 +34,7 @@ export class TestStream {
 
 export class TestScenario {
   constructor(
-    readonly id: string,
+    readonly name: string,
     readonly startTime: Date,
     readonly endTime: Date,
     readonly streams: Array<TestStream>

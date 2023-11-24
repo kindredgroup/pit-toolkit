@@ -3,7 +3,7 @@ import * as Shell from "child_process"
 import * as fs from "fs"
 
 import { logger } from "../logger.js"
-import * as webapi from './schema.js'
+import * as webapi from './schema-v1.js'
 import * as k6Adapter from './../report/adapters/k6.js'
 
 export class WebService {
@@ -20,7 +20,7 @@ export class WebService {
   private async postStart(req: Request, res: Response) {
     const sessionId = ++this.globalSessionId
     const startRequest = req.body as webapi.StartRequest
-    const k6ReportFile = `k6-report-${startRequest.testSuiteId}-${sessionId}.json`
+    const k6ReportFile = `./k6-report-${startRequest.testSuiteId}-${sessionId}.json`
     const testScriptFile = `k6-tests/${startRequest.testSuiteId}.js`
     const sessionMeta = { sessionId, testSuiteId: startRequest.testSuiteId, metadata: { testScriptFile, k6ReportFile } }
     this.sessions.set(sessionId, { status: webapi.TestStatus.PENDING, ...sessionMeta })
@@ -30,14 +30,19 @@ export class WebService {
       setTimeout(async () => {
         try {
           this.sessions.get(sessionId).status = webapi.TestStatus.RUNNING
-          const startedAt = new Date()
-          logger.info("%s", Shell.execSync(`scripts/k6-test-runner.sh ./${k6ReportFile} ${testScriptFile}`))
-          const finishedAt = new Date()
+          logger.info("%s", Shell.execSync(`scripts/k6-test-runner.sh ${k6ReportFile} ${testScriptFile}`))
+          const k6ReportContentRaw = fs.readFileSync(`${ k6ReportFile }`).toString("utf-8")
+          let k6ReportContent = null
+          try {
+            k6ReportContent = JSON.parse(k6ReportContentRaw)
+          } catch (e) {
+            logger.warn("\n%s", k6ReportContentRaw)
+            throw new Error(`Unable to parse raw k6 report in '${ k6ReportFile }'`, { cause: e })
+          }
 
-          const k6ReportContent = fs.readFileSync(k6ReportFile).toString("utf-8")
-          const pitTestReport = k6Adapter.convertFrom(startRequest.testSuiteId, startedAt, finishedAt, JSON.parse(k6ReportContent))
+          const scenarios = k6Adapter.convertFrom(k6ReportContent)
 
-          const reportEnvelope = new webapi.ReportEnvelope(pitTestReport, webapi.NativeReport.fromFile(`${k6ReportFile}.tgz`))
+          const reportEnvelope = new webapi.ReportEnvelope(scenarios, webapi.NativeReport.fromFile(`${k6ReportFile}.tgz`))
 
           this.sessions.set(sessionId, { status: webapi.TestStatus.COMPLETED, reportEnvelope, ...sessionMeta })
         } catch (e) {

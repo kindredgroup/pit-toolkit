@@ -36,7 +36,7 @@ export class NativeReport {
 }
 
 export class ReportEnvelope {
-  constructor(readonly pitScenarioReport: report.TestScenario, readonly nativeReport?: NativeReport) {}
+  constructor(readonly scenarios: Array<report.TestScenario>, readonly nativeReport?: NativeReport) {}
 }
 
 export class ReportResponse {

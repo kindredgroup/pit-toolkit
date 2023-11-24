@@ -4,10 +4,17 @@ import { check, fail } from 'k6'
 //"GET /time [10s using 50 users at 500 TPS]"
 export const options = {
   scenarios: {
-    s1: {
+    u5_duration_5s: {
       executor: "constant-arrival-rate",
       duration: '5s', // total duration
-      preAllocatedVUs: 50,
+      preAllocatedVUs: 5,
+      rate: 500, // 500 TPS
+      timeUnit: '1s',
+    },
+    u10_duration_10s: {
+      executor: "constant-arrival-rate",
+      duration: '10s', // total duration
+      preAllocatedVUs: 10,
       rate: 500, // 500 TPS
       timeUnit: '1s',
     },

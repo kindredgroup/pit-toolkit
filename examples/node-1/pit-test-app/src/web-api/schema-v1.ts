@@ -25,7 +25,7 @@ export class StatusResponse {
 }
 
 export class ReportEnvelope {
-  constructor(readonly pitScenarioReport: report.TestScenario) {}
+  constructor(readonly scenarios: Array<report.TestScenario>) {}
 }
 
 export class ReportResponse {

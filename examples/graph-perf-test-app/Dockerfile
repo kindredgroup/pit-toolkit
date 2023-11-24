@@ -3,7 +3,7 @@ FROM node:16.13.2-alpine3.15
 
 COPY --from=k6official /usr/bin/k6 /usr/bin/k6
 
-RUN apk update && apk upgrade && apk add bash
+RUN apk update && apk upgrade && apk add bash && apk add jq
 
 RUN mkdir /app
 

@@ -2,7 +2,7 @@ import { Express, Request, Response, response } from 'express'
 import fetch from "node-fetch"
 
 import { logger } from "../logger.js"
-import * as webapi from './schema.js'
+import * as webapi from './schema-v1.js'
 import * as report from '../report/schema-v1.js'
 
 export class WebService {
@@ -26,11 +26,11 @@ export class WebService {
       logger.info("Running test: '%s'", startRequest.testSuiteId)
       setTimeout(async () => {
         try {
-          const pitTestReport = await this.runTests(
+          const scenarios = await this.runTests(
             startRequest.testSuiteId,
             sessionId,
           )
-          const reportEnvelope = new webapi.ReportEnvelope(pitTestReport)
+          const reportEnvelope = new webapi.ReportEnvelope(scenarios)
           this.sessions.set(sessionId, { status: webapi.TestStatus.COMPLETED, reportEnvelope, ...sessionMeta })
         } catch (e) {
           this.sessions.set(sessionId, { status: webapi.TestStatus.ERROR, error: e.message, ...sessionMeta })
@@ -89,10 +89,10 @@ export class WebService {
     res.json(new webapi.ReportResponse(sessionId, testSuiteId, status, reportEnvelope))
   }
 
-  private async runTests(testSuiteId: string, sessionId: number): Promise<report.TestScenario> {
+  private async runTests(testSuiteId: string, sessionId: number): Promise<Array<report.TestScenario>> {
     this.sessions.get(sessionId).status = webapi.TestStatus.RUNNING
 
-    const testStreams = [
+    const specs = [
       {
         iterations: 100,
         name: "GET /time x 100",
@@ -105,27 +105,26 @@ export class WebService {
       }
     ]
 
-    const streamReports = new Array<report.TestStream>()
-    const startTime = new Date()
+    const scenarios = new Array<report.TestScenario>()
 
-    for (let stream of testStreams) {
+    for (let spec of specs) {
       const startedAt = new Date()
-      const stats = await this.runTestStream(testSuiteId, stream.iterations)
+      const stats = await this.runTestScenario(testSuiteId, spec.iterations)
       const finishedAt = new Date()
 
       const elapsedMs = finishedAt.getTime() - startedAt.getTime()
       const rate = stats.requests / (elapsedMs / 1_000.0)
-      const outcome = rate >= stream.requirements[0].value ? report.TestOutcomeType.PASS : report.TestOutcomeType.FAIL
+      const outcome = rate >= spec.requirements[0].value ? report.TestOutcomeType.PASS : report.TestOutcomeType.FAIL
       const throughput = new report.ScalarMetric("throughput", rate)
-      const streamReport = new report.TestStream(stream.name, stream.requirements, [ throughput ], outcome)
-      streamReports.push(streamReport)
+      const stream = new report.TestStream("default", spec.requirements, [ throughput ], outcome)
+      const scenario = new report.TestScenario(spec.name, startedAt, finishedAt, [ stream ])
+      scenarios.push(scenario)
     }
 
-    const endTime = new Date()
-    return new report.TestScenario(testSuiteId, startTime, endTime, streamReports)
+    return scenarios
   }
 
-  private async runTestStream(_testSuiteId: string, iterationsCount: number): Promise<any> {
+  private async runTestScenario(_testSuiteId: string, iterationsCount: number): Promise<any> {
     const endpoint = `${ this.targetServiceUrl }/time`
     const stats = { min: -1, max: -1, avg: -1, duration: 0, requests: 0 }
     const errors = { system: 0, api: 0 }
