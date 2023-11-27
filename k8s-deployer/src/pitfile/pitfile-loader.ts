@@ -8,7 +8,7 @@ export const DEFAULT_GIT_REFERENCE = "refs/remotes/origin/master"
 export const DEFAULT_PITFILE_NAME = "pitfile.yml"
 
 /**
- * The pattern for environment variable injection is "{{ env.VARIABLE_NAME }}"
+ * The pattern for environment variable injection is "${{ env.VARIABLE_NAME }}"
  * @param expression containing injection pattern.
  * @returns expression with substituted value instead of env variable.
  */
@@ -20,7 +20,7 @@ const applyEnvironment = (expression: string): string => {
       iteration++
       if (iteration > 100) break
 
-      const pattern = /.*(\$\{\{.*env\..*\}\}).*/g
+      const pattern = /.*(\$\{\{\s*env\..*\}\}).*/g
       let result = pattern.exec(expressionToParse)
       if (!(result?.length > 1)) {
           break

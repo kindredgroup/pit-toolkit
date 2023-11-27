@@ -1,5 +1,6 @@
 version: "1.0"
 projectName: "Tests for node-1 app"
+
 trigger:
   description: Runs on any source code change
   name: Detect changes in Node 1 application
@@ -48,6 +49,11 @@ testSuites:
               statusCheck:
                 timeoutSeconds: 60
                 command: deployment/pit/is-deployment-ready.sh
+  - name: Suite with env variables
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1:60100/example-project-${{ env.TEST_SUFFIX }}.git
+      gitRef: refs/remotes/origin/${{   env.TEST_SUFFIX }}
 
   - name: K6 testset for Node 1
     id: node-1-k6-tests

@@ -12,13 +12,24 @@
   "license": "MIT",
   "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
   "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/chai-as-promised": "^7.1.8",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20.8.9",
+    "@types/sinon": "^17.0.2",
+    "c8": "^8.0.1",
+    "chai": "^4.3.10",
+    "chai-as-promised": "^7.1.1",
+    "copyfiles": "^2.4.1",
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1",
     "typescript": "^5.2.2"
   },
   "scripts": {
     "build": "npx tsc",
     "dev.start-example": "npm run build && scripts/start-example.sh $@",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test.copy-resoruces": "copyfiles -u 1 test/**/*.yml dist/test/",
+    "test": "npm run test.copy-resoruces && npm run build && c8 --reporter=html --reporter=text mocha --recursive ./dist/test"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",

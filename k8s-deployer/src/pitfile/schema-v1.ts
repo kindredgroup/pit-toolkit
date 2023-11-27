@@ -95,5 +95,5 @@ export class PitFile {
 
   trigger?: Trigger
   lockManager: LockManager
-  testSuites: [TestSuite]
+  testSuites: Array<TestSuite>
 }

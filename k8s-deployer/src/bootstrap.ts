@@ -1,9 +1,9 @@
 import { Config, DEFAULT_NAMESPACE_TIMEOUT } from "./config.js"
 import { logger } from "./logger.js"
 
-const PARAM_WORKSPACE = "--workspace"
-const PARAM_PITFILE = "--pitfile"
-const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
+export const PARAM_WORKSPACE = "--workspace"
+export const PARAM_PITFILE = "--pitfile"
+export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
