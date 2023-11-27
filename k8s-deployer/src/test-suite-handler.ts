@@ -1,19 +1,21 @@
 import * as fs from "fs"
 
 import { LOG_SEPARATOR_LINE, logger } from "./logger.js"
-import { DeployedTestSuite, Namespace, Schema } from "./model.js"
+import { DeployedComponent, DeployedTestSuite, GraphDeploymentResult, Namespace, Schema } from "./model.js"
 import * as Deployer from "./deployer.js"
 import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
 
-const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: string, namespace: Namespace, testAppDirForRemoteTestSuite?: string) => {
+const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: string, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
+  const deployments: Array<DeployedComponent> = new Array()
   for (let i = 0; i < graph.components.length; i++) {
-    const comonentSpec = graph.components[i]
-    logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, comonentSpec.name)
+    const componentSpec = graph.components[i]
+    logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, componentSpec.name)
     logger.info("")
-    await Deployer.deployComponent(workspace, comonentSpec, namespace)
+    const commitSha = await Deployer.deployComponent(workspace, componentSpec, namespace)
+    deployments.push(new DeployedComponent(commitSha, componentSpec))
   }
   logger.info("")
 
@@ -30,8 +32,9 @@ const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: 
     graph.testApp.location.path = testAppDirForRemoteTestSuite
   }
   const params = [ testSuiteId ]
-  await Deployer.deployComponent(workspace, graph.testApp, namespace, params)
+  const testAppCommitSha = await Deployer.deployComponent(workspace, graph.testApp, namespace, params)
   logger.info("")
+  return new GraphDeploymentResult(deployments, new DeployedComponent(testAppCommitSha, graph.testApp))
 }
 
 const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string): Promise<Schema.PitFile> => {
@@ -84,9 +87,9 @@ const deployLocal = async (
 
   await deployLockManager(pitfile.lockManager.enabled, namespace)
 
-  await deployGraph(testSuite.id, testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
+  const deployedGraph = await deployGraph(testSuite.id, testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
 
-  return new DeployedTestSuite(namespace, testSuite, workspace)
+  return new DeployedTestSuite(namespace, testSuite, workspace, deployedGraph)
 }
 
 const deployRemote = async (
@@ -136,7 +139,11 @@ const deployRemote = async (
   return list
 }
 
-export const deployAll = async (config: Config, pitfile: Schema.PitFile, seqNumber: string, testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
+export const deployAll = async (
+  config: Config,
+  pitfile: Schema.PitFile,
+  seqNumber: string,
+  testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
 
   const deployedSuites = new Array<DeployedTestSuite>()
   if (testSuite.location.type === Schema.LocationType.Local) {
@@ -163,8 +170,5 @@ export const processTestSuite = async (
   logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
   logger.info("")
 
-  const report = await TestRunner.runAll(list)
-
-  // TODO: do something woth report, otherwise just log it
-  logger.info("\n%s", JSON.stringify(report, null, 2))
+  await TestRunner.runAll(list)
 }

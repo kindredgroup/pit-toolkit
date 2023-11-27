@@ -31,8 +31,21 @@ export class NativeReport {
   constructor(readonly data?: string, readonly file?: string) {}
 }
 
+export class ExecutedTestScenario {
+  metadata: Object = {}
+
+  constructor(
+    readonly name: string,
+    readonly startTime: Date,
+    readonly endTime: Date,
+    readonly streams: Array<report.TestStream>,
+    readonly componentIds: Array<string>,
+    metadata?: Object
+  ) {}
+}
+
 export class ReportEnvelope {
-  constructor(readonly scenarios: Array<report.TestScenario>, readonly nativeReport?: NativeReport) {}
+  constructor(readonly executedScenarios: Array<ExecutedTestScenario>, readonly nativeReport?: NativeReport) {}
 }
 
 export class ReportResponse {

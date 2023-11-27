@@ -1,7 +1,7 @@
 import * as fs from "fs"
 
 import { logger } from "./logger.js"
-import { Namespace, Schema } from "./model.js"
+import { CommitSha, Namespace, Schema } from "./model.js"
 import * as Shell from "./shell-facade.js"
 
 export class DeployOptions {
@@ -18,11 +18,25 @@ const isExecutable = async (filePath: string) => {
   }
 }
 
-const cloneFromGit = async (application: string, location: Schema.Location, targetDirectory: string) => {
+const cloneFromGit = async (application: string, location: Schema.Location, targetDirectory: string): Promise<CommitSha> => {
   logger.info("The '%s' will be copied from '%s' into %s' using '%s'", application, location.gitRepository, targetDirectory, location.gitRef)
-  logger.info("\n%s",
-    await Shell.exec(`k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`)
-  )
+  const fullCommand = `k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`
+  logger.info("cloneFromGit(): Running: %s", fullCommand)
+  const output = await Shell.exec(fullCommand)
+  logger.info("\n%s", output)
+  const commitShaLine = output.split("\n").filter(line => line.trim().startsWith("COMMIT_SHA="))
+  if (commitShaLine.length === 0) {
+    throw new Error(`Unexpected output from '${ fullCommand }'. Unable to find COMMIT_SHA token.`)
+  } else if (commitShaLine.length !== 1) {
+    throw new Error(`Unexpected output from '${ fullCommand }'. There are multimple COMMIT_SHA tokens: ${ JSON.stringify(commitShaLine) }`)
+  }
+
+  const commitSha = commitShaLine[0].replace("COMMIT_SHA=", "").trim()
+  if (commitSha.length !== 7) {
+    throw new Error(`Unexpected output from '${ fullCommand }'. The value of COMMIT_SHA token does not look like git commit sha. ${ { line: JSON.stringify(commitShaLine), parsed: commitSha } }`)
+  }
+
+  return commitSha
 }
 
 const deployApplication = async (
@@ -116,11 +130,14 @@ const deployComponent = async (
     workspace: string,
     spec: Schema.DeployableComponent,
     namespace: Namespace,
-    deployerParams?: Array<string>) => {
+    deployerParams?: Array<string>): Promise<CommitSha> => {
   let appDir = `${workspace}/${spec.id}`
+  let commitSha: CommitSha
   if (spec.location.type === Schema.LocationType.Remote) {
-    await cloneFromGit(spec.id, spec.location, appDir)
+    commitSha = await cloneFromGit(spec.id, spec.location, appDir)
   } else {
+    logger.info("Reading commit sha of local project: '%s'", appDir)
+
     if (spec.location.path) {
       appDir = spec.location.path
       logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
@@ -128,9 +145,11 @@ const deployComponent = async (
       appDir = spec.id
       logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
     }
+    commitSha = await Shell.exec(`cd ${ appDir } && git log --pretty=format:"%h" -1`)
   }
 
   await deployApplication(spec.id, appDir, spec.deploy, { namespace, deployerParams })
+  return commitSha
 }
 
 export {

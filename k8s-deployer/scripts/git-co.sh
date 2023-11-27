@@ -46,4 +46,7 @@ else
 fi
 
 echo $(cd $dir; echo ''; git log --oneline -3)
-ls -lah
+
+COMMIT_SHA=$(cd $dir && git log --pretty=format:"%h" -1)
+
+echo "COMMIT_SHA=${COMMIT_SHA}"

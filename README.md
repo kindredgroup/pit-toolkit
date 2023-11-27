@@ -18,7 +18,7 @@ PIT Toolkit has a built-in capability of deploying components into K8s namespace
 
 1. PIT deploys Lock Manager app.
 2. PIT iterates over test suites and deploys required dependencies into K8s namespace (the graph).
-3. One of graph entries is known as Test Runner App. Test Runner App is an application capable of running performance or integration tests against multiple components. To start tests PIT sends HTTP request to Test Runner Application, for example `POST /start`.
+3. One of graph entries is known as Test Runner App. Test Runner App is an application capable of running performance or integration tests against multiple components. To start tests PIT sends HTTP request to Test Runner App, for example `POST /start`.
 
 At this point we have:
 - Lock Manager app is deployed in the namespace.
@@ -26,15 +26,14 @@ At this point we have:
 - Graph of components deployed in the namespace.
 - Test Runner App is deployed in the namespace and executing tests.
 
-Upon deployment, Lock Manager will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the namespace. This DB is permanent it survives the lifespan of temporary namespace where Lock Manager is running. The DB is used to implement exclusivity over the running tests. Multiple instances of Lock Manager may be present in the K8s cluster each sitting in its own temporary namespace. With the help of locking only one test suite will ever run at the same time unless there is no dependency between tests.
+Upon deployment, Lock Manager will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the namespace. This DB is permanent it survives the lifespan of temporary namespace where Lock Manager is running. The DB is used to implement exclusivity over components (graph) used in the tests. Multiple instances of Lock Manager may be present in the K8s cluster each sitting in its own temporary namespace. With the help of locking only one test suite will ever run at the same time unless there is no dependency between tests.
 
-There could be multiple Test Runner Apps deployed in the namespace. These apps may be designed to test different graphs. In such setup the invocation of these multiple Test Runner apps is orchestrated by PIT and subject to locking strategy.
+There could be multiple Test Runner Apps deployed in the namespace. These apps may be designed to test different graphs. In such setup the invocation of these multiple Test Runners is orchestrated by PIT and subject to locking strategy.
 
-All tests are divided into test suites and defined in the relevant section of pitfile. Pitfile may contain a mixed definition of local and remote test suites.
+All tests are divided into test suites as defined in the relevant section of pitfile. Pitfile may contain a mixed definition of local and remote test suites.
 
 _Local_ test suites are defined in the same repository as pitfile.
-_Remote_ test suites are defined as reference to remote pitfile. In this case PIT will download the file from remote repository and use its "testSuites" section.
-
+_Remote_ test suites are defined as reference to remote pitfile. In this case PIT will download the file from remote repository and use its "testSuites" section. It is also possible to specify which test suites to run from remote pitfile by applying naming filter.
 
 Once Test Runner App finishes executing the test report is available via dedicated endpoint, for example via `GET /reports/{$execution_id}`
 

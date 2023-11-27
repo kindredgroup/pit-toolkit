@@ -24,7 +24,7 @@ export class StatusResponse {
     readonly testSuiteId: string,
     readonly status: TestStatus,
     readonly error?: string
-  ) { }
+  ) {}
 
   static create = (data: any): StatusResponse => {
     return new StatusResponse(data.sessionId, data.testSuiteId, data.status, data.error)
@@ -35,8 +35,21 @@ export class NativeReport {
   constructor(readonly data?: string, readonly file?: string) {}
 }
 
+export class ExecutedTestScenario {
+  metadata: Object = {}
+
+  constructor(
+    readonly name: string,
+    readonly startTime: Date,
+    readonly endTime: Date,
+    readonly streams: Array<report.TestStream>,
+    readonly componentIds: Array<string> = new Array(),
+    metadata?: Object
+  ) {}
+}
+
 export class ReportEnvelope {
-  constructor(readonly scenarios: Array<report.TestScenario>, readonly nativeReport?: NativeReport) {}
+  constructor(readonly executedScenarios: Array<ExecutedTestScenario>, readonly nativeReport?: NativeReport) {}
 }
 
 export class ReportResponse {
@@ -46,7 +59,7 @@ export class ReportResponse {
       json.testSuiteId,
       json.status,
       json.data,
-      json.error,
+      json.error
     )
   }
 

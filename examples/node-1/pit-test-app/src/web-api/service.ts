@@ -89,7 +89,7 @@ export class WebService {
     res.json(new webapi.ReportResponse(sessionId, testSuiteId, status, reportEnvelope))
   }
 
-  private async runTests(testSuiteId: string, sessionId: number): Promise<Array<report.TestScenario>> {
+  private async runTests(testSuiteId: string, sessionId: number): Promise<Array<webapi.ExecutedTestScenario>> {
     this.sessions.get(sessionId).status = webapi.TestStatus.RUNNING
 
     const specs = [
@@ -105,7 +105,7 @@ export class WebService {
       }
     ]
 
-    const scenarios = new Array<report.TestScenario>()
+    const scenarios = new Array<webapi.ExecutedTestScenario>()
 
     for (let spec of specs) {
       const startedAt = new Date()
@@ -117,7 +117,7 @@ export class WebService {
       const outcome = rate >= spec.requirements[0].value ? report.TestOutcomeType.PASS : report.TestOutcomeType.FAIL
       const throughput = new report.ScalarMetric("throughput", rate)
       const stream = new report.TestStream("default", spec.requirements, [ throughput ], outcome)
-      const scenario = new report.TestScenario(spec.name, startedAt, finishedAt, [ stream ])
+      const scenario = new webapi.ExecutedTestScenario(spec.name, startedAt, finishedAt, [ stream ], [ "node-1" ])
       scenarios.push(scenario)
     }
 

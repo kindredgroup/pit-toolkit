@@ -24,8 +24,21 @@ export class StatusResponse {
   ) {}
 }
 
+export class ExecutedTestScenario {
+  metadata: Object = {}
+
+  constructor(
+    readonly name: string,
+    readonly startTime: Date,
+    readonly endTime: Date,
+    readonly streams: Array<report.TestStream>,
+    readonly componentIds: Array<string>,
+    metadata?: Object
+  ) {}
+}
+
 export class ReportEnvelope {
-  constructor(readonly scenarios: Array<report.TestScenario>) {}
+  constructor(readonly executedScenarios: Array<ExecutedTestScenario>) {}
 }
 
 export class ReportResponse {

@@ -42,7 +42,14 @@ export class WebService {
 
           const scenarios = k6Adapter.convertFrom(k6ReportContent)
 
-          const reportEnvelope = new webapi.ReportEnvelope(scenarios, webapi.NativeReport.fromFile(`${k6ReportFile}.tgz`))
+          const executedScenarios = scenarios.map(s => new webapi.ExecutedTestScenario(
+            s.name,
+            s.startTime,
+            s.endTime,
+            s.streams,
+            [ "node-1" ]
+          ))
+          const reportEnvelope = new webapi.ReportEnvelope(executedScenarios, webapi.NativeReport.fromFile(`${k6ReportFile}.tgz`))
 
           this.sessions.set(sessionId, { status: webapi.TestStatus.COMPLETED, reportEnvelope, ...sessionMeta })
         } catch (e) {

@@ -34,14 +34,22 @@ export class TestStream {
   ) {}
 }
 
-export class TestScenario {
-  metadata: Object = {}
+export class Component {
   constructor(
-    readonly id: string,
+    readonly name: string,
+    //readonly appVersion: string,
+    readonly commitVersion: string
+  ) {}
+}
+
+export class TestScenario {
+  constructor(
+    readonly name: string,
     readonly startTime: Date,
     readonly endTime: Date,
     readonly streams: Array<TestStream>,
-    metadata: Object
+    readonly components: Array<Component>,
+    metadata?: Object
   ) {}
 }
 

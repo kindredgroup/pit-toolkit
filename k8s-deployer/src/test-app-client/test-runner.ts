@@ -7,15 +7,25 @@ import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
 import * as report from "./report/schema-v1.js"
 
-export const runAll = async (testSuites: Array<DeployedTestSuite>): Promise<report.TestReport> => {
-  const startTime = new Date()
-  const scenarios = new Array<report.TestScenario>()
+export const runAll = async (testSuites: Array<DeployedTestSuite>) => {
   for (let suite of testSuites) {
     try {
+      const startTime = new Date()
       const reportEnvelope = await runSuite(suite)
-      for (let scenario of reportEnvelope.scenarios) {
-        scenarios.push(scenario)
-      }
+      const endTime = new Date()
+      const scenarios = reportEnvelope.executedScenarios.map(s => {
+        const components = s.componentIds.map(testedComponentId => {
+          const deployedComponent = suite.graphDeployment.components.find(graphNode => testedComponentId === graphNode.component.id)
+          return new report.Component(deployedComponent.component.id, deployedComponent.commitSha)
+        })
+
+        const scenario = new report.TestScenario(s.name, s.startTime, s.endTime, s.streams, components, s.metadata)
+        return scenario
+      })
+      const testReport = new report.TestReport(startTime, endTime, scenarios)
+
+      // TODO: do something with report, otherwise just log it
+      logger.info("\n%s", JSON.stringify(testReport, null, 2))
 
     } catch (e) {
       logger.error("Error executing test: '%s'", suite.testSuite.id)
@@ -24,10 +34,6 @@ export const runAll = async (testSuites: Array<DeployedTestSuite>): Promise<repo
       if (e.stack) logger.error("Stack:\n%s", e.stack)
     }
   }
-
-  const endTime = new Date()
-
-  return new report.TestReport(startTime, endTime, scenarios)
 }
 
 const runSuite = async (spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
@@ -82,7 +88,7 @@ const runSuite = async (spec: DeployedTestSuite): Promise<webapi.ReportEnvelope>
         logger.info("%s", JSON.stringify(nativeReport?.data, null, 2))
 
       } else if (nativeReport?.file) {
-        for (let scenario of reportResponse.data.scenarios) {
+        for (let scenario of reportResponse.data.executedScenarios) {
           scenario.metadata = {
             nativeReport: { file: nativeReport.file }
           }
