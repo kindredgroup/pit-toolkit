@@ -258,7 +258,7 @@ cd examples/node-1/
 # - SERVICE_PORT=62001
 # - TEST_APP_SERVICE_NAME=node-1-test-app
 # - TEST_APP_SERVICE_PORT=62002
-npm run dev-build-image
+npm run dev.build-image
 ```
 
 ### Image for example Test application targetting Node-1 sample component
@@ -267,7 +267,7 @@ npm run dev-build-image
 cd examples/node-1/pit-test-app
 
 # .env file is used from the parent directory (node-1)
-npm run dev-build-image
+npm run dev.build-image
 ```
 ### Image for standalone example Test application targetting Node-1 sample component
 
@@ -283,7 +283,7 @@ cd examples/graph-perf-test-app
 # The internal port of node-1 app.
 # Must match the value used in "node1/.env" and "node1/deployment/helm#service.port"
 # - TARGET_SERVICE_PORT=62001
-npm run dev-build-image
+npm run dev.build-image
 ```
 
 # Deploy to k8s
@@ -361,12 +361,11 @@ Lets expose in local git server on port 60100 (the default)
 mkdir /tmp/remote-sample
 
 # Run git server for node-1 project
-scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/examples/node-1
+scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/examples/node-1 60101
 
-Using default port: 60100
 PROJECT_DIR=~/kindred/projects/pit-toolkit/examples/node-1
 WORKSPACE=/tmp/remote-sample
-PORT=60100
+PORT=60101
 GIT_SERVER_HOME=/tmp/remote-sample/git-server
 TMP_PATH=/tmp/remote-sample/git-server/node-1.git/tmp
 hint: Using 'master' as the name for the initial branch. This default branch name
@@ -382,10 +381,10 @@ hint: 	git branch -m <name>
 Initialized empty Git repository in /tmp/remote-sample/git-server/node-1.git/tmp/.git/
 Switched to a new branch 'master'
 
-Launching git server. Checkout your project from git://127.0.0.1:60100/node-1.git
+Launching git server. Checkout your project from git://127.0.0.1:60101/node-1.git
 ```
 
-Similarly run gir server for "remote test app"
+Similarly run git server for "remote test app"
 ```bash
 scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/examples/graph-perf-test-app
 ```
