@@ -1,0 +1,64 @@
+version: "1.0"
+projectName: "Tests for node-1 app"
+
+trigger:
+  description: Runs on any source code change
+  name: Detect changes in Node 1 application
+  filter:
+    expressions:
+      - ".*package\\.json"
+      - ".*\\.ts"
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# The lock manager is part of PIT toolkit. CI will already have it available
+# This optional config section is here only to indicate that lock manager
+# should be deployed.
+lockManager:
+  enabled: true
+
+testSuites:
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  - name: Testset for standalone Node 1
+    id: testset-node-1-default
+    lock:
+      timeout: 1h
+      ids:
+        - "lock-node-1"
+
+    trigger: # This is optional, when not defined, test will trigger when top level trigger goes off
+    deployment:
+      graph:
+        testApp:
+          name: Test App for Node 1
+          id: node-1-test-app
+          location:
+            path: node-1/pit-test-app
+          deploy:
+            timeoutSeconds: 60
+            command: deployment/pit/deploy.sh
+            statusCheck:
+              timeoutSeconds: 60
+              command: deployment/pit/is-deployment-ready.sh
+
+        components:
+          - name: Node 1
+            id: node-1
+            deploy:
+              timeoutSeconds: 60
+              command: deployment/pit/deploy.sh
+              statusCheck:
+                timeoutSeconds: 60
+                command: deployment/pit/is-deployment-ready.sh
+  - name: Suite with env variables
+    id: suite-2
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1:60100/example-project-${{ env.TEST_SUFFIX }}.git
+      gitRef: refs/remotes/origin/${{   env.TEST_SUFFIX }}
+
+  - name: K6 testset for Node 1
+    id: suite-3
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1:60100/graph-perf-test-app.git
+    testSuiteIds: [] # Empty array is interpreted as "run all tests"

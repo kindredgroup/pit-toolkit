@@ -1,0 +1,11 @@
+pod.repository: ""
+image.tag: ""
+service:
+  name: ""
+  port:
+
+webApp:
+  contextRoot: # set this to the currently running test suite name
+
+environment:
+  TARGET_SERVICE_URL:

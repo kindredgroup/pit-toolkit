@@ -1,0 +1,30 @@
+{
+  "name": "@kindredgroup/pit-perf-test-app",
+  "version": "0.0.1-dev",
+  "description": "The example of standalone performance testing app for node-1",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/express": "^4.17.20",
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "clean": "rm -rd dist",
+    "build": "npm run clean && npx tsc",
+    "dev.start": "set -o allexport && source .env && set +o allexport && npm run build && node dist/index.js",
+    "dev.build-image": "npm run build && source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "winston": "^3.11.0",
+    "express": "^4.18.2"
+  }
+}
