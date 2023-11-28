@@ -1,9 +1,13 @@
-import { Config, DEFAULT_NAMESPACE_TIMEOUT } from "./config.js"
+import { Config, DEFAULT_CLUSTER_URL, DEFAULT_NAMESPACE_TIMEOUT } from "./config.js"
 import { logger } from "./logger.js"
 
+// Required
 export const PARAM_WORKSPACE = "--workspace"
 export const PARAM_PITFILE = "--pitfile"
+export const PARAM_PARENT_NS = "--parent-ns"
+// Optionals
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
+export const PARAM_CLUSTER_URL = "--cluster-url"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -24,6 +28,11 @@ const readParams = (): Config => {
       throw new Error(`Missing required parameter: "${ PARAM_WORKSPACE }"`)
   }
 
+  const parentNs = params.get(PARAM_PARENT_NS)
+  if (!(parentNs?.trim().length > 0)) {
+      throw new Error(`Missing required parameter: "${ PARAM_PARENT_NS }"`)
+  }
+
   const nsTimeout = params.get(PARAM_NAMESPACE_TIMEOUT)
   let namespaceTimeoutSeconds = DEFAULT_NAMESPACE_TIMEOUT
   if (nsTimeout?.trim().length > 0) {
@@ -33,7 +42,9 @@ const readParams = (): Config => {
     }
   }
 
-  return { namespaceTimeoutSeconds, workspace, pitfile: params.get(PARAM_PITFILE), params }
+  const clusterUrl = params.get(PARAM_CLUSTER_URL) || DEFAULT_CLUSTER_URL
+
+  return new Config( clusterUrl, parentNs, workspace, params.get(PARAM_PITFILE), namespaceTimeoutSeconds, params)
 }
 
 export {

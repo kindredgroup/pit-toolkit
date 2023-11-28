@@ -83,7 +83,7 @@ const deployLocal = async (
   logger.info("%s Processing test suite '%s' %s", LOG_SEPARATOR_LINE, testSuite.name, LOG_SEPARATOR_LINE)
 
   const namespace = await K8s.generateNamespaceName(seqNumber)
-  await K8s.createNamespace(namespace, config.namespaceTimeoutSeconds, workspace)
+  await K8s.createNamespace(config.parentNamespace, namespace, config.namespaceTimeoutSeconds, workspace)
 
   await deployLockManager(pitfile.lockManager.enabled, namespace)
 
@@ -139,7 +139,7 @@ const deployRemote = async (
   return list
 }
 
-export const deployAll = async (
+const deployAll = async (
   config: Config,
   pitfile: Schema.PitFile,
   seqNumber: string,
@@ -158,11 +158,24 @@ export const deployAll = async (
   return deployedSuites
 }
 
+export const undeployAll = async (config: Config, suites: Array<DeployedTestSuite>) => {
+  for (let item of suites) {
+    await Deployer.undeployLockManager(item.namespace)
+
+    await Deployer.undeployComponent(item.namespace, item.workspace, item.graphDeployment.testApp)
+    for (let deploymentInfo of item.graphDeployment.components) {
+      await Deployer.undeployComponent(item.namespace, item.workspace, deploymentInfo)
+    }
+
+    await K8s.deleteNamespace(config.parentNamespace, item.namespace, config.namespaceTimeoutSeconds, item.workspace)
+  }
+}
+
 export const processTestSuite = async (
   config: Config,
   pitfile: Schema.PitFile,
   seqNumber: string,
-  testSuite: Schema.TestSuite) => {
+  testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
   // By default assume processing strategy to be "deploy all then run tests one by one"
   const list = await deployAll(config, pitfile, seqNumber, testSuite)
 
@@ -170,5 +183,7 @@ export const processTestSuite = async (
   logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
   logger.info("")
 
-  await TestRunner.runAll(list)
+  await TestRunner.runAll(config.clusterUrl, list)
+
+  return list
 }

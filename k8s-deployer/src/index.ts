@@ -2,7 +2,8 @@ import { logger } from "./logger.js"
 import { readParams } from "./bootstrap.js"
 import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
-import { processTestSuite } from "./test-suite-handler.js"
+import * as SuiteHandler from "./test-suite-handler.js"
+import { DeployedTestSuite } from "./model.js"
 
 const main = async () => {
   logger.info("main()...")
@@ -12,10 +13,21 @@ const main = async () => {
 
   const file = await PifFileLoader.loadFromFile(config.pitfile)
 
+  const artefacts = new Array<Array<DeployedTestSuite>>()
   for (let i = 0; i < file.testSuites.length; i++) {
     const testSuite = file.testSuites[i]
-    await processTestSuite(config, file, `${i + 1}`, testSuite)
+    const deployments = await SuiteHandler.processTestSuite(config, file, `${i + 1}`, testSuite)
+    artefacts.push(deployments)
   }
+
+  logger.info("")
+  logger.info("--------------------- Cleaning up --------------------- ")
+  logger.info("")
+  for (let deployments of artefacts) {
+    await SuiteHandler.undeployAll(config, deployments)
+  }
+
+  logger.info("DONE")
 }
 
 main()

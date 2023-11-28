@@ -38,6 +38,9 @@ testSuites:
             statusCheck:
               timeoutSeconds: 60
               command: deployment/pit/is-deployment-ready.sh
+          undeploy:
+            timeoutSeconds: 120
+            command: deployment/pit/undeploy.sh
 
         components:
           - name: Node 1
@@ -48,6 +51,9 @@ testSuites:
               statusCheck:
                 timeoutSeconds: 60
                 command: deployment/pit/is-deployment-ready.sh
+            undeploy:
+              timeoutSeconds: 120
+              command: deployment/pit/undeploy.sh
 
   - name: K6 testset for Node 1
     id: node-1-k6-tests

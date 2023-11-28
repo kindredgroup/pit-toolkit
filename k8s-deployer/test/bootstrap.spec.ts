@@ -2,8 +2,8 @@
 import * as sinon from "sinon"
 import * as chai from "chai"
 
-import { PARAM_NAMESPACE_TIMEOUT, PARAM_PITFILE, PARAM_WORKSPACE, readParams } from "../src/bootstrap.js"
-import { DEFAULT_NAMESPACE_TIMEOUT } from "../src/config.js"
+import { PARAM_CLUSTER_URL, PARAM_NAMESPACE_TIMEOUT, PARAM_PARENT_NS, PARAM_PITFILE, PARAM_WORKSPACE, readParams } from "../src/bootstrap.js"
+import { DEFAULT_CLUSTER_URL, DEFAULT_NAMESPACE_TIMEOUT } from "../src/config.js"
 
 describe("bootstrap with correct configs", () => {
   const sandbox = sinon.createSandbox()
@@ -13,7 +13,10 @@ describe("bootstrap with correct configs", () => {
       "skip-first", "",
       PARAM_WORKSPACE, "/my-test-workspace",
       PARAM_PITFILE, "/some-pitfile.yml",
-      PARAM_NAMESPACE_TIMEOUT, "100" ])
+      PARAM_NAMESPACE_TIMEOUT, "100",
+      PARAM_CLUSTER_URL, "http://some-host.name",
+      PARAM_PARENT_NS, "dev"
+     ])
   })
 
   it("readParams() should return populated config", () => {
@@ -21,6 +24,7 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.workspace).eq("/my-test-workspace")
     chai.expect(config.pitfile).eq("/some-pitfile.yml")
     chai.expect(config.namespaceTimeoutSeconds).eq(100)
+    chai.expect(config.clusterUrl).eq("http://some-host.name")
   })
 
   afterEach(() => {
@@ -39,15 +43,22 @@ describe("bootstrap with invalid configs", () => {
   })
 
   it(`readParams() should expect param ${ PARAM_WORKSPACE }`, () => {
-    sandbox.stub(process, 'argv').value([ "skip-first", "" ])
+    sandbox.stub(process, 'argv').value([ "skip-first", "", PARAM_PARENT_NS, "dev" ])
     chai.expect(readParams).to.throw(`Missing required parameter: "${ PARAM_WORKSPACE }"`)
     sandbox.restore()
   })
 
-  it(`readParams() should use default value for ${ PARAM_NAMESPACE_TIMEOUT }`, () => {
-    sandbox.stub(process, 'argv').value([ "skip-first", "", PARAM_WORKSPACE, "/dir" ])
+  it(`readParams() should expect param ${ PARAM_PARENT_NS }`, () => {
+    sandbox.stub(process, 'argv').value([ "skip-first", "", PARAM_WORKSPACE, "./some-dir" ])
+    chai.expect(readParams).to.throw(`Missing required parameter: "${ PARAM_PARENT_NS }"`)
+    sandbox.restore()
+  })
+
+  it("readParams() should use default values", () => {
+    sandbox.stub(process, 'argv').value([ "skip-first", "", PARAM_WORKSPACE, "/dir", PARAM_PARENT_NS, "dev" ])
     const config = readParams()
     chai.expect(config.namespaceTimeoutSeconds).eq(DEFAULT_NAMESPACE_TIMEOUT)
+    chai.expect(config.clusterUrl).eq(DEFAULT_CLUSTER_URL)
     sandbox.restore()
   })
 
@@ -55,6 +66,7 @@ describe("bootstrap with invalid configs", () => {
     sandbox.stub(process, 'argv').value([
       "skip-first", "",
       PARAM_WORKSPACE, "/dir",
+      PARAM_PARENT_NS, "dev",
       PARAM_NAMESPACE_TIMEOUT, "not-number"
     ])
     chai.expect(readParams).to.throw(`Invalid value "not-number" for parameter "${ PARAM_NAMESPACE_TIMEOUT }"`)

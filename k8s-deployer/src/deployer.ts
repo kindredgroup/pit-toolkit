@@ -1,13 +1,31 @@
 import * as fs from "fs"
 
 import { logger } from "./logger.js"
-import { CommitSha, Namespace, Schema } from "./model.js"
+import { CommitSha, Namespace, Schema, DeployedComponent } from "./model.js"
 import * as Shell from "./shell-facade.js"
+import { LocationType } from "./pitfile/schema-v1.js"
 
 export class DeployOptions {
   namespace?: Namespace
   servicePort?: number
   deployerParams?: Array<string>
+}
+
+const getLockManagerConfig = (): Schema.LockManager => {
+  return {
+    name: "Lock Manager",
+    id: "lock-manager",
+    deploy: {
+      command: "deployment/pit/deploy.sh",
+      statusCheck: {
+        command: "deployment/pit/is-deployment-ready.sh"
+      }
+    },
+    undeploy: {
+      timeoutSeconds: 120,
+      command: "deployment/pit/undeploy.sh",
+    }
+  } as Schema.LockManager
 }
 
 const isExecutable = async (filePath: string) => {
@@ -18,7 +36,7 @@ const isExecutable = async (filePath: string) => {
   }
 }
 
-const cloneFromGit = async (application: string, location: Schema.Location, targetDirectory: string): Promise<CommitSha> => {
+export const cloneFromGit = async (application: string, location: Schema.Location, targetDirectory: string): Promise<CommitSha> => {
   logger.info("The '%s' will be copied from '%s' into %s' using '%s'", application, location.gitRepository, targetDirectory, location.gitRef)
   const fullCommand = `k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`
   logger.info("cloneFromGit(): Running: %s", fullCommand)
@@ -39,7 +57,7 @@ const cloneFromGit = async (application: string, location: Schema.Location, targ
   return commitSha
 }
 
-const deployApplication = async (
+export const deployApplication = async (
   appName: string,
   appDirectory: string,
   instructions: Schema.DeployInstructions,
@@ -111,22 +129,38 @@ const deployApplication = async (
   }
 }
 
-const deployLockManager = async (namespace: Namespace) => {
-  const spec: Schema.LockManager = {
-    name: "Lock Manager",
-    id: "lock-manager",
-    deploy: {
-      command: "deployment/pit/deploy.sh",
-      statusCheck: {
-        command: "deployment/pit/is-deployment-ready.sh"
-      }
-    }
-  }
+const undeployApplication = async (appName: string, appDirectory: string, namespace: Namespace, instructions: Schema.DeployInstructions) => {
+  logger.info("Undeploying app: '%s'", appName)
 
+  await isExecutable(`${appDirectory}/${instructions.command}`)
+  try {
+    logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
+    const timeoutMs = instructions.timeoutSeconds * 1_000
+    const logFileName = `${appName}-undeploy.log`
+    const command = `${ instructions.command } ${ namespace }`
+    await Shell.exec(command, { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: line => {
+      if (line.toLowerCase().startsWith("error:")) {
+        logger.error("%s", line)
+      } else {
+        if (line.trim().length !== 0) logger.info("%s", line)
+      }
+    }})
+  } catch (e) {
+    throw new Error(`Error invoking undeployment launcher: '${instructions.command}'`, { cause: e })
+  }
+}
+
+export const deployLockManager = async (namespace: Namespace) => {
+  const spec = getLockManagerConfig()
   await deployApplication(spec.id, spec.id, spec.deploy, { namespace, deployerParams: [ 'lock-manager' ] })
 }
 
-const deployComponent = async (
+export const undeployLockManager = async (namespace: Namespace) => {
+  const spec = getLockManagerConfig()
+  await undeployApplication(spec.id, spec.id, namespace, spec.undeploy)
+}
+
+export const deployComponent = async (
     workspace: string,
     spec: Schema.DeployableComponent,
     namespace: Namespace,
@@ -152,9 +186,19 @@ const deployComponent = async (
   return commitSha
 }
 
-export {
-  cloneFromGit,
-  deployApplication,
-  deployComponent,
-  deployLockManager
+export const undeployComponent = async (namespace: Namespace, workspace: string, deploymentInfo: DeployedComponent) => {
+  const spec = deploymentInfo.component
+  let appDir = `${workspace}/${ spec.id }`
+
+  if (spec.location.type === LocationType.Local) {
+    if (spec.location.path) {
+      appDir = spec.location.path
+      logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
+    } else {
+      appDir = spec.id
+      logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
+    }
+  }
+
+  await undeployApplication(spec.id, appDir, namespace, spec.undeploy)
 }

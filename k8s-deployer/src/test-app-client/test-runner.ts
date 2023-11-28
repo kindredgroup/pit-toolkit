@@ -7,11 +7,11 @@ import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
 import * as report from "./report/schema-v1.js"
 
-export const runAll = async (testSuites: Array<DeployedTestSuite>) => {
+export const runAll = async (clusterUrl: string, testSuites: Array<DeployedTestSuite>) => {
   for (let suite of testSuites) {
     try {
       const startTime = new Date()
-      const reportEnvelope = await runSuite(suite)
+      const reportEnvelope = await runSuite(clusterUrl, suite)
       const endTime = new Date()
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
@@ -36,7 +36,7 @@ export const runAll = async (testSuites: Array<DeployedTestSuite>) => {
   }
 }
 
-const runSuite = async (spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
+const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
   const testSuiteId = spec.testSuite.id
 
   logger.info("Test suite: '%s' - preparing to run", testSuiteId)
@@ -50,12 +50,12 @@ const runSuite = async (spec: DeployedTestSuite): Promise<webapi.ReportEnvelope>
   try {
 
     // TODO externalise host name into parameter or env variable
-    const baseUrl = `http://localhost/${spec.namespace}.${spec.testSuite.id}`
+    const baseUrl = `${ clusterUrl }/${ spec.namespace }.${ spec.testSuite.id }`
     const api = {
-      start:         { endpoint: `${baseUrl}/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
-      status:        { endpoint: `${baseUrl}/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
-      reports:       { endpoint: `${baseUrl}/reports`,        options: { method: "GET", headers: { "Accept": "application/json" }}},
-      reportsNative: { endpoint: `${baseUrl}/reports/native`, options: { method: "GET", headers: { "Accept": "application/zip, application/json" }}}
+      start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
+      status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
+      reports:       { endpoint: `${ baseUrl }/reports`,        options: { method: "GET", headers: { "Accept": "application/json" }}},
+      reportsNative: { endpoint: `${ baseUrl }/reports/native`, options: { method: "GET", headers: { "Accept": "application/zip, application/json" }}}
     }
 
     const httpResponse = await fetch(

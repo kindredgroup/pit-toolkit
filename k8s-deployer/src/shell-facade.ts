@@ -67,7 +67,9 @@ const tailLogFile = (state: FileReadingState, propagateError: boolean, fnTailTar
         break
       }
 
-      fnTailTarget(line)
+      if (line.trim().length > 0) {
+        fnTailTarget(line)
+      }
     }
   } catch (e) {
     logger.error("Error tailing file '%s'", state.file)
@@ -81,7 +83,7 @@ const monitorProgress = async (state: FileReadingState, timeoutMs: number, error
   const startedAt = new Date().getTime()
   let iteration = 1
   while (state.stoppedWithStatusDone == null) {
-    logger.debug("iteration: %s state: %s", iteration, JSON.stringify(state))
+    // logger.debug("iteration: %s state: %s", iteration, JSON.stringify(state))
     const elapsed = new Date().getTime() - startedAt
     // Handle the timeout
     if (elapsed >= timeoutMs) {

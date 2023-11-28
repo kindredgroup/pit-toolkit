@@ -42,7 +42,7 @@ export class StatusCheck {
 export class DeployInstructions {
   timeoutSeconds?: number
   command: string
-  params?: [string]
+  params?: Array<string>
   statusCheck?: StatusCheck
 }
 
@@ -51,6 +51,7 @@ export class LockManager {
   name: string
   id: string
   deploy: DeployInstructions
+  undeploy: DeployInstructions
 }
 
 // Test suite
@@ -65,11 +66,12 @@ export class DeployableComponent {
   id: string
   location: Location
   deploy: DeployInstructions
+  undeploy: DeployInstructions
 }
 
 export class Graph {
   testApp: DeployableComponent
-  components: [DeployableComponent]
+  components: Array<DeployableComponent>
 }
 
 export class Deployment {
@@ -83,7 +85,7 @@ export class TestSuite {
   lock?: Lock
   trigger?: Trigger
   deployment: Deployment
-  testSuiteIds: [string] | undefined
+  testSuiteIds: Array<string> | undefined
 }
 
 // End of Test suite
