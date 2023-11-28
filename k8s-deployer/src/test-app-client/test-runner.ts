@@ -1,7 +1,7 @@
 import fetch, { Response } from "node-fetch"
 import * as fs from "fs"
 
-import { LockManager } from "../lock-manager.js"
+import { LockManager } from "../locks/lock-manager.js"
 import { DeployedTestSuite } from "../model.js"
 import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"

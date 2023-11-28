@@ -80,7 +80,7 @@ echo ""
 echo -e "${clear}"
 
 cd $CI_HOME_DIR
-node $PROJECT_ROOT/dist/index.js --workspace $CI_HOME_DIR --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml
+node $PROJECT_ROOT/dist/src/index.js --workspace $CI_HOME_DIR --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml
 returnStatus=$(($?+0))
 
 cd $PROJECT_ROOT

@@ -27,14 +27,20 @@ describe("Loads pitfile from disk", () => {
     chai.expect(file.testSuites[1].location.gitRepository).eq(`git://127.0.0.1:60100/example-project-${ suffix }.git`)
   })
 
-  it("should load pitfile with incomplete env expansion", async () => {
+  it("should load pitfile with incomplete sections", async () => {
     const file = await PifFileLoader.loadFromFile("dist/test/pitfile/test-pitfile-valid-2-incomplete.yml")
-    chai.expect(file.testSuites).lengthOf(1)
+    chai.expect(file.testSuites).lengthOf(2)
     chai.expect(file.testSuites[0].location.gitRef).eq(`refs/remotes/origin/TEST_SUFFIX_NOT_FOUND`)
+    chai.expect(file.testSuites[1].location.gitRef).eq(`refs/remotes/origin/master`)
   })
 
   it("should throw if pitfile not found", async () => {
     await chai.expect(PifFileLoader.loadFromFile("does-not-exist.yml")).eventually.rejectedWith("There is no pitfile or it is not read")
+  })
+
+  it("should throw if location has no gitRemote", async () => {
+    const errorMessage = `Invalid configiuration for 'suite-1'. The 'location.gitRepository' is required when location.type is REMOTE`
+    await chai.expect(PifFileLoader.loadFromFile("dist/test/pitfile/test-pitfile-valid-3-invalid.yml")).eventually.rejectedWith(errorMessage)
   })
 
   after(() => {
