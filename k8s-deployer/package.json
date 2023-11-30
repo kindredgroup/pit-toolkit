@@ -29,7 +29,8 @@
     "build": "npx tsc",
     "dev.start-example": "npm run build && scripts/start-example.sh $@",
     "test.copy-resoruces": "copyfiles -u 1 test/**/*.yml dist/test/",
-    "test": "npm run test.copy-resoruces && npm run build && c8 --reporter=html --reporter=text mocha --recursive dist/test/"
+    "test": "npm run test.copy-resoruces && npm run build && c8 --reporter=html --reporter=text mocha --recursive dist/test/",
+    "build-report-template": "scripts/build-report-html-template.sh"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",

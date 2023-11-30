@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1.0,
+  "startTime": "2023-11-26T00:00:00.000Z",
+  "endTime": "2023-11-26T01:11:20.034Z",
+  "name": "Test Suite 1",
+  "scenarios": [
+    {
+      "name": "Scenario 1",
+      "startTime": "2023-11-26T00:00:00.000Z",
+      "endTime": "2023-11-26T00:10:00.000Z",
+      "components": [
+        { "name": "Talos Certifier", "commitVersion": "0000001" },
+        { "name": "Replicator", "commitVersion": "0000002" },
+        { "name": "Talos Messenger", "commitVersion": "0000004" }
+      ],
+      "streams": [
+        {
+          "name": "Stream 1",
+          "requirements": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 500
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 2.5,
+                "90": 2.0
+              }
+            }
+          ],
+          "observations": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 510
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 2.1,
+                "90": 2.0
+              }
+            }
+          ],
+          "outcome": "PASS"
+        },
+        {
+          "name": "Stream 2",
+          "requirements": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 200
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 3.5,
+                "90": 3.0
+              }
+            }
+          ],
+          "observations": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 210
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 3.1,
+                "90": 3.0
+              }
+            }
+          ],
+          "outcome": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "Scenario 2",
+      "startTime": "2023-11-26T00:11:00.000Z",
+      "endTime": "2023-11-26T01:11:20.034Z",
+      "components": [
+        { "name": "Talos Certifier", "commitVersion": "0000001" },
+        { "name": "Replicator", "commitVersion": "0000004" }
+      ],
+      "streams": [
+        {
+          "name": "Stream 1A",
+          "requirements": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 2000
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 1.1,
+                "90": 0.9
+              }
+            }
+          ],
+          "observations": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 1900
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 1.1,
+                "90": 1.0
+              }
+            }
+          ],
+          "outcome": "FAIL"
+        },
+        {
+          "name": "Stream 2B",
+          "requirements": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 200
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 3.5,
+                "90": 3.0
+              }
+            }
+          ],
+          "observations": [
+            {
+              "type": "SCALAR",
+              "name": "throughput",
+              "value": 210
+            },
+            {
+              "type": "DISTRIBUTION",
+              "name": "latency",
+              "values": {
+                "95": 3.1,
+                "90": 3.0
+              }
+            }
+          ],
+          "outcome": "PASS"
+        }
+      ]
+    }
+  ]
+}

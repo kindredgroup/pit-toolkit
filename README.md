@@ -6,9 +6,7 @@ The process starts when GIT event, such as merge or push, is picked up by projec
 
 It is expected that pipeline will checkout PIT project from well-known location or alternatively, tools provided by PIT Toolkit may be pre-installed into pipeline image.
 
-PIT will locate specification file `pitfile.yml` in the repository which triggered the pipeline.
-
-PIT will examine the content of git event and pass it through `filters` as they are defined in the pit spec file. Filter is defined as an array of regex patterns to be applied to file names which were part of the GIT event. If some filter matches a file, then PIT will start execution of deployment process (The process is visualised in the diagram below).
+PIT will locate specification file `pitfile.yml` in the repository which triggered the pipeline and start execution of deployment process (The process is visualised in the diagram below).
 
 The PIT spec file contains definitions of:
 - Lock Manager app
@@ -80,18 +78,7 @@ The responsibilities of all mentioned components are defined as:
 
 ```YAML
 version: "1.0"
-
-trigger:
-  description: Runs only if Rust source code changed in packages impacting Talos Certifier
-  name: Detect Talos Certifier changes
-  filter:
-    expressions:
-      - "packages/talos_certifier/.*"
-      - "packages/talos_suffix/.*"
-      - "packages/talos_certifier_adapters/.*"
-      - "packages/talos_common_utils/.*"
-      - "packages/talos_rdkafka_utils/.*"
-      - "packages/cohort_sdk/.*"
+projectName: "Tests for xyz"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # The Lock Manager is independent shipped as part of PIT toolkit.
@@ -130,7 +117,6 @@ testSuites:
       timeout: 1h
       ids: [ lock-talos-certifier ]
 
-    trigger: # This is optional, when not defined, test will trigger when top level trigger goes off
     deployment:
       graph:
         testApp:
@@ -198,7 +184,10 @@ testSuites:
 | `lock-manager/deployment/helm` | The deployment configs for K8s |
 | `lock-manager/deployment/pit` | The deployment logic |
 | `k8s-deployer/` | The deployment utility for apps designed to run in K8s clusters |
+| `k8s-deployer/scripts` | Various scripts to assist with deployer functionality |
 | `k8s-deployer/tmp` | Temporary directory which is used when running local deployer during development |
+| `k8s-deployer/report-template.html` | The HTML template for report UI |
+| `pit-report-ui` | The SPA project producing mini "website" to display the details of PIT report |
 | `examples/node-1/` | The example of application integrated with PIT |
 | `examples/node-1/deployment/helm` | The deployment configs for K8s |
 | `examples/node-1/deployment/pit` | The deployment logic |

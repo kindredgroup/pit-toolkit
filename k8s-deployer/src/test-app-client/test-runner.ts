@@ -2,33 +2,42 @@ import fetch, { Response } from "node-fetch"
 import * as fs from "fs"
 
 import { LockManager } from "../locks/lock-manager.js"
-import { DeployedTestSuite } from "../model.js"
+import { DeployedTestSuite, Prefix } from "../model.js"
 import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
-import * as report from "./report/schema-v1.js"
+import * as ReportSchema from "./report/schema-v1.js"
+import { Config } from "../config.js"
+import * as Report from "../report/report-service.js"
 
-export const runAll = async (clusterUrl: string, testSuites: Array<DeployedTestSuite>) => {
-  for (let suite of testSuites) {
+export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<DeployedTestSuite>) => {
+  for (let deployedSuite of testSuites) {
     try {
       const startTime = new Date()
-      const reportEnvelope = await runSuite(clusterUrl, suite)
+      const reportEnvelope = await runSuite(config.clusterUrl, deployedSuite)
       const endTime = new Date()
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
-          const deployedComponent = suite.graphDeployment.components.find(graphNode => testedComponentId === graphNode.component.id)
-          return new report.Component(deployedComponent.component.id, deployedComponent.commitSha)
+          const deployedComponent = deployedSuite.graphDeployment.components.find(graphNode => testedComponentId === graphNode.component.id)
+          return new ReportSchema.Component(deployedComponent.component.id, deployedComponent.commitSha)
         })
 
-        const scenario = new report.TestScenario(s.name, s.startTime, s.endTime, s.streams, components, s.metadata)
+        const scenario = new ReportSchema.TestScenario(s.name, s.startTime, s.endTime, s.streams, components, s.metadata)
         return scenario
       })
-      const testReport = new report.TestReport(startTime, endTime, scenarios)
 
-      // TODO: do something with report, otherwise just log it
-      logger.info("\n%s", JSON.stringify(testReport, null, 2))
+      const testReport = new ReportSchema.TestReport(
+        deployedSuite.testSuite.name || deployedSuite.testSuite.id,
+        startTime, endTime, scenarios
+      )
+
+      if (config.report.gitRepository) {
+        await Report.store(prefix, config, deployedSuite.namespace, deployedSuite.workspace, deployedSuite.testSuite.id, testReport)
+      } else {
+        logger.info("\n%s", JSON.stringify(testReport, null, 2))
+      }
 
     } catch (e) {
-      logger.error("Error executing test: '%s'", suite.testSuite.id)
+      logger.error("Error executing test: '%s'", deployedSuite.testSuite.id)
       logger.error(e)
       if (e.cause) logger.error(e.cause)
       if (e.stack) logger.error("Stack:\n%s", e.stack)
@@ -93,8 +102,13 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
             nativeReport: { file: nativeReport.file }
           }
         }
-        await downloadNativeReport(api, testSuiteId, startResult.sessionId, spec.workspace, nativeReport.file)
-
+        await downloadNativeReport(
+          spec.workspace,
+          api,
+          testSuiteId,
+          startResult.sessionId,
+          `${ testSuiteId }_${ spec.namespace }_native_${ nativeReport.file }`
+        )
       }
     }
 
@@ -161,11 +175,11 @@ const getReport = async (api: any, sessionId: string): Promise<webapi.ReportResp
   return result
 }
 
-const downloadNativeReport = async (api: any, testSuiteId: string, sessionId: string, workspace: string, nativeReportFile: string) => {
-  const localPath = `${workspace}/${nativeReportFile}`
+const downloadNativeReport = async (workspace: string, api: any, testSuiteId: string, sessionId: string, nativeReportFile: string) => {
+  const localPath = `${ workspace }/reports/${ nativeReportFile }`
   logger.info("Test suite: '%s' - downloading native report file '%s' into '%s'", testSuiteId, nativeReportFile, localPath)
 
-  const downloadResp = await fetch(`${api.reportsNative.endpoint}?sessionId=${sessionId}`, api.reportsNative.options)
+  const downloadResp = await fetch(`${ api.reportsNative.endpoint }?sessionId=${ sessionId }`, api.reportsNative.options)
   if (!downloadResp.ok) {
     logger.error("Error downloading native report for '%s'. Error: %s", testSuiteId, downloadResp.statusText)
     return

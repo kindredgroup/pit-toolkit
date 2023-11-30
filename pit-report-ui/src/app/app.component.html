@@ -1,0 +1,76 @@
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden: true">
+  <pitc-menu></pitc-menu>
+  <pitc-menu-mobile></pitc-menu-mobile>
+
+  <div class="flex flex-col flex-1 w-full">
+    <header
+      class="z-10 py-4 bg-white shadow-md dark:bg-gray-800"
+      [class]="report.streams.failed ? 'bg-danger' : 'bg-success'">
+      <div
+        class="container flex items-center justify-between h-full px-6 mx-auto text-purple-600 dark:text-purple-300"
+      >
+        <!-- Mobile hamburger -->
+        <button
+          class="p-1 mr-5 -ml-1 rounded-md md:hidden focus:outline-none focus:shadow-outline-purple"
+          _aa_click="toggleSideMenu"
+          aria-label="Menu"
+        >
+          <svg
+            class="w-6 h-6"
+            aria-hidden="true"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+        </button>
+        <ng-container *ngIf="report.streams.failed else successBanner">
+          <div class="flex flex-1 lg:mr-32">
+            <div class="relative w-full max-w-xl mr-6 text-xl font-semibold text-white">
+              Test session was not successful
+            </div>
+          </div>
+          <ul class="flex items-center flex-shrink-0 space-x-6">
+            <li class="flex">
+              <svg viewBox="0 0 24 24" fill="none" width="36px" height="36px">
+                <g stroke-width="0"></g>
+                <g stroke-linecap="round" stroke-linejoin="round"></g>
+                <g>
+                  <path stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15H12.01M12 12V9M4.98207 19H19.0179C20.5615 19 21.5233 17.3256 20.7455 15.9923L13.7276 3.96153C12.9558 2.63852 11.0442 2.63852 10.2724 3.96153L3.25452 15.9923C2.47675 17.3256 3.43849 19 4.98207 19Z"></path>
+                </g>
+              </svg>
+            </li>
+          </ul>
+        </ng-container>
+        <ng-template #successBanner>
+          <div class="flex flex-1 lg:mr-32">
+            <div class="relative w-full max-w-xl mr-6 text-xl font-semibold _text-black" style="color: #FFFFFF">
+              All tests passed!
+            </div>
+          </div>
+          <ul class="flex items-center flex-shrink-0 space-x-6">
+            <li class="flex">
+              <svg width="36px" height="36px" viewBox="0 0 24 24" fill="none">
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                  <path d="M8.85 19H6C5.44772 19 5 18.5523 5 18V12C5 11.4477 5.44772 11 6 11H8.85C8.93284 11 9 11.0672 9 11.15V18.85C9 18.9328 8.93284 19 8.85 19Z" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"></path> <path d="M9 11L10.8321 8.25192C10.9416 8.08766 11 7.89465 11 7.69722V5C11 4.44772 11.4477 4 12 4H13C14.1046 4 15 4.89543 15 6V11" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"></path> <path d="M13 11H17.7655C18.9575 11 19.8849 12.0361 19.7532 13.2209L19.1977 18.2209C19.0851 19.2337 18.229 20 17.2099 20H13.4142C13.149 20 12.8946 19.8946 12.7071 19.7071L12.2929 19.2929C12.1054 19.1054 11.851 19 11.5858 19H9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"></path>
+                </g>
+              </svg>
+            </li>
+          </ul>
+        </ng-template>
+      </div>
+    </header>
+
+    <main class="h-full overflow-y-auto">
+      <div class="container px-6 mx-auto grid">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+</div>

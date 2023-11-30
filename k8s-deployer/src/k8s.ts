@@ -1,21 +1,26 @@
+import * as fs from "fs"
+
 import * as Shell from "./shell-facade.js"
 import { logger } from "./logger.js"
 import { Namespace } from "./model.js"
 
-const withLeadingZero = (value: number): string => {
-  if (`${value}`.length == 2) return `${value}`
-  return `0${value}`
+const pad = (v: string | number, len: number = 2): string => {
+  let result = `${ v }`
+  while (result.length != len) result = `0${ result }`
+  return result
 }
 
-export const generateNamespaceName = async (seqNumber: string, attempt?: number) => {
+export const generateNamespaceName = async (seqNumber: string, attempt: number = 1) => {
   const date = new Date()
-  const attemptNr = attempt || 1
-  const namespaceName = `ns${withLeadingZero(date.getMonth()+1)}${withLeadingZero(date.getDate())}-${seqNumber}-${attemptNr}`
+  let namespaceName = "ns"
+  namespaceName = `${ namespaceName }${ pad(date.getUTCMonth() + 1, 2) }`
+  namespaceName = `${ namespaceName }${ pad(date.getUTCDate(), 2) }`
+  namespaceName = `${ namespaceName }-${ seqNumber }-${ attempt }`
   return namespaceName
 }
 
-export const createNamespace = async (rootNamespace: Namespace, namespace: Namespace, timeoutSeconds: number, workspace: string) => {
-  const logFile = `${workspace}/create-ns-${namespace}.log`
+export const createNamespace = async (workspace: string, rootNamespace: Namespace, namespace: Namespace, timeoutSeconds: number) => {
+  const logFile = `${ workspace }/logs/create-ns-${ namespace }.log`
 
   logger.info("Creating namespace: '%s'", namespace)
   const command = `k8s-deployer/scripts/k8s-manage-namespace.sh ${ rootNamespace } create "${ namespace }" ${ timeoutSeconds }`
@@ -26,7 +31,7 @@ export const createNamespace = async (rootNamespace: Namespace, namespace: Names
 }
 
 export const deleteNamespace = async (rootNamespace: Namespace, namespace: Namespace, timeoutSeconds: number, workspace: string) => {
-  const logFile = `${workspace}/delete-ns-${namespace}.log`
+  const logFile = `${ workspace }/delete-ns-${ namespace }.log`
 
   logger.info("Deleting namespace: '%s'", namespace)
   const timeoutMs = timeoutSeconds * 1_000

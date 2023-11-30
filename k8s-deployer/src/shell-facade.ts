@@ -37,7 +37,8 @@ const waitForFile = async (logFile: string, timeoutMs: number): Promise<fs.promi
     } catch (e) {
       const elapsed = new Date().getTime() - startedAt
       if (elapsed >= timeoutMs) {
-        throw new Error(`No log file found after ${elapsed}ms. Expected file at: ${logFile}`)
+        logger.warn("\n%s", await exec("pwd && ls -lah"))
+        throw new Error(`No log file found after ${ elapsed }ms. Expected file at: ${ logFile }. Current directory is: ${ process.cwd() }`)
       }
       logger.info("Still waiting for %s...", logFile)
     }
@@ -120,39 +121,61 @@ export const exec = async (cmd: string, options?: ShellOptions): Promise<string 
   }
 
   let command = cmd
-  if (options.homeDir) command = `cd ${options.homeDir}; ${command}`
+  let moveLogFile = false
+  if (options.homeDir) {
+    command =`cd ${ options.homeDir }; ${ command }`
+    moveLogFile = true
+  }
+
+  let logFile = options.logFileName
+  let logFilePath = logFile
+  if (options.logFileName) {
+    const i = logFile.lastIndexOf("/")
+    if (i !== -1) {
+      moveLogFile = true
+      logFile = logFile.substring(i+1)
+      // this is for tailing
+      if (options.homeDir) {
+        logFilePath = `${ options.homeDir }/${ logFile }`
+      } else {
+        logFilePath = logFile
+      }
+      logFile = `./${ logFile }`
+    }
+  }
 
   if (!options.tailTarget) {
     return Shell.execSync(command).toString("utf-8")
   }
-  command = `${command} > `
-  if (options.logFileName.indexOf("/") == -1) command = `${command} ./`
-  command = `${command}${options.logFileName} 2>&1`
+  command = `${ command } > ${ logFile } 2>&1`
 
   logger.info("Executing: '%s'", command)
   Shell.exec(command)
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // Invocation was success, lets tail the log
-  let logFile = options.logFileName
-  if (options.homeDir) logFile = `${options.homeDir}/${logFile}`
-  const logFileHandle = await waitForFile(logFile, 5_000)
+  const logFileHandle = await waitForFile(logFilePath, 15_000)
 
-  const state = new FileReadingState(logFile)
+  const state = new FileReadingState(logFilePath)
 
   // Stage 1. Setup file watcher. This is just optimisation. Watcher event will not be triggered if
   // file is already fully written. If that happened we will deal with it in stage 2.
-  const watcher: fs.FSWatcher = fs.watch(logFile, async (_event) => {
+  const watcher: fs.FSWatcher = fs.watch(logFilePath, async (_event) => {
     tailLogFile(state, false, options.tailTarget)
   })
 
   // Stage 2. Wait until command execution finishes or times out
   try {
     const timeout = options.timeoutMs || 60_000
-    await monitorProgress(state, timeout, `Error executing command: '${command}'`, options.tailTarget)
+    await monitorProgress(state, timeout, `Error executing command: '${ command }'`, options.tailTarget)
   } finally {
     logFileHandle?.close()
     watcher?.close()
+
+    if (!moveLogFile) return
+
+    logger.info("Moving log file from '%s' to %s", logFilePath, options.logFileName)
+    await exec(`mv ${ logFilePath } ${ options.logFileName }`)
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 }

@@ -1,14 +1,15 @@
 import * as fs from "fs"
 
 import { LOG_SEPARATOR_LINE, logger } from "./logger.js"
-import { DeployedComponent, DeployedTestSuite, GraphDeploymentResult, Namespace, Schema } from "./model.js"
+import { DeployedComponent, DeployedTestSuite, GraphDeploymentResult, Namespace, Prefix, Schema } from "./model.js"
 import * as Deployer from "./deployer.js"
 import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
+import * as Shell from "./shell-facade.js"
 
-const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: string, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
+const deployGraph = async (workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
   const deployments: Array<DeployedComponent> = new Array()
   for (let i = 0; i < graph.components.length; i++) {
     const componentSpec = graph.components[i]
@@ -38,19 +39,15 @@ const deployGraph = async (testSuiteId: string, graph: Schema.Graph, workspace: 
 }
 
 const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string): Promise<Schema.PitFile> => {
-  await Deployer.cloneFromGit(testSuite.name, testSuite.location, destination)
+  await Deployer.cloneFromGit(testSuite.id, testSuite.location, destination)
   logger.info("Loading pitfile from remote test suite '%s'", testSuite.name)
   const pitFileName = testSuite.location.pitFile || PifFileLoader.DEFAULT_PITFILE_NAME
-  // TODO how to add test app directory name here??
-  const pitfilePath = `${destination}/${pitFileName}`
-
+  const pitfilePath = `${ destination }/${ pitFileName }`
   const remotePitFile = await PifFileLoader.loadFromFile(pitfilePath)
-  //logger.info("\n%s", JSON.stringify(remotePitFile, null, 2))
-
   return remotePitFile
 }
 
-const createWorkspace = async (path: string, suiteName: string) => {
+const createWorkspace = async (path: string) => {
   logger.info("Creating workspace '%s'", path)
   try {
     await fs.promises.access(path, fs.constants.W_OK)
@@ -58,64 +55,56 @@ const createWorkspace = async (path: string, suiteName: string) => {
   } catch (e) {
     // all good, this is expected
   }
-  fs.mkdirSync(path)
+  Shell.exec(`mkdir -p ${ path }/logs`)
+  Shell.exec(`mkdir -p ${ path }/reports`)
+  // This does not work properly
+  // fs.mkdirSync(path)
+  // fs.mkdirSync(`${ path }/logs`)
+  // fs.mkdirSync(`${ path }/reports`)
 }
 
-const deployLockManager = async (isEnabled: boolean, namespace: Namespace) => {
-  if (isEnabled) {
-    logger.info("%s Deploying 'Lock Manager' %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
-    logger.info("")
-    await Deployer.deployLockManager(namespace)
-    logger.info("")
-  } else {
+const deployLockManager = async (workspace: string, isEnabled: boolean, namespace: Namespace) => {
+  if (!isEnabled) {
     logger.info("%s The 'Lock Manager' will not be deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
     logger.info("")
+    return
   }
+
+  logger.info("%s Deploying 'Lock Manager' %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+  logger.info("")
+  await Deployer.deployLockManager(workspace, namespace)
+  logger.info("")
 }
 
 const deployLocal = async (
+    workspace: string,
     config: Config,
     pitfile: Schema.PitFile,
     seqNumber: string,
     testSuite: Schema.TestSuite,
-    workspace: string,
     testAppDirForRemoteTestSuite?: string): Promise<DeployedTestSuite> => {
   logger.info("%s Processing test suite '%s' %s", LOG_SEPARATOR_LINE, testSuite.name, LOG_SEPARATOR_LINE)
 
   const namespace = await K8s.generateNamespaceName(seqNumber)
-  await K8s.createNamespace(config.parentNamespace, namespace, config.namespaceTimeoutSeconds, workspace)
+  await K8s.createNamespace(workspace, config.parentNamespace, namespace, config.namespaceTimeoutSeconds)
 
-  await deployLockManager(pitfile.lockManager.enabled, namespace)
+  await deployLockManager(workspace, pitfile.lockManager.enabled, namespace)
 
-  const deployedGraph = await deployGraph(testSuite.id, testSuite.deployment.graph, workspace, namespace, testAppDirForRemoteTestSuite)
+  const deployedGraph = await deployGraph(workspace, testSuite.id, testSuite.deployment.graph, namespace, testAppDirForRemoteTestSuite)
 
-  return new DeployedTestSuite(namespace, testSuite, workspace, deployedGraph)
+  return new DeployedTestSuite(workspace, namespace, testSuite, deployedGraph)
 }
 
 const deployRemote = async (
+  workspace: string,
   config: Config,
   pitfile: Schema.PitFile,
   seqNumber: string,
   testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
   const list = new Array<DeployedTestSuite>()
-  // - - - - - - - - - - - - - - - - - - - - -
-  // Prepare destination directory name
-  const date = new Date()
-  const timeToken = date.getMonth() + "" + date.getDay() + "" + date.getHours() + "" + date.getMinutes() + "" + date.getSeconds() + "" + date.getMilliseconds()
-  const workspace = `testsuite${timeToken}_${testSuite.id}`
-  await createWorkspace(workspace, testSuite.name)
-  let destination = workspace
-  while (destination.length > 0 && destination.endsWith("/")) {
-    destination.substring(0, destination.length - 1)
-  }
 
-  const i = destination.lastIndexOf("/")
-  if (i !== -1) {
-    destination.substring(i + 1)
-  }
-
-  destination = `${destination}/${testSuite.id}`
-  // - - - - - - - - - - - - - - - - - - - - -
+  const destination = `${ workspace }/remotesuite_${ testSuite.id }`
+  fs.mkdirSync(destination, { recursive: true })
 
   const remotePitFile = await downloadPitFile(testSuite, destination)
 
@@ -132,7 +121,9 @@ const deployRemote = async (
 
     const combinedSeqNumber = `${seqNumber}e${(subSeqNr+1)}`
     const testAppDirForRemoteTestSuite = destination
-    const summary = await deployLocal(config, pitfile, combinedSeqNumber, remoteTestSuite, workspace, testAppDirForRemoteTestSuite)
+
+    const summary = await deployLocal(workspace, config, pitfile, combinedSeqNumber, remoteTestSuite, testAppDirForRemoteTestSuite)
+
     list.push(summary)
   }
 
@@ -140,18 +131,23 @@ const deployRemote = async (
 }
 
 const deployAll = async (
+  prefix: Prefix,
   config: Config,
   pitfile: Schema.PitFile,
   seqNumber: string,
   testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
 
+  const workspace = `${ prefix }_${ testSuite.id }`
+
+  createWorkspace(workspace)
+
   const deployedSuites = new Array<DeployedTestSuite>()
   if (testSuite.location.type === Schema.LocationType.Local) {
-    const workspace = "."
-    const summary = await deployLocal(config, pitfile, seqNumber, testSuite, workspace)
+    // TODO create logs and reports directory
+    const summary = await deployLocal(workspace, config, pitfile, seqNumber, testSuite)
     deployedSuites.push(summary)
   } else {
-    const list = await deployRemote(config, pitfile, seqNumber, testSuite)
+    const list = await deployRemote(workspace, config, pitfile, seqNumber, testSuite)
     list.forEach(i => deployedSuites.push(i))
   }
 
@@ -172,18 +168,23 @@ export const undeployAll = async (config: Config, suites: Array<DeployedTestSuit
 }
 
 export const processTestSuite = async (
+  prefix: Prefix,
   config: Config,
   pitfile: Schema.PitFile,
   seqNumber: string,
   testSuite: Schema.TestSuite): Promise<Array<DeployedTestSuite>> => {
   // By default assume processing strategy to be "deploy all then run tests one by one"
-  const list = await deployAll(config, pitfile, seqNumber, testSuite)
+
+  logger.info("")
+  logger.info("--------------- Processig %s ---------------", testSuite.id)
+  logger.info("")
+  const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
 
   logger.info("")
   logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
   logger.info("")
 
-  await TestRunner.runAll(config.clusterUrl, list)
+  await TestRunner.runAll(prefix, config, list)
 
   return list
 }

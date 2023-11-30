@@ -17,7 +17,7 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "clean": "rm -rd dist",
+    "clean": "rm -rf dist",
     "build": "npm run clean && npx tsc",
     "dev.start": "npm run build && node dist/index.js",
     "dev.build-image": "npm run build && source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",

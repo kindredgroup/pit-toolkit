@@ -20,12 +20,14 @@ PROJECT_DIR=$2
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
+COMMIT_SHA=$(git rev-parse --short HEAD)
 
 echo "EXAMPLES_TEMP_DIR=$EXAMPLES_TEMP_DIR"
 echo "PROJECT_DIR=$PROJECT_DIR"
 echo "Current director is \"$PROJECT_ROOT\""
 echo "Application under test is \"$APP_NAME\""
 echo "Parent namespace \"$PARENT_NS\""
+echo "Simulated CI commit \"$COMMIT_SHA\""
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then
@@ -45,8 +47,6 @@ EXAMPLES_TEMP_DIR=$(pwd)
 
 CI_HOME_DIR=$EXAMPLES_TEMP_DIR/ci-home
 mkdir -p $CI_HOME_DIR
-
-
 
 # Lets simulate the checkout of project as it is done by CI
 
@@ -82,7 +82,14 @@ echo ""
 echo -e "${clear}"
 
 cd $CI_HOME_DIR
-node $PROJECT_ROOT/dist/src/index.js --workspace $CI_HOME_DIR --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml --parent-ns $PARENT_NS
+node $PROJECT_ROOT/dist/src/index.js \
+  --commit-sha $COMMIT_SHA \
+  --workspace $CI_HOME_DIR \
+  --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml \
+  --parent-ns $PARENT_NS \
+  --report-repository "git://127.0.0.1:60102/pit-reports.git" \
+  --report-branch-name $(basename $PROJECT_DIR)
+
 returnStatus=$(($?+0))
 
 cd $PROJECT_ROOT

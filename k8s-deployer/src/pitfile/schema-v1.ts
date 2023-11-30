@@ -1,19 +1,4 @@
-// Trigger
-
 import { SchemaVersion } from "./version.js"
-
-// - - - - - - - - - - - - - - - - - - - - - -
-export class Filter {
-  expressions: [RegExp]
-}
-
-export class Trigger {
-  description?: string
-  name: string
-  filter: Filter
-}
-// End of trigger
-// - - - - - - - - - - - - - - - - - - - - - -
 
 export enum LocationType {
   Local = "LOCAL",
@@ -83,7 +68,6 @@ export class TestSuite {
   id: string
   location: Location
   lock?: Lock
-  trigger?: Trigger
   deployment: Deployment
   testSuiteIds: Array<string> | undefined
 }
@@ -95,7 +79,6 @@ export class PitFile {
   projectName: string
   version = SchemaVersion.VERSION_1_0
 
-  trigger?: Trigger
   lockManager: LockManager
   testSuites: Array<TestSuite>
 }
