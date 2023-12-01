@@ -66,6 +66,7 @@ export class Deployment {
 export class TestSuite {
   name: string
   id: string
+  timeoutMs?: number
   location: Location
   lock?: Lock
   deployment: Deployment

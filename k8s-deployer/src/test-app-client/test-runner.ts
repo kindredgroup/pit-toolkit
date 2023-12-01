@@ -13,7 +13,7 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
   for (let deployedSuite of testSuites) {
     try {
       const startTime = new Date()
-      const reportEnvelope = await runSuite(config.clusterUrl, deployedSuite)
+      const reportEnvelope = await runSuite(config, deployedSuite)
       const endTime = new Date()
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
@@ -45,7 +45,7 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
   }
 }
 
-const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
+const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
   const testSuiteId = spec.testSuite.id
 
   logger.info("Test suite: '%s' - preparing to run", testSuiteId)
@@ -59,7 +59,7 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
   try {
 
     // TODO externalise host name into parameter or env variable
-    const baseUrl = `${ clusterUrl }/${ spec.namespace }.${ spec.testSuite.id }`
+    const baseUrl = `${ config.clusterUrl }/${ spec.namespace }.${ spec.testSuite.id }`
     const api = {
       start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
       status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
@@ -80,8 +80,8 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
     const startResult = await httpResponse.json() as webapi.StartResponse
     logger.info("Test suite: '%s' - started using session: %s", testSuiteId, startResult.sessionId)
 
-    logger.info("Test suite: '%s' - waiting for completion using session: %s", testSuiteId, startResult.sessionId)
-    await waitUntilFinish(api, testSuiteId, startResult.sessionId)
+    const testTimeoutMs = spec.testSuite.timeoutMs || config.testTimeoutMs
+    await waitUntilFinish(api, testSuiteId, startResult.sessionId, config.testStatusPollFrequencyMs, testTimeoutMs, 1_000)
 
     logger.info("Test suite: '%s' - waiting ended, obtaining report using session: %s", testSuiteId, startResult.sessionId)
     const reportResponse = await getReport(api, startResult.sessionId)
@@ -124,12 +124,23 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
   }
 }
 
-const waitUntilFinish = async (api: any, testSuiteId: string, sessionId: string) => {
+const waitUntilFinish = async (
+  api: any,
+  testSuiteId: string,
+  sessionId: string,
+  pollFrequencyMs: number,
+  testTimeoutMs: number,
+  retryTimeoutMs: number
+) => {
   const MAX_TECH_FAILURES = 12
   let failuresCount = 0
+  const startedAt = new Date()
   while (true) {
-    const sleep = new Promise(resolve => setTimeout(resolve, 5_000))
-    await sleep
+    const elapsed = new Date().getTime() - startedAt.getTime()
+    logger.info("Test suite: '%s' - waiting for completion using session: '%s' with timeout of %sms. Elapsed: %sms", testSuiteId, sessionId, testTimeoutMs, elapsed)
+    if (elapsed >= testTimeoutMs) {
+      throw new Error(`Timeout. Giving up after ${ elapsed / 1_000.0 }s while waiting for test to complete: '${ testSuiteId }'`)
+    }
 
     let httpResponse: Response
     try {
@@ -137,7 +148,11 @@ const waitUntilFinish = async (api: any, testSuiteId: string, sessionId: string)
       httpResponse = await fetch(`${api.status.endpoint}?sessionId=${sessionId}`, api.status.options)
     } catch (e) {
       // allow x number of failed polls and then give up
-      if (++failuresCount < MAX_TECH_FAILURES) continue
+      if (++failuresCount < MAX_TECH_FAILURES) {
+        const sleep = new Promise(resolve => setTimeout(resolve, retryTimeoutMs))
+        await sleep
+        continue
+      }
 
       throw new Error(`Unable to fetch status of previously started test: '${testSuiteId}'. Error: '${e.message}'`, { cause: e })
     }
@@ -155,6 +170,9 @@ const waitUntilFinish = async (api: any, testSuiteId: string, sessionId: string)
     if (statusQueryResult.status === webapi.TestStatus.ERROR) {
       throw new Error(`Test completed with error. Error: '${statusQueryResult.error}'`)
     }
+
+    const sleep = new Promise(resolve => setTimeout(resolve, pollFrequencyMs))
+    await sleep
   } // end of poll loop
 }
 

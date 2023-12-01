@@ -9,13 +9,13 @@ import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
 import * as Shell from "./shell-facade.js"
 
-const deployGraph = async (workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
+const deployGraph = async (config: Config, workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
   const deployments: Array<DeployedComponent> = new Array()
   for (let i = 0; i < graph.components.length; i++) {
     const componentSpec = graph.components[i]
     logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, componentSpec.name)
     logger.info("")
-    const commitSha = await Deployer.deployComponent(workspace, componentSpec, namespace)
+    const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
     deployments.push(new DeployedComponent(commitSha, componentSpec))
   }
   logger.info("")
@@ -33,7 +33,7 @@ const deployGraph = async (workspace: string, testSuiteId: string, graph: Schema
     graph.testApp.location.path = testAppDirForRemoteTestSuite
   }
   const params = [ testSuiteId ]
-  const testAppCommitSha = await Deployer.deployComponent(workspace, graph.testApp, namespace, params)
+  const testAppCommitSha = await Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
   logger.info("")
   return new GraphDeploymentResult(deployments, new DeployedComponent(testAppCommitSha, graph.testApp))
 }
@@ -49,12 +49,17 @@ const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string)
 
 const createWorkspace = async (path: string) => {
   logger.info("Creating workspace '%s'", path)
+  let directoryCreated = false
   try {
     await fs.promises.access(path, fs.constants.W_OK)
-    throw new Error(`Cannot create new workspace '${path}'. Directory or file exists.`)
+    directoryCreated = true
   } catch (e) {
     // all good, this is expected
   }
+  if (directoryCreated) {
+    throw new Error(`Cannot create new workspace '${path}'. Directory or file exists.`)
+  }
+
   Shell.exec(`mkdir -p ${ path }/logs`)
   Shell.exec(`mkdir -p ${ path }/reports`)
   // This does not work properly
@@ -63,7 +68,7 @@ const createWorkspace = async (path: string) => {
   // fs.mkdirSync(`${ path }/reports`)
 }
 
-const deployLockManager = async (workspace: string, isEnabled: boolean, namespace: Namespace) => {
+const deployLockManager = async (config: Config, workspace: string, isEnabled: boolean, namespace: Namespace) => {
   if (!isEnabled) {
     logger.info("%s The 'Lock Manager' will not be deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
     logger.info("")
@@ -72,13 +77,13 @@ const deployLockManager = async (workspace: string, isEnabled: boolean, namespac
 
   logger.info("%s Deploying 'Lock Manager' %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
   logger.info("")
-  await Deployer.deployLockManager(workspace, namespace)
+  await Deployer.deployLockManager(config, workspace, namespace)
   logger.info("")
 }
 
 const deployLocal = async (
-    workspace: string,
     config: Config,
+    workspace: string,
     pitfile: Schema.PitFile,
     seqNumber: string,
     testSuite: Schema.TestSuite,
@@ -88,9 +93,9 @@ const deployLocal = async (
   const namespace = await K8s.generateNamespaceName(seqNumber)
   await K8s.createNamespace(workspace, config.parentNamespace, namespace, config.namespaceTimeoutSeconds)
 
-  await deployLockManager(workspace, pitfile.lockManager.enabled, namespace)
+  await deployLockManager(config, workspace, pitfile.lockManager.enabled, namespace)
 
-  const deployedGraph = await deployGraph(workspace, testSuite.id, testSuite.deployment.graph, namespace, testAppDirForRemoteTestSuite)
+  const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, namespace, testAppDirForRemoteTestSuite)
 
   return new DeployedTestSuite(workspace, namespace, testSuite, deployedGraph)
 }
@@ -122,7 +127,7 @@ const deployRemote = async (
     const combinedSeqNumber = `${seqNumber}e${(subSeqNr+1)}`
     const testAppDirForRemoteTestSuite = destination
 
-    const summary = await deployLocal(workspace, config, pitfile, combinedSeqNumber, remoteTestSuite, testAppDirForRemoteTestSuite)
+    const summary = await deployLocal(config, workspace, pitfile, combinedSeqNumber, remoteTestSuite, testAppDirForRemoteTestSuite)
 
     list.push(summary)
   }
@@ -144,7 +149,7 @@ const deployAll = async (
   const deployedSuites = new Array<DeployedTestSuite>()
   if (testSuite.location.type === Schema.LocationType.Local) {
     // TODO create logs and reports directory
-    const summary = await deployLocal(workspace, config, pitfile, seqNumber, testSuite)
+    const summary = await deployLocal(config, workspace, pitfile, seqNumber, testSuite)
     deployedSuites.push(summary)
   } else {
     const list = await deployRemote(workspace, config, pitfile, seqNumber, testSuite)

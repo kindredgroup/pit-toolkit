@@ -14,8 +14,10 @@ export class StartRequest {
 }
 
 export class StartResponse {
-  sessionId: string
-  testSuiteId: string
+  constructor(
+    readonly sessionId: string,
+    readonly testSuiteId: string
+  ) {}
 }
 
 export class StatusResponse {

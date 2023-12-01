@@ -1,5 +1,3 @@
-import * as fs from "fs"
-
 import * as Shell from "./shell-facade.js"
 import { logger } from "./logger.js"
 import { Namespace } from "./model.js"

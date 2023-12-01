@@ -15,6 +15,7 @@ deploy.lock-manager:
 			--set image.tag=$$IMAGE_TAG \
 			--set pod.repository=$$REGISTRY_URL/$$SERVICE_NAME \
 			--set service.port=$$SERVICE_PORT \
+			--set webApp.contextRoot=$$K8S_NAMESPACE.$$SERVICE_NAME \
 			$$SERVICE_NAME ./$$CHART_PACKAGE; \
 		rm $$CHART_PACKAGE; \
 		kubectl -n $$K8S_NAMESPACE port-forward service/$$SERVICE_NAME $$SERVICE_PORT:http'
@@ -52,10 +53,10 @@ deploy.node-1-test-app:
 			--set pod.repository=$$REGISTRY_URL/$$TEST_APP_SERVICE_NAME \
 			--set service.port=$$TEST_APP_SERVICE_PORT \
 			--set environment.TARGET_SERVICE_URL="http://$$SERVICE_NAME:$$SERVICE_PORT" \
-			--set webApp.contextRoot="$$K8S_NAMESPACE.node1-test-app" \
+			--set webApp.contextRoot="$$K8S_NAMESPACE.$$TEST_APP_SERVICE_NAME" \
 			$$TEST_APP_SERVICE_NAME ./$$CHART_PACKAGE; \
 		rm $$CHART_PACKAGE; \
-		echo "" \
+		echo ""; \
 		echo "Test app is available on http://localhost:80/$$K8S_NAMESPACE.$$TEST_APP_SERVICE_NAME"'
 		#kubectl -n $$K8S_NAMESPACE port-forward service/$$TEST_APP_SERVICE_NAME $$TEST_APP_SERVICE_PORT:http'
 
@@ -79,7 +80,7 @@ deploy.graph-perf-test-app:
 			--set environment.TARGET_SERVICE_URL="http://$$SERVICE_NAME_NODE_1:$$SERVICE_PORT_NODE_1" \
 			--set webApp.contextRoot=$$K8S_NAMESPACE.$$SERVICE_NAME \
 			$$SERVICE_NAME ./$$CHART_PACKAGE; \
-			rm $$CHART_PACKAGE \
-		echo "" \
+			rm $$CHART_PACKAGE; \
+		echo ""; \
 		echo "Test app is available on http://localhost:80/$$K8S_NAMESPACE.$$SERVICE_NAME"'
 		#kubectl -n $$K8S_NAMESPACE port-forward service/$$SERVICE_NAME $$SERVICE_PORT:http'

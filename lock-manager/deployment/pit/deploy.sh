@@ -44,5 +44,7 @@ then
   exit $returnStatus
 fi
 
+#http://localhost:80/ns1201_1_1.lock-manager/
+
 # This will signal to the monitor the stop event
 echo "$STATUS_DONE"

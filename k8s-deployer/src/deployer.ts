@@ -4,6 +4,8 @@ import { logger } from "./logger.js"
 import { CommitSha, Namespace, Schema, DeployedComponent } from "./model.js"
 import * as Shell from "./shell-facade.js"
 import { LocationType } from "./pitfile/schema-v1.js"
+import { config } from "process"
+import { Config } from "./config.js"
 
 export class DeployOptions {
   namespace?: Namespace
@@ -59,9 +61,11 @@ export const cloneFromGit = async (appId: string, location: Schema.Location, tar
 
 export const deployApplication = async (
   workspace: string,
+  namespace: Namespace,
   appId: string,
   appDirectory: string,
   instructions: Schema.DeployInstructions,
+  deployCheckFrequencyMs?: number,
   options?: DeployOptions) => {
   await isExecutable(`${ appDirectory }/${ instructions.command }`)
 
@@ -85,15 +89,16 @@ export const deployApplication = async (
       command = `${command} ${param}`
     }
 
-    const timeoutMs = instructions.timeoutSeconds * 1_000
-    const logFileName = `${ workspace }/logs/deploy-${ appId }.log`
-    await Shell.exec(command, { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: line => {
+    const logFileName = `${ workspace }/logs/deploy-${ namespace }-${ appId }.log`
+    const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
       if (line.toLowerCase().startsWith("error:")) {
         logger.error("%s", line)
       } else {
         logger.info("%s", line)
       }
-    }})
+    }}
+    if (instructions.timeoutSeconds) opts.timeoutMs = instructions.timeoutSeconds * 1_000
+    await Shell.exec(command, opts)
 
   } catch (e) {
     throw new Error(`Error invoking deployment launcher: '${instructions.command}'`, { cause: e })
@@ -107,8 +112,9 @@ export const deployApplication = async (
   const timeoutSeconds = instructions.statusCheck.timeoutSeconds || 60
   logger.info("Invoking '%s/%s' for '%s' with timeout of %s seconds", appDirectory, instructions.statusCheck.command, appId, timeoutSeconds)
   const checkStartedAt = new Date().getTime()
+  const checkSleepMs = deployCheckFrequencyMs || 5_000
   while (true) {
-    const sleep = new Promise(resolve => setTimeout(resolve, 5_000))
+    const sleep = new Promise(resolve => setTimeout(resolve, checkSleepMs))
     await sleep
 
     const elapsed = new Date().getTime() - checkStartedAt
@@ -151,13 +157,21 @@ const undeployApplication = async (appName: string, appDirectory: string, namesp
   }
 }
 
-export const deployLockManager = async (workspace: string, namespace: Namespace) => {
+export const deployLockManager = async (config: Config, workspace: string, namespace: Namespace) => {
   const spec = getLockManagerConfig()
   const appName = spec.id
   // directory where CI checked out sources of LockManager app
   const sourcesDirectory = "lock-manager"
   const webAppContextRoot = "lock-manager"
-  await deployApplication(workspace, appName, sourcesDirectory, spec.deploy, { namespace, deployerParams: [ webAppContextRoot ] })
+  await deployApplication(
+    workspace,
+    namespace,
+    appName,
+    sourcesDirectory,
+    spec.deploy,
+    config.deployCheckFrequencyMs,
+    { namespace, deployerParams: [ webAppContextRoot ] }
+  )
 }
 
 export const undeployLockManager = async (namespace: Namespace) => {
@@ -166,6 +180,7 @@ export const undeployLockManager = async (namespace: Namespace) => {
 }
 
 export const deployComponent = async (
+    config: Config,
     workspace: string,
     spec: Schema.DeployableComponent,
     namespace: Namespace,
@@ -187,7 +202,7 @@ export const deployComponent = async (
     commitSha = await Shell.exec(`cd ${ appDir } && git log --pretty=format:"%h" -1`)
   }
 
-  await deployApplication(workspace, spec.id, appDir, spec.deploy, { namespace, deployerParams })
+  await deployApplication(workspace, namespace, spec.id, appDir, spec.deploy, config.deployCheckFrequencyMs, { namespace, deployerParams })
   return commitSha
 }
 

@@ -18,6 +18,9 @@ export class Config {
     readonly pitfile: string,
     readonly namespaceTimeoutSeconds: number,
     readonly report: TestReportConfig,
-    readonly params: Map<string, string>
+    readonly params: Map<string, string>,
+    readonly testStatusPollFrequencyMs: number = 15_000,
+    readonly deployCheckFrequencyMs: number = 5_000,
+    readonly testTimeoutMs: number = 60_000,
   ) {}
 }
