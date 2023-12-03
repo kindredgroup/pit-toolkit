@@ -6,7 +6,9 @@ The process starts when GIT event, such as merge or push, is picked up by projec
 
 It is expected that pipeline will checkout PIT project from well-known location or alternatively, tools provided by PIT Toolkit may be pre-installed into pipeline image.
 
-PIT will locate specification file `pitfile.yml` in the repository which triggered the pipeline and start execution of deployment process (The process is visualised in the diagram below).
+PIT will locate specification file `pitfile.yml` in the repository which triggered the pipeline.
+
+PIT will examine the content of git event and pass it through `filters` as they are defined in the pit spec file. Filter is defined as an array of regex patterns to be applied to file names which were part of the GIT event. If some filter matches a file, then PIT will start execution of deployment process (The process is visualised in the diagram below).
 
 The PIT spec file contains definitions of:
 - Lock Manager app
@@ -78,7 +80,18 @@ The responsibilities of all mentioned components are defined as:
 
 ```YAML
 version: "1.0"
-projectName: "Tests for xyz"
+
+trigger:
+  description: Runs only if Rust source code changed in packages impacting Talos Certifier
+  name: Detect Talos Certifier changes
+  filter:
+    expressions:
+      - "packages/talos_certifier/.*"
+      - "packages/talos_suffix/.*"
+      - "packages/talos_certifier_adapters/.*"
+      - "packages/talos_common_utils/.*"
+      - "packages/talos_rdkafka_utils/.*"
+      - "packages/cohort_sdk/.*"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # The Lock Manager is independent shipped as part of PIT toolkit.
@@ -117,6 +130,7 @@ testSuites:
       timeout: 1h
       ids: [ lock-talos-certifier ]
 
+    trigger: # This is optional, when not defined, test will trigger when top level trigger goes off
     deployment:
       graph:
         testApp:
@@ -184,10 +198,7 @@ testSuites:
 | `lock-manager/deployment/helm` | The deployment configs for K8s |
 | `lock-manager/deployment/pit` | The deployment logic |
 | `k8s-deployer/` | The deployment utility for apps designed to run in K8s clusters |
-| `k8s-deployer/scripts` | Various scripts to assist with deployer functionality |
 | `k8s-deployer/tmp` | Temporary directory which is used when running local deployer during development |
-| `k8s-deployer/report-template.html` | The HTML template for report UI |
-| `pit-report-ui` | The SPA project producing mini "website" to display the details of PIT report |
 | `examples/node-1/` | The example of application integrated with PIT |
 | `examples/node-1/deployment/helm` | The deployment configs for K8s |
 | `examples/node-1/deployment/pit` | The deployment logic |
@@ -216,7 +227,7 @@ testSuites:
 - Kubectl plugin named "kubectl-hns" version 0.9.0 is installed on your system.
   - Installing via kubectl plugin named "krew" is not a good idea as it will pull the latest version which might not work. Hense, [install kubectl-hns v0.9.0 plugin via this link](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v0.9.0) following "Manual steps"
     - `HNC_VERSION=v0.9.0 HNC_PLATFORM=darwin_amd64 curl -L https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/download/${HNC_VERSION}/kubectl-hns_${HNC_PLATFORM} -o ./kubectl-hns && chmod +x ./kubectl-hns`
-- Ingress Controller named "kubernetes-ingress". [See instructions here](https://kubernetes.github.io/ingress-nginx/deploy/_)
+- Ingress Controller named kubernetes-ingress
   - All your namespaces are being observed by HNC system. When installing NGINX ingress controller it will create its own namespace and HNC system will complain. To prevent that we need to exclude namespace used by NGINX insgress controller from HNC.
   - Use inline editing method: `kubectl edit -n hnc-system deploy hnc-controller-manager` find deployment with name "name: hnc-controller-manager" and add one more entry into the list under `spec/containers/args`. Entry looks like this: `--excluded-namespace=ingress-nginx`
 - The port 80 is free. Port 80 is used by ingress controller in your local desktop-docker.
@@ -316,7 +327,7 @@ This is main approach intented to be used on CIs. For example, when we need to t
 It is expected that CI will check out project into some temporary directory and launch k8s-deployer app. Below are instructions how to simluate this scenario locally.
 
 ```bash
-cd pit-toolkit/k8s-deployer
+cd pit-toolkit/k8s-deploy
 
 # Make sure there are docker images in your local registry:
 # - ksp/lock-manager:<tag>
@@ -331,7 +342,7 @@ mkdir ./tmp
 #   2: Path to application under test. This is application whose pitfile will be processed.
 #      It is expected that there is "pitfile.yml" at the root of the project,
 #      such as "$(pwd)/examples/node-1/pitfile.yml".
-npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1
+npm run dev.start-example $(pwd)/tmp $(pwd)/examples/node-1
 
 ```
 
@@ -375,5 +386,5 @@ Launching git server. Checkout your project from git://127.0.0.1:60101/node-1.gi
 
 Similarly run git server for "remote test app"
 ```bash
-scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/../examples/graph-perf-test-app
+scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/examples/graph-perf-test-app
 ```
