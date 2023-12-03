@@ -25,7 +25,7 @@ export const convertFrom = (k6Report: Array<any>): Array<report.TestScenario> =>
     stats.count++
   }
 
-  const expectedTps = new report.ScalarMetric("throughput", 490.0)
+  const expectedTps = new report.ScalarMetric("throughput", 600.0)
   const scenarios = Array.from(statsPerScenario.keys()).map(scenarioName => {
     const stats = statsPerScenario.get(scenarioName)
     const elapsed = (stats.timeTo.getTime() - stats.timeFrom.getTime()) / 1_000.0

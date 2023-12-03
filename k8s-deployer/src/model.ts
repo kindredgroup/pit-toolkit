@@ -1,13 +1,14 @@
 import * as SchemaV1 from "./pitfile/schema-v1.js"
 
+export type Prefix = string
 export type Namespace = string
 export type CommitSha = string
 
 export class DeployedTestSuite {
   constructor (
+    readonly workspace: string,
     readonly namespace: Namespace,
     readonly testSuite: SchemaV1.TestSuite,
-    readonly workspace: string,
     readonly graphDeployment: GraphDeploymentResult,
     ) {}
 }

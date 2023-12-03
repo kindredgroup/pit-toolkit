@@ -1,0 +1,15 @@
+<div class="mt-6">
+  <span class="mr-1">Test suite:</span><span class="my-6 text-xl font-semibold text-gray-700 dark:text-gray-200">{{report.rawData.name || report.rawData.id}}</span>
+</div>
+
+<div class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-200">
+  <span class="mr-1">Executed:</span><span class="text-sm font-semibold">{{report.startTime | date: 'd MMM, Y' }} {{report.startTime | date: 'hh:mm:ss' }} - {{report.endTime | date: 'hh:mm:ss' }}</span>
+</div>
+
+<pitc-summary-cards [report]="report"></pitc-summary-cards>
+
+<div class="my-6">
+  <span class="my-6 text-xl font-semibold text-gray-700 dark:text-gray-200">Deployed Graph</span>
+</div>
+
+<pitc-summary-graph [report]="report"></pitc-summary-graph>

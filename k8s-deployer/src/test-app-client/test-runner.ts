@@ -2,33 +2,42 @@ import fetch, { Response } from "node-fetch"
 import * as fs from "fs"
 
 import { LockManager } from "../locks/lock-manager.js"
-import { DeployedTestSuite } from "../model.js"
+import { DeployedTestSuite, Prefix } from "../model.js"
 import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
-import * as report from "./report/schema-v1.js"
+import * as ReportSchema from "./report/schema-v1.js"
+import { Config } from "../config.js"
+import * as Report from "../report/report-service.js"
 
-export const runAll = async (clusterUrl: string, testSuites: Array<DeployedTestSuite>) => {
-  for (let suite of testSuites) {
+export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<DeployedTestSuite>) => {
+  for (let deployedSuite of testSuites) {
     try {
       const startTime = new Date()
-      const reportEnvelope = await runSuite(clusterUrl, suite)
+      const reportEnvelope = await runSuite(config, deployedSuite)
       const endTime = new Date()
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
-          const deployedComponent = suite.graphDeployment.components.find(graphNode => testedComponentId === graphNode.component.id)
-          return new report.Component(deployedComponent.component.id, deployedComponent.commitSha)
+          const deployedComponent = deployedSuite.graphDeployment.components.find(graphNode => testedComponentId === graphNode.component.id)
+          return new ReportSchema.Component(deployedComponent.component.id, deployedComponent.commitSha)
         })
 
-        const scenario = new report.TestScenario(s.name, s.startTime, s.endTime, s.streams, components, s.metadata)
+        const scenario = new ReportSchema.TestScenario(s.name, s.startTime, s.endTime, s.streams, components, s.metadata)
         return scenario
       })
-      const testReport = new report.TestReport(startTime, endTime, scenarios)
 
-      // TODO: do something with report, otherwise just log it
-      logger.info("\n%s", JSON.stringify(testReport, null, 2))
+      const testReport = new ReportSchema.TestReport(
+        deployedSuite.testSuite.name || deployedSuite.testSuite.id,
+        startTime, endTime, scenarios
+      )
+
+      if (config.report.gitRepository) {
+        await Report.store(prefix, config, deployedSuite.namespace, deployedSuite.workspace, deployedSuite.testSuite.id, testReport)
+      } else {
+        logger.info("\n%s", JSON.stringify(testReport, null, 2))
+      }
 
     } catch (e) {
-      logger.error("Error executing test: '%s'", suite.testSuite.id)
+      logger.error("Error executing test: '%s'", deployedSuite.testSuite.id)
       logger.error(e)
       if (e.cause) logger.error(e.cause)
       if (e.stack) logger.error("Stack:\n%s", e.stack)
@@ -36,7 +45,7 @@ export const runAll = async (clusterUrl: string, testSuites: Array<DeployedTestS
   }
 }
 
-const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
+const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
   const testSuiteId = spec.testSuite.id
 
   logger.info("Test suite: '%s' - preparing to run", testSuiteId)
@@ -50,7 +59,7 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
   try {
 
     // TODO externalise host name into parameter or env variable
-    const baseUrl = `${ clusterUrl }/${ spec.namespace }.${ spec.testSuite.id }`
+    const baseUrl = `${ config.clusterUrl }/${ spec.namespace }.${ spec.testSuite.id }`
     const api = {
       start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
       status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
@@ -71,8 +80,8 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
     const startResult = await httpResponse.json() as webapi.StartResponse
     logger.info("Test suite: '%s' - started using session: %s", testSuiteId, startResult.sessionId)
 
-    logger.info("Test suite: '%s' - waiting for completion using session: %s", testSuiteId, startResult.sessionId)
-    await waitUntilFinish(api, testSuiteId, startResult.sessionId)
+    const testTimeoutMs = spec.testSuite.timeoutMs || config.testTimeoutMs
+    await waitUntilFinish(api, testSuiteId, startResult.sessionId, config.testStatusPollFrequencyMs, testTimeoutMs, 1_000)
 
     logger.info("Test suite: '%s' - waiting ended, obtaining report using session: %s", testSuiteId, startResult.sessionId)
     const reportResponse = await getReport(api, startResult.sessionId)
@@ -93,8 +102,13 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
             nativeReport: { file: nativeReport.file }
           }
         }
-        await downloadNativeReport(api, testSuiteId, startResult.sessionId, spec.workspace, nativeReport.file)
-
+        await downloadNativeReport(
+          spec.workspace,
+          api,
+          testSuiteId,
+          startResult.sessionId,
+          `${ testSuiteId }_${ spec.namespace }_native_${ nativeReport.file }`
+        )
       }
     }
 
@@ -110,12 +124,23 @@ const runSuite = async (clusterUrl: string, spec: DeployedTestSuite): Promise<we
   }
 }
 
-const waitUntilFinish = async (api: any, testSuiteId: string, sessionId: string) => {
+const waitUntilFinish = async (
+  api: any,
+  testSuiteId: string,
+  sessionId: string,
+  pollFrequencyMs: number,
+  testTimeoutMs: number,
+  retryTimeoutMs: number
+) => {
   const MAX_TECH_FAILURES = 12
   let failuresCount = 0
+  const startedAt = new Date()
   while (true) {
-    const sleep = new Promise(resolve => setTimeout(resolve, 5_000))
-    await sleep
+    const elapsed = new Date().getTime() - startedAt.getTime()
+    logger.info("Test suite: '%s' - waiting for completion using session: '%s' with timeout of %sms. Elapsed: %sms", testSuiteId, sessionId, testTimeoutMs, elapsed)
+    if (elapsed >= testTimeoutMs) {
+      throw new Error(`Timeout. Giving up after ${ elapsed / 1_000.0 }s while waiting for test to complete: '${ testSuiteId }'`)
+    }
 
     let httpResponse: Response
     try {
@@ -123,7 +148,11 @@ const waitUntilFinish = async (api: any, testSuiteId: string, sessionId: string)
       httpResponse = await fetch(`${api.status.endpoint}?sessionId=${sessionId}`, api.status.options)
     } catch (e) {
       // allow x number of failed polls and then give up
-      if (++failuresCount < MAX_TECH_FAILURES) continue
+      if (++failuresCount < MAX_TECH_FAILURES) {
+        const sleep = new Promise(resolve => setTimeout(resolve, retryTimeoutMs))
+        await sleep
+        continue
+      }
 
       throw new Error(`Unable to fetch status of previously started test: '${testSuiteId}'. Error: '${e.message}'`, { cause: e })
     }
@@ -141,6 +170,9 @@ const waitUntilFinish = async (api: any, testSuiteId: string, sessionId: string)
     if (statusQueryResult.status === webapi.TestStatus.ERROR) {
       throw new Error(`Test completed with error. Error: '${statusQueryResult.error}'`)
     }
+
+    const sleep = new Promise(resolve => setTimeout(resolve, pollFrequencyMs))
+    await sleep
   } // end of poll loop
 }
 
@@ -161,11 +193,11 @@ const getReport = async (api: any, sessionId: string): Promise<webapi.ReportResp
   return result
 }
 
-const downloadNativeReport = async (api: any, testSuiteId: string, sessionId: string, workspace: string, nativeReportFile: string) => {
-  const localPath = `${workspace}/${nativeReportFile}`
+const downloadNativeReport = async (workspace: string, api: any, testSuiteId: string, sessionId: string, nativeReportFile: string) => {
+  const localPath = `${ workspace }/reports/${ nativeReportFile }`
   logger.info("Test suite: '%s' - downloading native report file '%s' into '%s'", testSuiteId, nativeReportFile, localPath)
 
-  const downloadResp = await fetch(`${api.reportsNative.endpoint}?sessionId=${sessionId}`, api.reportsNative.options)
+  const downloadResp = await fetch(`${ api.reportsNative.endpoint }?sessionId=${ sessionId }`, api.reportsNative.options)
   if (!downloadResp.ok) {
     logger.error("Error downloading native report for '%s'. Error: %s", testSuiteId, downloadResp.statusText)
     return

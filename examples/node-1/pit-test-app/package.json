@@ -16,7 +16,7 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "clean": "rm -rd dist",
+    "clean": "rm -rf dist",
     "build": "npm run clean && npx tsc",
     "dev.start": "set -o allexport && source ../.env; TARGET_SERVICE_URL=http://localhost:$SERVICE_PORT SERVICE_NAME=$TEST_APP_SERVICE_NAME SERVICE_PORT=$TEST_APP_SERVICE_PORT && set +o allexport && npm run build && node dist/index.js",
     "dev.build-image": "npm run build && source ../.env; docker build -t $REGISTRY_URL/$TEST_APP_SERVICE_NAME:$IMAGE_TAG .",

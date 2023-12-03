@@ -1,10 +1,13 @@
-import { Config, DEFAULT_CLUSTER_URL, DEFAULT_NAMESPACE_TIMEOUT } from "./config.js"
+import { Config, DEFAULT_CLUSTER_URL, DEFAULT_NAMESPACE_TIMEOUT, TestReportConfig } from "./config.js"
 import { logger } from "./logger.js"
 
 // Required
+export const PARAM_COMMIT_SHA = "--commit-sha"
 export const PARAM_WORKSPACE = "--workspace"
 export const PARAM_PITFILE = "--pitfile"
 export const PARAM_PARENT_NS = "--parent-ns"
+export const PARAM_REPORT_REPOSITORY = "--report-repository"
+export const PARAM_REPORT_BRANCH_NAME = "--report-branch-name"
 // Optionals
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
@@ -22,6 +25,11 @@ const readParams = (): Config => {
   }
 
   logger.debug("Application started with arguments: \n%s", JSON.stringify(Object.fromEntries(params), null, 2))
+
+  const commitSha = params.get(PARAM_COMMIT_SHA)
+  if (!(commitSha?.trim().length > 0)) {
+      throw new Error(`Missing required parameter: "${ PARAM_COMMIT_SHA }"`)
+  }
 
   const workspace = params.get(PARAM_WORKSPACE)
   if (!(workspace?.trim().length > 0)) {
@@ -44,7 +52,19 @@ const readParams = (): Config => {
 
   const clusterUrl = params.get(PARAM_CLUSTER_URL) || DEFAULT_CLUSTER_URL
 
-  return new Config( clusterUrl, parentNs, workspace, params.get(PARAM_PITFILE), namespaceTimeoutSeconds, params)
+  const reportRepo = params.get(PARAM_REPORT_REPOSITORY)
+  const reportBranch = params.get(PARAM_REPORT_BRANCH_NAME)
+
+  return new Config(
+    commitSha,
+    workspace,
+    clusterUrl,
+    parentNs,
+    params.get(PARAM_PITFILE),
+    namespaceTimeoutSeconds,
+    new TestReportConfig(reportRepo, reportBranch),
+    params
+  )
 }
 
 export {

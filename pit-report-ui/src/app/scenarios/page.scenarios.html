@@ -1,0 +1,5 @@
+<h2 class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">Executed Scenarios ({{ report.scenariosCount }})</h2>
+
+<ng-container *ngFor="let scenario of report?.scenarios">
+  <pitc-scenario [scenario]="scenario"></pitc-scenario>
+</ng-container>

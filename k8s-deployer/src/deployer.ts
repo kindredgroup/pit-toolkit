@@ -4,6 +4,8 @@ import { logger } from "./logger.js"
 import { CommitSha, Namespace, Schema, DeployedComponent } from "./model.js"
 import * as Shell from "./shell-facade.js"
 import { LocationType } from "./pitfile/schema-v1.js"
+import { config } from "process"
+import { Config } from "./config.js"
 
 export class DeployOptions {
   namespace?: Namespace
@@ -36,9 +38,9 @@ const isExecutable = async (filePath: string) => {
   }
 }
 
-export const cloneFromGit = async (application: string, location: Schema.Location, targetDirectory: string): Promise<CommitSha> => {
-  logger.info("The '%s' will be copied from '%s' into %s' using '%s'", application, location.gitRepository, targetDirectory, location.gitRef)
-  const fullCommand = `k8s-deployer/scripts/git-co.sh ${location.gitRepository} ${location.gitRef} ${targetDirectory}`
+export const cloneFromGit = async (appId: string, location: Schema.Location, targetDirectory: string): Promise<CommitSha> => {
+  logger.info("The '%s' will be copied from '%s' into %s' using '%s'", appId, location.gitRepository, targetDirectory, location.gitRef)
+  const fullCommand = `k8s-deployer/scripts/git-co.sh ${ location.gitRepository } ${ location.gitRef } ${ targetDirectory }`
   logger.info("cloneFromGit(): Running: %s", fullCommand)
   const output = await Shell.exec(fullCommand)
   logger.info("\n%s", output)
@@ -46,7 +48,7 @@ export const cloneFromGit = async (application: string, location: Schema.Locatio
   if (commitShaLine.length === 0) {
     throw new Error(`Unexpected output from '${ fullCommand }'. Unable to find COMMIT_SHA token.`)
   } else if (commitShaLine.length !== 1) {
-    throw new Error(`Unexpected output from '${ fullCommand }'. There are multimple COMMIT_SHA tokens: ${ JSON.stringify(commitShaLine) }`)
+    throw new Error(`Unexpected output from '${ fullCommand }'. There are multiple COMMIT_SHA tokens: ${ JSON.stringify(commitShaLine) }`)
   }
 
   const commitSha = commitShaLine[0].replace("COMMIT_SHA=", "").trim()
@@ -58,18 +60,21 @@ export const cloneFromGit = async (application: string, location: Schema.Locatio
 }
 
 export const deployApplication = async (
-  appName: string,
+  workspace: string,
+  namespace: Namespace,
+  appId: string,
   appDirectory: string,
   instructions: Schema.DeployInstructions,
+  deployCheckFrequencyMs?: number,
   options?: DeployOptions) => {
-  await isExecutable(`${appDirectory}/${instructions.command}`)
+  await isExecutable(`${ appDirectory }/${ instructions.command }`)
 
   try {
     // Invoke deployment script
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     let command = instructions.command
-    if (options?.namespace) command = `${command} ${options.namespace}`
-    if (options?.servicePort) command = `${command} ${options.servicePort}`
+    if (options?.namespace) command = `${ command } ${ options.namespace }`
+    if (options?.servicePort) command = `${ command } ${ options.servicePort }`
 
     const allParams = new Array()
     // first pass params delcared in the pitfile
@@ -84,15 +89,16 @@ export const deployApplication = async (
       command = `${command} ${param}`
     }
 
-    const timeoutMs = instructions.timeoutSeconds * 1_000
-    const logFileName = `${appName}-deploy.log`
-    await Shell.exec(command, { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: line => {
+    const logFileName = `${ workspace }/logs/deploy-${ namespace }-${ appId }.log`
+    const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
       if (line.toLowerCase().startsWith("error:")) {
         logger.error("%s", line)
       } else {
         logger.info("%s", line)
       }
-    }})
+    }}
+    if (instructions.timeoutSeconds) opts.timeoutMs = instructions.timeoutSeconds * 1_000
+    await Shell.exec(command, opts)
 
   } catch (e) {
     throw new Error(`Error invoking deployment launcher: '${instructions.command}'`, { cause: e })
@@ -102,22 +108,23 @@ export const deployApplication = async (
 
   if (!instructions.statusCheck) return
 
-  await isExecutable(`${appDirectory}/${instructions.statusCheck.command}`)
+  await isExecutable(`${ appDirectory }/${ instructions.statusCheck.command }`)
   const timeoutSeconds = instructions.statusCheck.timeoutSeconds || 60
-  logger.info("Invoking '%s/%s' for '%s' with timeout of %s seconds", appDirectory, instructions.statusCheck.command, appName, timeoutSeconds)
+  logger.info("Invoking '%s/%s' for '%s' with timeout of %s seconds", appDirectory, instructions.statusCheck.command, appId, timeoutSeconds)
   const checkStartedAt = new Date().getTime()
+  const checkSleepMs = deployCheckFrequencyMs || 5_000
   while (true) {
-    const sleep = new Promise(resolve => setTimeout(resolve, 5_000))
+    const sleep = new Promise(resolve => setTimeout(resolve, checkSleepMs))
     await sleep
 
     const elapsed = new Date().getTime() - checkStartedAt
     if (elapsed >= instructions.statusCheck.timeoutSeconds * 1_000) {
-      throw new Error(`Timeout while checking for ready status of ${appName}. See logs for details.`)
+      throw new Error(`Timeout while checking for ready status of ${ appId }. See logs for details.`)
     }
 
     try {
       let command = instructions.statusCheck.command
-      if (options?.namespace) command = `${command} ${options?.namespace}`
+      if (options?.namespace) command = `${ command } ${ options?.namespace }`
       await Shell.exec(command, { homeDir: appDirectory })
 
       logger.info("Success")
@@ -150,9 +157,21 @@ const undeployApplication = async (appName: string, appDirectory: string, namesp
   }
 }
 
-export const deployLockManager = async (namespace: Namespace) => {
+export const deployLockManager = async (config: Config, workspace: string, namespace: Namespace) => {
   const spec = getLockManagerConfig()
-  await deployApplication(spec.id, spec.id, spec.deploy, { namespace, deployerParams: [ 'lock-manager' ] })
+  const appName = spec.id
+  // directory where CI checked out sources of LockManager app
+  const sourcesDirectory = "lock-manager"
+  const webAppContextRoot = "lock-manager"
+  await deployApplication(
+    workspace,
+    namespace,
+    appName,
+    sourcesDirectory,
+    spec.deploy,
+    config.deployCheckFrequencyMs,
+    { namespace, deployerParams: [ webAppContextRoot ] }
+  )
 }
 
 export const undeployLockManager = async (namespace: Namespace) => {
@@ -161,11 +180,12 @@ export const undeployLockManager = async (namespace: Namespace) => {
 }
 
 export const deployComponent = async (
+    config: Config,
     workspace: string,
     spec: Schema.DeployableComponent,
     namespace: Namespace,
     deployerParams?: Array<string>): Promise<CommitSha> => {
-  let appDir = `${workspace}/${spec.id}`
+  let appDir = `${ workspace }/${ spec.id }`
   let commitSha: CommitSha
   if (spec.location.type === Schema.LocationType.Remote) {
     commitSha = await cloneFromGit(spec.id, spec.location, appDir)
@@ -182,7 +202,7 @@ export const deployComponent = async (
     commitSha = await Shell.exec(`cd ${ appDir } && git log --pretty=format:"%h" -1`)
   }
 
-  await deployApplication(spec.id, appDir, spec.deploy, { namespace, deployerParams })
+  await deployApplication(workspace, namespace, spec.id, appDir, spec.deploy, config.deployCheckFrequencyMs, { namespace, deployerParams })
   return commitSha
 }
 

@@ -20,7 +20,7 @@ export class WebService {
   private async postStart(req: Request, res: Response) {
     const sessionId = ++this.globalSessionId
     const startRequest = req.body as webapi.StartRequest
-    const k6ReportFile = `./k6-report-${startRequest.testSuiteId}-${sessionId}.json`
+    const k6ReportFile = `k6-report-${startRequest.testSuiteId}-${sessionId}.json`
     const testScriptFile = `k6-tests/${startRequest.testSuiteId}.js`
     const sessionMeta = { sessionId, testSuiteId: startRequest.testSuiteId, metadata: { testScriptFile, k6ReportFile } }
     this.sessions.set(sessionId, { status: webapi.TestStatus.PENDING, ...sessionMeta })

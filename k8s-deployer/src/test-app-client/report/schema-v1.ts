@@ -58,6 +58,7 @@ export class TestReport {
   metadata: Object = {}
 
   constructor(
+    readonly  name: string,
     readonly startTime: Date,
     readonly endTime: Date,
     readonly scenarios: Array<TestScenario>

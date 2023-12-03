@@ -70,4 +70,4 @@ cd $CURRENT_DIR
 echo ""
 echo "Launching git server. Checkout your project from git://127.0.0.1:${PORT}/$(basename $PROJECT_DIR).git"
 echo ""
-git daemon --export-all --port=$PORT --base-path=$GIT_SERVER_HOME
+git daemon --export-all --enable=receive-pack --port=$PORT --base-path=$GIT_SERVER_HOME 

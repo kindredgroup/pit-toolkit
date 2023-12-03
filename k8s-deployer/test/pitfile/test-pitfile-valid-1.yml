@@ -1,14 +1,6 @@
 version: "1.0"
 projectName: "Tests for node-1 app"
 
-trigger:
-  description: Runs on any source code change
-  name: Detect changes in Node 1 application
-  filter:
-    expressions:
-      - ".*package\\.json"
-      - ".*\\.ts"
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # The lock manager is part of PIT toolkit. CI will already have it available
 # This optional config section is here only to indicate that lock manager
