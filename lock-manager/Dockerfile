@@ -13,6 +13,7 @@ RUN npm run build
 FROM baseimage AS RUN
 WORKDIR /opt/build
 COPY package.json package-lock.json ./
+COPY migrations/ ./migrations
 COPY --from=BUILD /opt/build/node_modules/ ./node_modules
 COPY --from=BUILD /opt/build/dist/ ./dist
 CMD node dist/index.js
