@@ -316,7 +316,7 @@ This is main approach intented to be used on CIs. For example, when we need to t
 It is expected that CI will check out project into some temporary directory and launch k8s-deployer app. Below are instructions how to simluate this scenario locally.
 
 ```bash
-cd pit-toolkit/k8s-deploy
+cd pit-toolkit/k8s-deployer
 
 # Make sure there are docker images in your local registry:
 # - ksp/lock-manager:<tag>
@@ -331,7 +331,7 @@ mkdir ./tmp
 #   2: Path to application under test. This is application whose pitfile will be processed.
 #      It is expected that there is "pitfile.yml" at the root of the project,
 #      such as "$(pwd)/examples/node-1/pitfile.yml".
-npm run dev.start-example $(pwd)/tmp $(pwd)/examples/node-1
+npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1
 
 ```
 
