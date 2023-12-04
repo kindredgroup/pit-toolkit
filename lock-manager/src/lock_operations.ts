@@ -28,9 +28,9 @@ class DatabaseStorage implements Storage {
     const expirationTime = new Date(currentTime + expiryInSec * 1000); // Add seconds to current time
    logger.info("values", currentTime, expiryInSec, expirationTime);
     let lockMetadata: LockMetadata = {
-      lock_owner: lock.owner,
-      lock_expiry: expirationTime,
-      lock_created: new Date(currentTime),
+      lockOwner: lock.owner,
+      lockExpiry: expirationTime,
+      lockCreated: new Date(currentTime),
     };
 
     let query = {
@@ -62,12 +62,12 @@ class DatabaseStorage implements Storage {
       expiryInSec = new Date(Date.now() + expiryInSec_conf * 1000).toISOString(),
     } = leaseIncrObj;
     // convert expiryInSec into string without changing the date type
-    console.log("expiryInSec", expiryInSec, `${expiryInSec}`);
+    logger.debug("expiryInSec", expiryInSec, `${expiryInSec}`);
 
     const query = {
       name: "update-key",
       text: `UPDATE manage_locks SET lock_metadata = jsonb_set(lock_metadata, '{lock_expiry}', $1 )
-             WHERE lock_id = ANY($2) AND lock_metadata ->> 'lock_owner' = $3 RETURNING *`,
+             WHERE lock_id = ANY($2) AND lock_metadata ->> 'lockOwner' = $3 RETURNING *`,
       values: [`"${expiryInSec}"`, lockIds, owner],
     };
 

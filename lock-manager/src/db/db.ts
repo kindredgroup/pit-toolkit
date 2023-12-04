@@ -42,9 +42,9 @@ export interface Db extends DbPool {
  }
 
  export type LockMetadata = {
-        lock_owner: String;
-        lock_expiry: Date;
-        lock_created: Date;
+        lockOwner: String;
+        lockExpiry: Date;
+        lockCreated: Date;
  }
 
 

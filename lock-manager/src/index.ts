@@ -33,7 +33,7 @@ const main = async () => {
       let keysSaved  = await storage.acquire(locks, db);
       res.status(200).send(keysSaved);
     } catch (error) {
-      console.log("error", error);
+      logger.error("error", error);
       
       res.status(409).send(error.message)
     }

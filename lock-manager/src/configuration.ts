@@ -22,7 +22,7 @@ const getParam = (name: String, defaultValue: string | number): string | number 
   logger.info("Cannot find parameter '%s'. Reading environment variable: %s", name, envName)
 
   const envValue = process.env[envName]
-  console.log(envName,'-->',envValue);
+  logger.debug(envName,'-->',envValue);
   
   if (!envValue) return defaultValue
 

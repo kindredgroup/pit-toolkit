@@ -37,13 +37,11 @@ exports.up = pgm => {
         },
     });
     //create Index
-    pgm.createIndex('manage_locks', 'lock_id');
+    pgm.sql(sql`
+    CREATE UNIQUE INDEX manage_locks_owner ON manage_locks((lock_metadata->>'lockOwner'));
+  `)
 };
 
 exports.down = pgm => {
     pgm.dropTable('manage_locks');
 };
-
-exports.test = ()  => {
-    console.log("test migration");
-}

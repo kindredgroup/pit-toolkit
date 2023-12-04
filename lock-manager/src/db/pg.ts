@@ -2,7 +2,7 @@ import pg, { PoolConfig } from "pg";
 import {Db} from "./db.js";
 import {getParam} from "../configuration.js";
 import format from "pg-format";
-import { get } from "http";
+import { logger } from "../logger.js";
 
 
 let getPoolConfig = ()=>{
@@ -35,7 +35,7 @@ export class PostgresDb implements Db {
 
   constructor() {
     let config = getPoolConfig();
-    console.log("connection config", config);
+    logger.debug("connection config", config);
     this.pg_pool = new pg.Pool(config);
   }
 
@@ -64,8 +64,8 @@ export class PostgresDb implements Db {
     let result;
     let client ;
     try {
-      console.log("query", query);
-      client = await this.pg_pool.connect();
+      logger.info("query", query);
+      client = await this.pg_pool.connect;
       result = await client.query(query as any);
     } catch (error) {
       console.info("Error executing query", error);
@@ -89,13 +89,14 @@ export class PostgresDb implements Db {
     values: any; //(string | Date)[][];
   }): Promise<any> {
     const start = Date.now();
-    let client = await this.pg_pool.connect();
+    let client ;
 
     // await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
     
     let result;
     let sql;
     try {
+      client = await this.pg_pool.connect();
       sql = format(query.text, ...query.values);
       result = await client.query(sql as any);
     } catch (error) {
