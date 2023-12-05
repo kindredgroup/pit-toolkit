@@ -47,7 +47,7 @@ class DatabaseStorage implements Storage {
       throw new Error(result?.message);
     }
 
-   logger.info(result?.rows);
+   logger.debug(result?.rows);
   
     let {lock_id} = result?.rows[0];
 
@@ -97,46 +97,11 @@ class DatabaseStorage implements Storage {
     if (result?.name === "error") {
       throw new Error(result?.message);
     }
-   logger.info("release result ", result);
+   logger.debug("release result ", result);
     let unlocked_keys = result?.rows?.map(({lock_id}) => lock_id);
-   logger.info("unlocked_keys ", unlocked_keys);
+   logger.debug("unlocked_keys ", unlocked_keys);
     return unlocked_keys;
   }
 }
-/* 
-class ArrayStorage implements Storage {
-    private data: Array<LockManagerResponse> = [];
-
-    async acquire(lock:  LockManagerDTO): Promise<LockManagerResponse> {
-        locks.map(lock => {
-            // check if key already exists
-            if( !!this.data.some(item=>item.lock_id === lock.lock_id)){
-                //throw new Error(`Key ${key} already exists`);
-                this.data.push({lock_id: lock.lock_id, acquired: false});
-            }else{
-                this.data.push({lock_id: lock.lock_id, acquired: true});
-            }
-        });
-        return this.data;
-
-    }
-
-    retrieve(key: string): LockManagerResponse | undefined {
-        return this.data.find((item=>item.lock_id === key)) 
-    }
-
-    async release(keys: Array<String>): Promise<Array<String>> {
-        // remove the record if key exists
-        keys.map(key => {
-            let index = this.data.findIndex(item => item.lock_id === key);
-            if( !!index){
-                delete this.data[index];
-            }
-        })
-        
-        return keys;
-    }
-}
-*/
 
 export default LockFactory;

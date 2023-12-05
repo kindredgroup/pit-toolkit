@@ -65,7 +65,7 @@ export class PostgresDb implements Db {
     let client ;
     try {
       logger.info("query", query);
-      client = await this.pg_pool.connect;
+      client = await this.pg_pool.connect();
       result = await client.query(query as any);
     } catch (error) {
       console.info("Error executing query", error);
