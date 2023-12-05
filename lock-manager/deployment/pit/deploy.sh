@@ -8,6 +8,7 @@ WEB_APP_CONTEXT_ROOT=$2
 cat .env
 set -o allexport
 source .env
+
 if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
   K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
@@ -32,6 +33,12 @@ helm upgrade --install \
   --set pod.repository=$REGISTRY_URL/$SERVICE_NAME \
   --set service.port=$SERVICE_PORT \
   --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \
+  --set PGHOST=$PGHOST \
+  --set PGPORT=$PGPORT \
+  --set PGUSER=$PGUSER \
+  --set PGPASSWORD=$PGPASSWORD \
+  --set PGDATABASE=$PGDATABASE \
+  --set PGMINPOOLSIZE=$PGMINPOOLSIZE \
   $SERVICE_NAME ./$CHART_PACKAGE
 returnStatus=$(($?+0))
 rm $CHART_PACKAGE

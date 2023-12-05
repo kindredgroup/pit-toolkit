@@ -29,6 +29,8 @@ spec:
             requests:
               cpu: "1"
               memory: "128Mi"
-          env:
-            - name: SERVICE_PORT
-              value: "{{ .Values.service.port }}"
+          envFrom:
+            - configMapRef:
+                name: lock-manager-configmap
+            # - secretRef:
+            #     name: lock-manager-auth

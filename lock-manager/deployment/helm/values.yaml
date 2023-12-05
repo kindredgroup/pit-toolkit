@@ -4,5 +4,14 @@ service:
   name: ""
   port:
 
+PGDATABASE: ""
+PGMINPOOLSIZE: ""
+PGHOST: ""
+PGPORT: ""
+PGUSER: ""
+PGPASSWORD: ""
+
+
 webApp:
   contextRoot: # set this to the currently running test suite name
+ENVIRONMENT: dev
