@@ -47,19 +47,21 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
 
 const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
   const testSuiteId = spec.testSuite.id
+  const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`;
 
+  
   logger.info("Test suite: '%s' - preparing to run", testSuiteId)
-  let lockManager = spec.testSuite.lock ? LockManager.create(spec.namespace) : null
+  let lockManager = spec.testSuite.lock ? LockManager.create(spec.namespace,urlPrefix) : null
 
   if (lockManager) {
-    lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
+    await lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
     logger.info("Test suite: '%s' - all required locks were acquired, starting test...", testSuiteId)
   }
 
   try {
 
     // TODO externalise host name into parameter or env variable
-    const baseUrl = `${ config.clusterUrl }/${ spec.namespace }.${ spec.testSuite.id }`
+    const baseUrl = `${urlPrefix}.${ spec.testSuite.id }`
     const api = {
       start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
       status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
@@ -117,7 +119,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
   } finally {
 
     if (lockManager) {
-      lockManager.release(spec.testSuite.id, spec.testSuite.lock)
+      await lockManager.release(spec.testSuite.id, spec.testSuite.lock)
       logger.info("Test suite: '%s' - all required locks were released.", testSuiteId)
     }
 

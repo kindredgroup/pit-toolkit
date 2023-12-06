@@ -331,7 +331,7 @@ mkdir ./tmp
 #   2: Path to application under test. This is application whose pitfile will be processed.
 #      It is expected that there is "pitfile.yml" at the root of the project,
 #      such as "$(pwd)/examples/node-1/pitfile.yml".
-npm run dev.start-example $(pwd)/tmp $(pwd)/examples/node-1
+npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1
 
 ```
 

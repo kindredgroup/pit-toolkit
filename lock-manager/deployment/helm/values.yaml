@@ -13,5 +13,10 @@ PGPASSWORD: ""
 
 
 webApp:
-  contextRoot: # set this to the currently running test suite name
+  contextRoot: ""
+
+
 ENVIRONMENT: dev
+
+environment:
+  TARGET_SERVICE_URL:

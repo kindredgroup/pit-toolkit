@@ -23,7 +23,7 @@ class LockFactory {
 
 class DatabaseStorage implements Storage {
   async acquire(lock: LockAcquireObject, db: Db): Promise<LockManagerResponse> {
-    let {expiryInSec = 60} = lock;
+    let {expiryInSec = 0} = lock; // start only with keepAlive
     const currentTime = Date.now();
     const expirationTime = new Date(currentTime + expiryInSec * 1000); // Add seconds to current time
    logger.info("values", currentTime, expiryInSec, expirationTime);
@@ -46,6 +46,7 @@ class DatabaseStorage implements Storage {
       console.error("Error from lock::",result?.message);
       throw new Error(result?.message);
     }
+    console.log("insert result--->", result)
 
    logger.debug(result?.rows);
   
@@ -66,7 +67,7 @@ class DatabaseStorage implements Storage {
 
     const query = {
       name: "update-key",
-      text: `UPDATE manage_locks SET lock_metadata = jsonb_set(lock_metadata, '{lock_expiry}', $1 )
+      text: `UPDATE manage_locks SET lock_metadata = jsonb_set(lock_metadata, '{lockExpiry}', $1 )
              WHERE lock_id = ANY($2) AND lock_metadata ->> 'lockOwner' = $3 RETURNING *`,
       values: [`"${expiryInSec}"`, lockIds, owner],
     };
@@ -75,6 +76,8 @@ class DatabaseStorage implements Storage {
     if (result?.name === "error") {
       throw new Error(result?.message);
     }
+    console.log("update result--->", result)
+
    logger.info("update result ", result);
     if (result?.rows.length === 0) {
       throw new Error("No valid lock and owner combination found");

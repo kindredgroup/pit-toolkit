@@ -5,19 +5,20 @@ STATUS_ERROR="Status=ERROR"
 OVERWRITE_K8S_NAMESPACE=$1
 WEB_APP_CONTEXT_ROOT=$2
 
-cat .env
 set -o allexport
 source .env
-
+echo ""
 if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
   K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
 fi
-echo ""
 set +o allexport
+
+TARGET_SERVICE_URL="http://$SERVICE_NAME:$SERVICE_PORT"
 
 echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
 echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
+echo "TARGET_SERVICE_URL=${TARGET_SERVICE_URL}"
 
 # echo "D: ----------------------------"
 # env | sort
@@ -32,6 +33,7 @@ helm upgrade --install \
   --set image.tag=$IMAGE_TAG \
   --set pod.repository=$REGISTRY_URL/$SERVICE_NAME \
   --set service.port=$SERVICE_PORT \
+  --set environment.TARGET_SERVICE_URL=$TARGET_SERVICE_URL \
   --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \
   --set PGHOST=$PGHOST \
   --set PGPORT=$PGPORT \

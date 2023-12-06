@@ -66,7 +66,10 @@ export class PostgresDb implements Db {
     try {
       logger.info("query", query);
       client = await this.pg_pool.connect();
+      await client.query("BEGIN");
+      await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
       result = await client.query(query as any);
+      await client.query("COMMIT");
     } catch (error) {
       console.info("Error executing query", error);
       console.error("Error from pg::", error);

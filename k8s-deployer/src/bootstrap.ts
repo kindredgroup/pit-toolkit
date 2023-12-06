@@ -11,6 +11,7 @@ export const PARAM_REPORT_BRANCH_NAME = "--report-branch-name"
 // Optionals
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
+export const LOCK_MANAGER_MOCK = "--lock-manager-mock"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))

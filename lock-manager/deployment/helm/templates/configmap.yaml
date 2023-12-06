@@ -9,3 +9,4 @@ data:
   PGUSER:                                   {{ .Values.PGUSER | quote}}
   PGPASSWORD:                               {{ .Values.PGPASSWORD | quote}}
   PGDATABASE:                               {{ .Values.PGDATABASE | quote}}
+  TARGET_SERVICE_URL:                       {{ .Values.TARGET_SERVICE_URL | quote}} 
