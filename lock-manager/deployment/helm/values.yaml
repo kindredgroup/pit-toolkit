@@ -11,6 +11,12 @@ PGPORT: ""
 PGUSER: ""
 PGPASSWORD: ""
 
+externalSecrets:
+  refreshInterval: 12h
+  vaultPaths:
+    db: "secret/devs/dev/postgres/dpt"
+
+
 
 webApp:
   contextRoot: ""

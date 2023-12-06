@@ -32,5 +32,5 @@ spec:
           envFrom:
             - configMapRef:
                 name: lock-manager-configmap
-            # - secretRef:
-            #     name: lock-manager-auth
+            - secretRef:
+                name: lock-manager-auth

@@ -4,9 +4,5 @@ metadata:
   name: lock-manager-configmap
 data:
   SERVICE_NAME:                             {{ .Values.service.name }}
-  PGHOST:                                   {{ .Values.PGHOST | quote}}
-  PGPORT:                                   {{ .Values.PGPORT | quote }}
-  PGUSER:                                   {{ .Values.PGUSER | quote}}
-  PGPASSWORD:                               {{ .Values.PGPASSWORD | quote}}
-  PGDATABASE:                               {{ .Values.PGDATABASE | quote}}
   TARGET_SERVICE_URL:                       {{ .Values.TARGET_SERVICE_URL | quote}} 
+  PGMINPOOLSIZE:                            {{ .Values.PGMINPOOLSIZE | quote}}

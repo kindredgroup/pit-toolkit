@@ -21,7 +21,7 @@ echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
 echo "TARGET_SERVICE_URL=${TARGET_SERVICE_URL}"
 
 # echo "D: ----------------------------"
-# env | sort
+env | sort
 # echo "D: ----------------------------"
 
 CHART_PACKAGE="$SERVICE_NAME-0.1.0.tgz"
@@ -35,11 +35,11 @@ helm upgrade --install \
   --set service.port=$SERVICE_PORT \
   --set environment.TARGET_SERVICE_URL=$TARGET_SERVICE_URL \
   --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \
-  --set PGHOST=$PGHOST \
-  --set PGPORT=$PGPORT \
-  --set PGUSER=$PGUSER \
-  --set PGPASSWORD=$PGPASSWORD \
-  --set PGDATABASE=$PGDATABASE \
+  --set PG_HOST=$PGHOST \
+  --set PG_PORT=$PGPORT \
+  --set PG_USER=$PGUSER \
+  --set PG_PASSWORD=$PGPASSWORD \
+  --set PG_DATABASE=$PGDATABASE \
   --set PGMINPOOLSIZE=$PGMINPOOLSIZE \
   $SERVICE_NAME ./$CHART_PACKAGE
 returnStatus=$(($?+0))
