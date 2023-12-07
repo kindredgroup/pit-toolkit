@@ -35,11 +35,11 @@ helm upgrade --install \
   --set service.port=$SERVICE_PORT \
   --set environment.TARGET_SERVICE_URL=$TARGET_SERVICE_URL \
   --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \
-  --set PG_HOST=$PGHOST \
-  --set PG_PORT=$PGPORT \
-  --set PG_USER=$PGUSER \
-  --set PG_PASSWORD=$PGPASSWORD \
-  --set PG_DATABASE=$PGDATABASE \
+  --set PGHOST=$PGHOST \
+  --set PGPORT=$PGPORT \
+  --set PGUSER=$PGUSER \
+  --set PGPASSWORD=$PGPASSWORD \
+  --set PGDATABASE=$PGDATABASE \
   --set PGMINPOOLSIZE=$PGMINPOOLSIZE \
   $SERVICE_NAME ./$CHART_PACKAGE
 returnStatus=$(($?+0))

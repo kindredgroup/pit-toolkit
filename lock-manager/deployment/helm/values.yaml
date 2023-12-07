@@ -4,12 +4,12 @@ service:
   name: ""
   port:
 
-PGDATABASE: ""
-PGMINPOOLSIZE: ""
 PGHOST: ""
 PGPORT: ""
 PGUSER: ""
 PGPASSWORD: ""
+PGDATABASE: ""
+PGMINPOOLSIZE: ""
 
 externalSecrets:
   refreshInterval: 12h
