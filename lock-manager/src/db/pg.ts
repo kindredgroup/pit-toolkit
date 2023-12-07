@@ -14,8 +14,6 @@ let getPoolConfig = ()=>{
   let database = getParam("PGDATABASE", "lock_manager") as string;
   let poolSizeMax = getParam("PGMAXPOOLSIZE", 10) as number;
   let poolSizeMin = getParam("PGMINPOOLSIZE", 10) as number;
-  // connection string
-  // return `postgres://${user}:${password}@${hostName}:${port}/${db}`;
 
   const config:PoolConfig = {
     user,
@@ -31,7 +29,6 @@ let getPoolConfig = ()=>{
 
 export class PostgresDb implements Db {
   private pg_pool: pg.Pool;
-  // private pool_client: pg.PoolClient;
 
   constructor() {
     let config = getPoolConfig();
@@ -71,14 +68,12 @@ export class PostgresDb implements Db {
       result = await client.query(query as any);
       await client.query("COMMIT");
     } catch (error) {
-      console.info("Error executing query", error);
-      console.error("Error from pg::", error);
+      logger.error("execute(): Error from pg:: %s", error);
       client.release();
       return error;
     }
     const in_duration = Date.now() - start;
-    // TODO add winston log
-    console.info("executed query", {
+    logger.info("execute() query", {
       query,
       in_duration,
       rows_returned: result.rowCount,
@@ -89,7 +84,7 @@ export class PostgresDb implements Db {
 
   async format_nd_execute(query: {
     text: string;
-    values: any; //(string | Date)[][];
+    values: any; 
   }): Promise<any> {
     const start = Date.now();
     let client ;
@@ -103,12 +98,12 @@ export class PostgresDb implements Db {
       sql = format(query.text, ...query.values);
       result = await client.query(sql as any);
     } catch (error) {
-      console.error(`Error executing ${sql} with ${error}`);
-      result = error;
+      logger.error("format_nd_execute() Error:: %s", error);
+
     }
     const in_duration = Date.now() - start;
     // TODO add winston log
-    console.info("executed query", {
+    logger.info("format_nd_execute() executed query", {
       sql,
       in_duration,
       rows_returned: result.rowCount,

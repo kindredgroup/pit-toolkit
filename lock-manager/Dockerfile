@@ -21,5 +21,5 @@ COPY --from=BUILD /opt/build/node_modules/ ./node_modules
 COPY --from=BUILD /opt/build/dist/ ./dist
 COPY migrations/ ./migrations
 
-CMD ["npm", "run", "start:image"]
+CMD ["npm", "run", "migrate_and_start"]
 

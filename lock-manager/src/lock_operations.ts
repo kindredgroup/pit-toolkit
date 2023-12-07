@@ -42,11 +42,9 @@ class DatabaseStorage implements Storage {
 
     const result = await db.execute(query);
     if (result?.name === "error") {
-      // TODO handle error
-      console.error("Error from lock::",result?.message);
+      logger.error("Error from lock::",result?.message);
       throw new Error(result?.message);
     }
-    console.log("insert result--->", result)
 
    logger.debug(result?.rows);
   
@@ -76,7 +74,6 @@ class DatabaseStorage implements Storage {
     if (result?.name === "error") {
       throw new Error(result?.message);
     }
-    console.log("update result--->", result)
 
    logger.info("update result ", result);
     if (result?.rows.length === 0) {

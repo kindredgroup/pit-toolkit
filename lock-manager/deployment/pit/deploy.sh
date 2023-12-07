@@ -21,7 +21,7 @@ echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
 echo "TARGET_SERVICE_URL=${TARGET_SERVICE_URL}"
 
 # echo "D: ----------------------------"
-env | sort
+# env | sort
 # echo "D: ----------------------------"
 
 CHART_PACKAGE="$SERVICE_NAME-0.1.0.tgz"
