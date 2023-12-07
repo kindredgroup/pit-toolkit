@@ -28,7 +28,7 @@ CHART_PACKAGE="$SERVICE_NAME-0.1.0.tgz"
 helm package ./deployment/helm --debug --app-version=$IMAGE_TAG
 helm upgrade --install \
   --atomic \
-  --timeout 60s \
+  --timeout 120s \
   --namespace $K8S_NAMESPACE \
   --set image.tag=$IMAGE_TAG \
   --set pod.repository=$REGISTRY_URL/$SERVICE_NAME \

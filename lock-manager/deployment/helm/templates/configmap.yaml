@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: lock-manager-configmap
 data:
-  SERVICE_NAME:                             {{ .Values.service.name }}
-  TARGET_SERVICE_URL:                       {{ .Values.TARGET_SERVICE_URL | quote}} 
+  SERVICE_NAME:                             {{ .Values.service.name | quote}}
+  SERVICE_PORT:                             {{ .Values.service.port | quote }}
+  TARGET_SERVICE_URL:                       {{ .Values.environment.TARGET_SERVICE_URL | quote}} 
   PGMINPOOLSIZE:                            {{ .Values.PGMINPOOLSIZE | quote}}
