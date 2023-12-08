@@ -210,6 +210,7 @@ testSuites:
 - RSync is installed and available globally as `rsync`
 - Node 16.13.2 (or compatible) is installed
 - Git is installed and available globally as `git`
+- PostgreSQL server is running locally. It has `pit-lock-manager` database.
 - HNC Manager is installed in your local kubernetes. [We need version 0.9.0](https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/tag/v0.9.0)
   - Versions 1.0.0 and 1.1.0 are faulty and will not work properly on Mac.
   - Install is easy: `HNC_VERSION=v0.9.0 kubectl apply -f https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/download/${HNC_VERSION}/hnc-manager.yaml`
@@ -219,6 +220,11 @@ testSuites:
 - Ingress Controller named "kubernetes-ingress". [See instructions here](https://kubernetes.github.io/ingress-nginx/deploy/_)
   - All your namespaces are being observed by HNC system. When installing NGINX ingress controller it will create its own namespace and HNC system will complain. To prevent that we need to exclude namespace used by NGINX insgress controller from HNC.
   - Use inline editing method: `kubectl edit -n hnc-system deploy hnc-controller-manager` find deployment with name "name: hnc-controller-manager" and add one more entry into the list under `spec/containers/args`. Entry looks like this: `--excluded-namespace=ingress-nginx`
+- Custom resource definition "External secrets" is installed in your local cluster: 
+    - `helm repo add external-secrets https://charts.external-secrets.io`
+    - `helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace`
+    - Also exclude namespace "external-secrets" from hnc-controller-manager as you did with nginx controller.
+  
 - The port 80 is free. Port 80 is used by ingress controller in your local desktop-docker.
 
 ## Build docker images
