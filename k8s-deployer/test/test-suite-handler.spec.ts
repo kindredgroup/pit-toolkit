@@ -27,7 +27,8 @@ describe("Deployment happy path", async () => {
     testStatusPollFrequencyMs: 500,
     testTimeoutMs: 2_000,
     deployCheckFrequencyMs: 500,
-    params: new Map()
+    params: new Map(),
+    lockManagerMock: true
   }
 
   const testSuiteNumber = "1"

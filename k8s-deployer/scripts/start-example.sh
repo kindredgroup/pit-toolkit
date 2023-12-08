@@ -96,7 +96,7 @@ node $PROJECT_ROOT/dist/src/index.js \
   --workspace $CI_HOME_DIR \
   --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml \
   --parent-ns $PARENT_NS \
-  # --report-repository "git://127.0.0.1:60102/pit-reports.git" \
+  --report-repository "git://127.0.0.1:60102/pit-reports.git" \
   --report-branch-name $(basename $PROJECT_DIR) \
   --lock-manager-mock $LOCK_MANAGER_MOCK
 

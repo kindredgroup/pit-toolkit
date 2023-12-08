@@ -7,14 +7,14 @@ const KEEP_ALIVE_INTERVAL = 60 // seconds
 export class LockManager {
 private api = { check: { endpoint: "", options: {} }, acquire: { endpoint: "", options: {} }, keeAlive: { endpoint: "", options: {} }, release: { endpoint: "", options: {} }};
 
-  static create(namespace: Namespace, urlPrefix:string): LockManager {
-    return new LockManager(namespace, urlPrefix)
+  static create(urlPrefix:string): LockManager {
+    return new LockManager(urlPrefix)
   }
 
   // Handle to the timer
   keepAliveJobHandle: NodeJS.Timeout = null
 
-  constructor(readonly namespace: Namespace, urlPrefix:string) {
+  constructor(readonly urlPrefix:string) {
     const baseUrl = `${ urlPrefix }.lock-manager`
     logger.info("LockManager.instantiate: Base URL: %s", baseUrl)
     this.api = {
@@ -27,13 +27,9 @@ private api = { check: { endpoint: "", options: {} }, acquire: { endpoint: "", o
 
   async lock(owner: string, lock: Schema.Lock) {
    
-    if (this.keepAliveJobHandle) {
-      throw new Error("lockAll() can only be called once")
-    }
-
     lock.ids = lock.ids.sort()
 
-    
+    let locksAcquired = new Array<string>();
 
     for (let i = 1; i <= lock.ids.length; i++) {
 
@@ -41,34 +37,41 @@ private api = { check: { endpoint: "", options: {} }, acquire: { endpoint: "", o
       logger.info("LockManager.lock(): Locking %s of %s: %s", i, lock.ids.length, JSON.stringify({ owner, lockId }))
 
       try {
-        let _resp = await fetch(this.api.acquire.endpoint,
+        let resp = await fetch(this.api.acquire.endpoint,
         {...this.api.acquire.options, body: JSON.stringify({ owner, lockId, expiryInSec: 120 }) }
         )
-        let _respJson = await _resp.json()
+        let respJson = await resp.json() as {lockId:string, acquired:boolean};
 
-        logger.info("LockManager.lockWithId(): %s is locked with resp %s", JSON.stringify({ owner, lockId }), _respJson)
+        if(respJson.acquired){
+          locksAcquired.push(lockId)
+        }
+        //TODO add retry mechanism
+        logger.info("LockManager.lockWithId(): %s is locked with resp %s", JSON.stringify({ owner, lockId }), respJson)
       } catch (error) {
         logger.error("failed to call acquire lock for %s with %s", {lockId, owner}, error)
       }
+      
+    }
 
-      // await this.lockWithId(owner, lockId)
+    if (locksAcquired && locksAcquired.length > 0) {
+      let lock:Schema.Lock = {
+        ids: locksAcquired,
+        timeout: `${KEEP_ALIVE_INTERVAL}`
 
-      if (i === 1) {
-        // start job only once
-        await this.startKeepAliveJob(owner, lock)
       }
+      await this.startKeepAliveJob(owner, lock)
     }
   }
 
   async release(owner: string, lock: Schema.Lock) {
     let {ids} = lock
     try {
-      let _resp = await fetch(this.api.release.endpoint,
+      let resp = await fetch(this.api.release.endpoint,
       {...this.api.release.options, body: JSON.stringify(ids) }
       )
-      let _respJson = await _resp.json()
+      let respJson = await resp.json()
 
-      logger.info("LockManager.release(): Releasing %s resp -->%s", JSON.stringify({ids,owner}), _respJson)
+      logger.info("LockManager.release(): Releasing %s resp -->%s", JSON.stringify({ids,owner}), respJson)
     } catch (error) {
       logger.error("LockManager.release(): failed to call release locks %s", {ids}, error)
     }
@@ -76,11 +79,11 @@ private api = { check: { endpoint: "", options: {} }, acquire: { endpoint: "", o
 
   private async startKeepAliveJob(owner: string, lock: Schema.Lock) {
     try {
-      let _resp = await fetch(this.api.keeAlive.endpoint,
-      {...this.api.keeAlive.options, body: JSON.stringify({ owner, lockIds: lock.ids, expiryInSec: KEEP_ALIVE_INTERVAL }) }
+      let resp = await fetch(this.api.keeAlive.endpoint,
+      {...this.api.keeAlive.options, body: JSON.stringify({ owner, lockIds: lock.ids, expiryInSec: lock.timeout }) }
       )
-      let _respJson = await _resp.json()
-      logger.info("LockManager: Heartbeat for: %s with resp %s", JSON.stringify({ owner, lockIds: lock.ids, expiryInSec: KEEP_ALIVE_INTERVAL }), _respJson )
+      let respJson = await resp.json()
+      logger.info("LockManager: Heartbeat for: %s with resp %s", JSON.stringify({ owner, lockIds: lock.ids, expiryInSec: KEEP_ALIVE_INTERVAL }), respJson )
   } catch (error) {
       logger.error("LockManager: failed to keep alive for %s with %s", {lock, owner}, error)
     }

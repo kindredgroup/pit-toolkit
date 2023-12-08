@@ -2,6 +2,7 @@ import fetch, { Response } from "node-fetch"
 import * as fs from "fs"
 
 import { LockManager } from "../locks/lock-manager.js"
+import { LockManager as LMMock} from "../locks/lock-manager-mock.js"
 import { DeployedTestSuite, Prefix } from "../model.js"
 import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
@@ -51,7 +52,8 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 
   
   logger.info("Test suite: '%s' - preparing to run", testSuiteId)
-  let lockManager = spec.testSuite.lock ? LockManager.create(spec.namespace,urlPrefix) : null
+  let lockManager = spec.testSuite.lock ? 
+  config.lockManagerMock ? LMMock.create(): LockManager.create(urlPrefix) : null
 
   if (lockManager) {
     await lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
@@ -60,7 +62,6 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 
   try {
 
-    // TODO externalise host name into parameter or env variable
     const baseUrl = `${urlPrefix}.${ spec.testSuite.id }`
     const api = {
       start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},

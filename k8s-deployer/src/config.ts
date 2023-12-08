@@ -19,6 +19,7 @@ export class Config {
     readonly namespaceTimeoutSeconds: number,
     readonly report: TestReportConfig,
     readonly params: Map<string, string>,
+    readonly lockManagerMock: boolean = false,
     readonly testStatusPollFrequencyMs: number = 15_000,
     readonly deployCheckFrequencyMs: number = 5_000,
     readonly testTimeoutMs: number = 60_000,

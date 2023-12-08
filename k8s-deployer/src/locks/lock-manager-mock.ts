@@ -5,14 +5,14 @@ import { Namespace, Schema } from "../model.js"
 const KEEP_ALIVE_INTERVAL = 10_000 // millis
 
 export class LockManager {
-  static create(namespace: Namespace): LockManager {
-    return new LockManager(namespace)
+  static create(): LockManager {
+    return new LockManager()
   }
 
   // Handle to the timer
   keepAliveJobHandle: NodeJS.Timeout = null
 
-  constructor(readonly namespace: Namespace) {}
+  constructor() {}
 
   async lock(owner: string, lock: Schema.Lock) {
     if (this.keepAliveJobHandle) {

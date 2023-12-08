@@ -55,6 +55,7 @@ const readParams = (): Config => {
 
   const reportRepo = params.get(PARAM_REPORT_REPOSITORY)
   const reportBranch = params.get(PARAM_REPORT_BRANCH_NAME)
+  const lockManagerMock = params.get(LOCK_MANAGER_MOCK) as unknown as boolean;
 
   return new Config(
     commitSha,
@@ -64,7 +65,8 @@ const readParams = (): Config => {
     params.get(PARAM_PITFILE),
     namespaceTimeoutSeconds,
     new TestReportConfig(reportRepo, reportBranch),
-    params
+    params,
+    lockManagerMock
   )
 }
 
