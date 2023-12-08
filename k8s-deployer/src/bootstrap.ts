@@ -11,7 +11,7 @@ export const PARAM_REPORT_BRANCH_NAME = "--report-branch-name"
 // Optionals
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
-export const LOCK_MANAGER_MOCK = "--lock-manager-mock"
+export const PARAM_LOCK_MANAGER_MOCK = "--lock-manager-mock"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -55,7 +55,7 @@ const readParams = (): Config => {
 
   const reportRepo = params.get(PARAM_REPORT_REPOSITORY)
   const reportBranch = params.get(PARAM_REPORT_BRANCH_NAME)
-  const lockManagerMock = params.get(LOCK_MANAGER_MOCK) === "mock-lock-manager" ? true : false;
+  const useMockLockManager = params.get(PARAM_LOCK_MANAGER_MOCK) === "true"
 
   return new Config(
     commitSha,
@@ -66,7 +66,7 @@ const readParams = (): Config => {
     namespaceTimeoutSeconds,
     new TestReportConfig(reportRepo, reportBranch),
     params,
-    lockManagerMock
+    useMockLockManager
   )
 }
 

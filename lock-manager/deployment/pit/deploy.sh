@@ -14,11 +14,8 @@ then
 fi
 set +o allexport
 
-TARGET_SERVICE_URL="http://$SERVICE_NAME:$SERVICE_PORT"
-
 echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
 echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
-echo "TARGET_SERVICE_URL=${TARGET_SERVICE_URL}"
 
 # echo "D: ----------------------------"
 # env | sort

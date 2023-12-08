@@ -48,7 +48,7 @@ fi
 if [ "${LOCK_MANAGER_MOCK}" == "" ];
 then
   echo "Missing third parameter: boolean to use lock-manager-mock"
-  export LOCK_MANAGER_MOCK=false
+  LOCK_MANAGER_MOCK=true
 fi
 
 cd $EXAMPLES_TEMP_DIR

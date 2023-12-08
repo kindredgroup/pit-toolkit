@@ -2,7 +2,7 @@
 import * as sinon from "sinon"
 import * as chai from "chai"
 
-import { PARAM_CLUSTER_URL, PARAM_COMMIT_SHA, PARAM_NAMESPACE_TIMEOUT, PARAM_PARENT_NS, PARAM_PITFILE, PARAM_WORKSPACE, readParams } from "../src/bootstrap.js"
+import { PARAM_CLUSTER_URL, PARAM_COMMIT_SHA, PARAM_LOCK_MANAGER_MOCK, PARAM_NAMESPACE_TIMEOUT, PARAM_PARENT_NS, PARAM_PITFILE, PARAM_WORKSPACE, readParams } from "../src/bootstrap.js"
 import { DEFAULT_CLUSTER_URL, DEFAULT_NAMESPACE_TIMEOUT } from "../src/config.js"
 
 describe("bootstrap with correct configs", () => {
@@ -16,7 +16,8 @@ describe("bootstrap with correct configs", () => {
       PARAM_PITFILE, "/some-pitfile.yml",
       PARAM_NAMESPACE_TIMEOUT, "100",
       PARAM_CLUSTER_URL, "http://some-host.name",
-      PARAM_PARENT_NS, "dev"
+      PARAM_PARENT_NS, "dev",
+      PARAM_LOCK_MANAGER_MOCK, "false"
      ])
   })
 
@@ -26,6 +27,7 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.pitfile).eq("/some-pitfile.yml")
     chai.expect(config.namespaceTimeoutSeconds).eq(100)
     chai.expect(config.clusterUrl).eq("http://some-host.name")
+    chai.expect(config.useMockLockManager).be.false
   })
 
   afterEach(() => {
@@ -66,6 +68,7 @@ describe("bootstrap with invalid configs", () => {
     const config = readParams()
     chai.expect(config.namespaceTimeoutSeconds).eq(DEFAULT_NAMESPACE_TIMEOUT)
     chai.expect(config.clusterUrl).eq(DEFAULT_CLUSTER_URL)
+    chai.expect(config.useMockLockManager).be.false
     sandbox.restore()
   })
 

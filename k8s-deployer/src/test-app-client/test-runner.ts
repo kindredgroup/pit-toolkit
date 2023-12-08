@@ -2,7 +2,7 @@ import fetch, { Response } from "node-fetch"
 import * as fs from "fs"
 
 import { LockManager } from "../locks/lock-manager.js"
-import { LockManager as LMMock} from "../locks/lock-manager-mock.js"
+import { LockManagerMock } from "../locks/lock-manager-mock.js"
 import { DeployedTestSuite, Prefix } from "../model.js"
 import { logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
@@ -50,12 +50,16 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
   const testSuiteId = spec.testSuite.id
   const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`;
 
-  
-  logger.info("Test suite: '%s' - preparing to run with mock-lock-manager %s", testSuiteId, config.lockManagerMock)
-  let lockManager = spec.testSuite.lock ? 
-  config.lockManagerMock ? LMMock.create(): LockManager.create(urlPrefix) : null
+  let lockManager: LockManager | LockManagerMock
+  if (spec.testSuite.lock) {
+    
+    if (config.useMockLockManager) {
+      logger.info("Test suite: '%s' - preparing to run with mock lock manager", testSuiteId)
+      lockManager = LockManagerMock.create()
+    } else {
+      lockManager = LockManager.create(urlPrefix)
+    } 
 
-  if (lockManager) {
     await lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
     logger.info("Test suite: '%s' - all required locks were acquired, starting test...", testSuiteId)
   }

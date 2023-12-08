@@ -4,9 +4,9 @@ import { Namespace, Schema } from "../model.js"
 
 const KEEP_ALIVE_INTERVAL = 10_000 // millis
 
-export class LockManager {
-  static create(): LockManager {
-    return new LockManager()
+export class LockManagerMock {
+  static create(): LockManagerMock {
+    return new LockManagerMock()
   }
 
   // Handle to the timer
