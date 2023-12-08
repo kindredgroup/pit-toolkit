@@ -35,7 +35,7 @@ class DatabaseStorage implements Storage {
 
     let query = {
       name: "insert-lock",
-      text: `INSERT INTO manage_locks (lock_id, lock_metadata) VALUES ($1, $2) 
+      text: `INSERT INTO locks (lock_id, lock_metadata) VALUES ($1, $2) 
             RETURNING lock_id`,
       values: [lock.lockId, JSON.stringify(lockMetadata)],
     };
@@ -65,7 +65,7 @@ class DatabaseStorage implements Storage {
 
     const query = {
       name: "update-key",
-      text: `UPDATE manage_locks SET lock_metadata = jsonb_set(lock_metadata, '{lockExpiry}', $1 )
+      text: `UPDATE locks SET lock_metadata = jsonb_set(lock_metadata, '{lockExpiry}', $1 )
              WHERE lock_id = ANY($2) AND lock_metadata ->> 'lockOwner' = $3 RETURNING *`,
       values: [`"${expiryInSec}"`, lockIds, owner],
     };
@@ -88,7 +88,7 @@ class DatabaseStorage implements Storage {
   async release(keys: Array<String>, db: Db): Promise<Array<String>> {
     const query = {
       name: "delete-key",
-      text: `DELETE FROM manage_locks WHERE lock_id = ANY ($1) AND
+      text: `DELETE FROM locks WHERE lock_id = ANY ($1) AND
         EXISTS (SELECT lock_id FROM manage_locks WHERE lock_id = ANY ($1) ) RETURNING lock_id`,
       values: [keys],
     };

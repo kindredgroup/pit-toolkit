@@ -24,15 +24,14 @@
     "test": "node --test ",
     "watch": "npx tsc --watch",
     "dev.start": "npm run start",
-    "dev.build-image": "source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
-    "dev.k8.deploy": "source .env; sh ./deployment/pit/deploy.sh",
+    "dev.build-image": "source .env && docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
+    "dev.k8-deploy": "npm run dev.build-image && bash ./deployment/pit/deploy.sh",
     "start": "node dist/index.js",
-    "migrate": "node-pg-migrate",
     "migrate:up": "node-pg-migrate up ",
     "migrate:down": "node-pg-migrate down",
     "migrate:redo": "node-pg-migrate redo",
     "migrate:create": "node-pg-migrate create",
-    "migrate_and_start":"npm run migrate:up && npm run start"
+    "migrate_and_start": "npm run migrate:up && npm run start"
   },
   "dependencies": {
     "express": "^4.18.2",

@@ -5,7 +5,7 @@ import * as ConfigReader from "./configuration.js"
 import { ApiRoutes } from './api-routes/index.js'
 
 
-const DEFAULT_PORT = 63001
+const DEFAULT_PORT = 60001
 
 const main = async () => {
   const app: Express = express()

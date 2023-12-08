@@ -31,6 +31,6 @@ spec:
               memory: "128Mi"
           envFrom:
             - configMapRef:
-                name: lock-manager-configmap
+                name: {{ include "application.name" . }}
             - secretRef:
-                name: lock-manager-auth
+                name: {{ include "application.name" . }}
