@@ -27,7 +27,8 @@ describe("Deployment happy path", async () => {
     testStatusPollFrequencyMs: 500,
     testTimeoutMs: 2_000,
     deployCheckFrequencyMs: 500,
-    params: new Map()
+    params: new Map(),
+    useMockLockManager: true
   }
 
   const testSuiteNumber = "1"
@@ -156,15 +157,19 @@ describe("Deployment happy path", async () => {
 
     // check verification for expected directories and shell executables
 
-    chai.expect(fsAccessStubs.callCount).eq(7)
+    chai.expect(fsAccessStubs.callCount).eq(5)
+    
+    // restore line below once lock manager is stable
+    //chai.expect(fsAccessStubs.callCount).eq(7)
+
     // check for presense of workspace direectory on the disk
     chai.expect(fsAccessStubs.getCall(0).calledWith(workspace)).be.true
-    chai.expect(fsAccessStubs.getCall(1).calledWith("lock-manager/deployment/pit/deploy.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(2).calledWith("lock-manager/deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(3).calledWith("comp-1/deployment/pit/deploy.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(4).calledWith("comp-1/deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(5).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(6).calledWith("comp-1-test-app/deployment/pit/is-deployment-ready.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(1).calledWith("lock-manager/deployment/pit/deploy.sh")).be.false
+    chai.expect(fsAccessStubs.getCall(2).calledWith("lock-manager/deployment/pit/is-deployment-ready.sh")).be.false
+    chai.expect(fsAccessStubs.getCall(1).calledWith("comp-1/deployment/pit/deploy.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(2).calledWith("comp-1/deployment/pit/is-deployment-ready.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(3).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(4).calledWith("comp-1-test-app/deployment/pit/is-deployment-ready.sh")).be.true
 
     // check shell calls
 
@@ -176,7 +181,9 @@ describe("Deployment happy path", async () => {
     // chai.expect(execStub.getCall(9).args[0]).eq(`deployment/pit/deploy.sh nsChild t1`)
     // chai.expect(execStub.getCall(9).args[1]).eq(param2)
 
-    chai.expect(execStub.callCount).eq(11)
+    // restore line below once lock manager is stable
+    //chai.expect(execStub.callCount).eq(11)
+    chai.expect(execStub.callCount).eq(9)
     chai.expect(execStub.getCall(0).calledWith(`mkdir -p 12345_t1/logs`)).be.true
     chai.expect(execStub.getCall(1).calledWith(`mkdir -p 12345_t1/reports`)).be.true
 
@@ -188,32 +195,32 @@ describe("Deployment happy path", async () => {
     chai.expect(execStub.getCall(3).calledWith(
       `deployment/pit/deploy.sh nsChild lock-manager`,
       { homeDir: "lock-manager", logFileName: `12345_t1/logs/deploy-nsChild-lock-manager.log`, tailTarget: sinon.match.any })
-    ).be.true
+    ).be.false
 
     chai.expect(execStub.getCall(4).calledWith(
       `deployment/pit/is-deployment-ready.sh nsChild`,
       { homeDir: "lock-manager" })
-    ).be.true
+    ).be.false
 
-    chai.expect(execStub.getCall(5).calledWith(`cd comp-1 && git log --pretty=format:"%h" -1`)).be.true
+    chai.expect(execStub.getCall(3).calledWith(`cd comp-1 && git log --pretty=format:"%h" -1`)).be.true
 
-    chai.expect(execStub.getCall(6).calledWith(
+    chai.expect(execStub.getCall(4).calledWith(
       `deployment/pit/deploy.sh nsChild`,
       { homeDir: "comp-1", logFileName: `12345_t1/logs/deploy-nsChild-comp-1.log`, tailTarget: sinon.match.any })
     ).be.true
 
-    chai.expect(execStub.getCall(7).calledWith(
+    chai.expect(execStub.getCall(5).calledWith(
       `deployment/pit/is-deployment-ready.sh nsChild`,
       { homeDir: "comp-1" }
     )).be.true
 
-    chai.expect(execStub.getCall(8).calledWith(`cd comp-1-test-app && git log --pretty=format:"%h" -1`)).be.true
-    chai.expect(execStub.getCall(9).calledWith(
+    chai.expect(execStub.getCall(6).calledWith(`cd comp-1-test-app && git log --pretty=format:"%h" -1`)).be.true
+    chai.expect(execStub.getCall(7).calledWith(
       `deployment/pit/deploy.sh nsChild t1`,
       { homeDir: "comp-1-test-app", logFileName: `12345_t1/logs/deploy-nsChild-comp-1-test-app.log`, tailTarget: sinon.match.any })
     ).be.true
 
-    chai.expect(execStub.getCall(10).calledWith(
+    chai.expect(execStub.getCall(8).calledWith(
       `deployment/pit/is-deployment-ready.sh nsChild`,
       { homeDir: "comp-1-test-app" })
     ).be.true

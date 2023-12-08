@@ -163,15 +163,20 @@ export const deployLockManager = async (config: Config, workspace: string, names
   // directory where CI checked out sources of LockManager app
   const sourcesDirectory = "lock-manager"
   const webAppContextRoot = "lock-manager"
-  await deployApplication(
-    workspace,
-    namespace,
-    appName,
-    sourcesDirectory,
-    spec.deploy,
-    config.deployCheckFrequencyMs,
-    { namespace, deployerParams: [ webAppContextRoot ] }
-  )
+  logger.debug("Check config 'config.useMockLockManager': %s", typeof config.useMockLockManager, config.useMockLockManager);
+  if (config.useMockLockManager) {
+    logger.info("Lock manager mock is enabled. Skipping deployment of LockManager app.")
+  } else {
+    await deployApplication(
+      workspace,
+      namespace,
+      appName,
+      sourcesDirectory,
+      spec.deploy,
+      config.deployCheckFrequencyMs,
+      { namespace, deployerParams: [ webAppContextRoot ] }
+    )
+  }
 }
 
 export const undeployLockManager = async (namespace: Namespace) => {

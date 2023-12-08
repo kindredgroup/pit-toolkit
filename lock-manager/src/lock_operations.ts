@@ -23,7 +23,7 @@ class LockFactory {
 
 class DatabaseStorage implements Storage {
   async acquire(lock: LockAcquireObject, db: Db): Promise<LockManagerResponse> {
-    let {expiryInSec = 60} = lock;
+    let {expiryInSec = 0} = lock; // start only with keepAlive
     const currentTime = Date.now();
     const expirationTime = new Date(currentTime + expiryInSec * 1000); // Add seconds to current time
    logger.info("values", currentTime, expiryInSec, expirationTime);
@@ -35,19 +35,18 @@ class DatabaseStorage implements Storage {
 
     let query = {
       name: "insert-lock",
-      text: `INSERT INTO manage_locks (lock_id, lock_metadata) VALUES ($1, $2) 
+      text: `INSERT INTO locks (lock_id, lock_metadata) VALUES ($1, $2) 
             RETURNING lock_id`,
       values: [lock.lockId, JSON.stringify(lockMetadata)],
     };
 
     const result = await db.execute(query);
     if (result?.name === "error") {
-      // TODO handle error
-      console.error("Error from lock::",result?.message);
+      logger.error("Error from lock::",result?.message);
       throw new Error(result?.message);
     }
 
-   logger.info(result?.rows);
+   logger.debug(result?.rows);
   
     let {lock_id} = result?.rows[0];
 
@@ -66,7 +65,7 @@ class DatabaseStorage implements Storage {
 
     const query = {
       name: "update-key",
-      text: `UPDATE manage_locks SET lock_metadata = jsonb_set(lock_metadata, '{lock_expiry}', $1 )
+      text: `UPDATE locks SET lock_metadata = jsonb_set(lock_metadata, '{lockExpiry}', $1 )
              WHERE lock_id = ANY($2) AND lock_metadata ->> 'lockOwner' = $3 RETURNING *`,
       values: [`"${expiryInSec}"`, lockIds, owner],
     };
@@ -75,6 +74,7 @@ class DatabaseStorage implements Storage {
     if (result?.name === "error") {
       throw new Error(result?.message);
     }
+
    logger.info("update result ", result);
     if (result?.rows.length === 0) {
       throw new Error("No valid lock and owner combination found");
@@ -88,7 +88,7 @@ class DatabaseStorage implements Storage {
   async release(keys: Array<String>, db: Db): Promise<Array<String>> {
     const query = {
       name: "delete-key",
-      text: `DELETE FROM manage_locks WHERE lock_id = ANY ($1) AND
+      text: `DELETE FROM locks WHERE lock_id = ANY ($1) AND
         EXISTS (SELECT lock_id FROM manage_locks WHERE lock_id = ANY ($1) ) RETURNING lock_id`,
       values: [keys],
     };
@@ -97,46 +97,11 @@ class DatabaseStorage implements Storage {
     if (result?.name === "error") {
       throw new Error(result?.message);
     }
-   logger.info("release result ", result);
+   logger.debug("release result ", result);
     let unlocked_keys = result?.rows?.map(({lock_id}) => lock_id);
-   logger.info("unlocked_keys ", unlocked_keys);
+   logger.debug("unlocked_keys ", unlocked_keys);
     return unlocked_keys;
   }
 }
-/* 
-class ArrayStorage implements Storage {
-    private data: Array<LockManagerResponse> = [];
-
-    async acquire(lock:  LockManagerDTO): Promise<LockManagerResponse> {
-        locks.map(lock => {
-            // check if key already exists
-            if( !!this.data.some(item=>item.lock_id === lock.lock_id)){
-                //throw new Error(`Key ${key} already exists`);
-                this.data.push({lock_id: lock.lock_id, acquired: false});
-            }else{
-                this.data.push({lock_id: lock.lock_id, acquired: true});
-            }
-        });
-        return this.data;
-
-    }
-
-    retrieve(key: string): LockManagerResponse | undefined {
-        return this.data.find((item=>item.lock_id === key)) 
-    }
-
-    async release(keys: Array<String>): Promise<Array<String>> {
-        // remove the record if key exists
-        keys.map(key => {
-            let index = this.data.findIndex(item => item.lock_id === key);
-            if( !!index){
-                delete this.data[index];
-            }
-        })
-        
-        return keys;
-    }
-}
-*/
 
 export default LockFactory;

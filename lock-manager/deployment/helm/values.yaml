@@ -4,14 +4,25 @@ service:
   name: ""
   port:
 
-PGDATABASE: ""
-PGMINPOOLSIZE: ""
 PGHOST: ""
 PGPORT: ""
 PGUSER: ""
 PGPASSWORD: ""
+PGDATABASE: ""
+PGMINPOOLSIZE: ""
+
+externalSecrets:
+  refreshInterval: 12h
+  vaultPaths:
+    db: "secret/devs/dev/postgres/dpt"
+
 
 
 webApp:
-  contextRoot: # set this to the currently running test suite name
+  contextRoot: ""
+
+
 ENVIRONMENT: dev
+
+environment:
+  TARGET_SERVICE_URL:

@@ -17,6 +17,7 @@ echo "Starting k8s-deployer application..."
 EXAMPLES_TEMP_DIR=$1
 # The project where push happened. For example directory pointing to node-1 in the examples.
 PROJECT_DIR=$2
+LOCK_MANAGER_MOCK=$3
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
@@ -24,6 +25,7 @@ COMMIT_SHA=$(git rev-parse --short HEAD)
 
 echo "EXAMPLES_TEMP_DIR=$EXAMPLES_TEMP_DIR"
 echo "PROJECT_DIR=$PROJECT_DIR"
+echo "LOCK_MANAGER_MOCK=$LOCK_MANAGER_MOCK"
 echo "Current director is \"$PROJECT_ROOT\""
 echo "Application under test is \"$APP_NAME\""
 echo "Parent namespace \"$PARENT_NS\""
@@ -40,6 +42,13 @@ then
   echo "Creating temporary directory"
   EXAMPLES_TEMP_DIR="tmp"
   mkdir $EXAMPLES_TEMP_DIR || true
+fi
+
+# check LOCK_MANAGER_MOCK else set process envvar to true
+if [ "${LOCK_MANAGER_MOCK}" == "" ];
+then
+  echo "Missing third parameter: boolean to use lock-manager-mock"
+  LOCK_MANAGER_MOCK=true
 fi
 
 cd $EXAMPLES_TEMP_DIR
@@ -88,7 +97,8 @@ node $PROJECT_ROOT/dist/src/index.js \
   --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml \
   --parent-ns $PARENT_NS \
   --report-repository "git://127.0.0.1:60102/pit-reports.git" \
-  --report-branch-name $(basename $PROJECT_DIR)
+  --report-branch-name $(basename $PROJECT_DIR) \
+  --lock-manager-mock $LOCK_MANAGER_MOCK
 
 returnStatus=$(($?+0))
 

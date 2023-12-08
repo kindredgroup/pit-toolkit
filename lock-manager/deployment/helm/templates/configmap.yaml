@@ -1,11 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: lock-manager-configmap
+  name: {{ include "application.name" . }}
 data:
-  SERVICE_NAME:                             {{ .Values.service.name }}
-  PGHOST:                                   {{ .Values.PGHOST | quote}}
-  PGPORT:                                   {{ .Values.PGPORT | quote }}
-  PGUSER:                                   {{ .Values.PGUSER | quote}}
-  PGPASSWORD:                               {{ .Values.PGPASSWORD | quote}}
-  PGDATABASE:                               {{ .Values.PGDATABASE | quote}}
+  SERVICE_NAME:                             {{ .Values.service.name | quote}}
+  SERVICE_PORT:                             {{ .Values.service.port | quote }}
+  PGMINPOOLSIZE:                            {{ .Values.PGMINPOOLSIZE | quote}}
