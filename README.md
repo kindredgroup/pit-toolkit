@@ -331,7 +331,11 @@ mkdir ./tmp
 #   2: Path to application under test. This is application whose pitfile will be processed.
 #      It is expected that there is "pitfile.yml" at the root of the project,
 #      such as "$(pwd)/examples/node-1/pitfile.yml".
+#   3: mock-lock-manager - to enable mocked lock manager for local development
 npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1
+
+# if for local development the mock-lock-manager implementation is enough
+npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1 mock-lock-manager
 
 ```
 

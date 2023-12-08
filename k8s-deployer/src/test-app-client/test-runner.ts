@@ -51,7 +51,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
   const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`;
 
   
-  logger.info("Test suite: '%s' - preparing to run", testSuiteId)
+  logger.info("Test suite: '%s' - preparing to run with mock-lock-manager %s", testSuiteId, config.lockManagerMock)
   let lockManager = spec.testSuite.lock ? 
   config.lockManagerMock ? LMMock.create(): LockManager.create(urlPrefix) : null
 

@@ -55,7 +55,7 @@ const readParams = (): Config => {
 
   const reportRepo = params.get(PARAM_REPORT_REPOSITORY)
   const reportBranch = params.get(PARAM_REPORT_BRANCH_NAME)
-  const lockManagerMock = params.get(LOCK_MANAGER_MOCK) as unknown as boolean;
+  const lockManagerMock = params.get(LOCK_MANAGER_MOCK) === "mock-lock-manager" ? true : false;
 
   return new Config(
     commitSha,

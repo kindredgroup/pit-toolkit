@@ -41,7 +41,7 @@ helm upgrade --install \
   --set PGPASSWORD=$PGPASSWORD \
   --set PGDATABASE=$PGDATABASE \
   --set PGMINPOOLSIZE=$PGMINPOOLSIZE \
-  $SERVICE_NAME ./$CHART_PACKAGE
+  $SERVICE_NAME ./$CHART_PACKAGE --debug
 returnStatus=$(($?+0))
 rm $CHART_PACKAGE
 
