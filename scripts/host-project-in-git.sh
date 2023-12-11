@@ -55,9 +55,20 @@ then
   exit $returnStatus
 fi
 
-rsync -avhq --executability --exclude node_modules --exclude dist --exclude tmp $PROJECT_DIR/ $TMP_PATH/
+rsync -avhq --executability --exclude .git/hooks --exclude node_modules --exclude dist --exclude tmp $PROJECT_DIR/ $TMP_PATH/
 cd $TMP_PATH
-git checkout -b master && git add --all && git commit -a -m "Initial commit" 1> /dev/null
+echo ""
+git branch
+
+git checkout master
+returnStatus=$(($?+0))
+if [ $returnStatus -ne 0 ];
+then
+  git branch
+  git checkout -b master
+fi
+
+git checkout master && git add --all && git commit -a -m "Initial commit" 1> /dev/null
 
 cd ..
 mv ./tmp/.git .git
