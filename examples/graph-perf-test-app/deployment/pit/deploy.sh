@@ -6,8 +6,14 @@ OVERWRITE_K8S_NAMESPACE=$1
 TARGET_SERVICE_NAME=$2
 WEB_APP_CONTEXT_ROOT=$3
 
+if [ "${PIT_GRAPH_TEST_APP_ENV_FILE}" == "" ];
+then
+  PIT_GRAPH_TEST_APP_ENV_FILE=".env"
+fi
+echo "PIT_GRAPH_TEST_APP_ENV_FILE=${PIT_GRAPH_TEST_APP_ENV_FILE}"
+
 set -o allexport
-source .env
+source $PIT_GRAPH_TEST_APP_ENV_FILE
 echo ""
 if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
@@ -21,10 +27,6 @@ echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
 echo "TARGET_SERVICE_NAME=${TARGET_SERVICE_NAME}"
 echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
 echo "TARGET_SERVICE_URL=${TARGET_SERVICE_URL}"
-
-# echo "D: ----------------------------"
-# env | sort
-# echo "D: ----------------------------"
 
 CHART_PACKAGE="$SERVICE_NAME-0.1.0.tgz"
 helm package ./deployment/helm --debug --app-version=$IMAGE_TAG

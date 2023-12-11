@@ -227,12 +227,28 @@ testSuites:
   
 - The port 80 is free. Port 80 is used by ingress controller in your local desktop-docker.
 
+## Ports used
+
+| Port Number | Application |
+|------------ | ------------|
+| 60001 | 'lock-manager' |
+| 60100 | Local GIT server hosting 'graph-perf-test-app' sources |
+| 60101 | Local GIT server hosting node-1 sources |
+| 60102 | Local GIT server hosting reports repository |
+| 62001 | 'node-1' the example component |
+| 62002 | 'pit-test-app' the example test app for node-1 |
+| 62003 | 'graph-perf-test-app' the K6 example test app for node-1 |
+
+
+
 ## Build docker images
 
 ### Image for Lock Manager
 
 ```bash
 cd lock-manager/
+
+Prepare `lock-manager/.env`, use `.env.example` as starting point.
 
 # Make sure there is lock-manager/.env with the following variables:
 # - REGISTRY_URL=ksp
@@ -241,6 +257,8 @@ npm run dev-build-image
 ```
 
 ### Image for Node-1 sample component
+
+Prepare `examples/node-1/.env`, use `.env.example` as starting point.
 
 ```bash
 cd examples/node-1/
@@ -265,6 +283,8 @@ cd examples/node-1/pit-test-app
 npm run dev.build-image
 ```
 ### Image for standalone example Test application targetting Node-1 sample component
+
+Prepare `examples/graph-perf-test-app/.env`, use `.env.example` as starting point.
 
 ```bash
 cd examples/graph-perf-test-app
@@ -353,7 +373,7 @@ we can still develop with running git server locally.
 For example, lets assume that "node-1" component of our graph has to be checked out from remote location.
 We have this project locally on our machine under "examples/node-1".
 
-Lets expose in local git server on port 60100 (the default)
+Lets expose it in local git server on port 60100 (the default)
 
 ```bash
 # create directory outside of current git project
@@ -371,12 +391,12 @@ hint: Using 'master' as the name for the initial branch. This default branch nam
 hint: is subject to change. To configure the initial branch name to use in all
 hint: of your new repositories, which will suppress this warning, call:
 hint:
-hint: 	git config --global init.defaultBranch <name>
+hint:   git config --global init.defaultBranch <name>
 hint:
 hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
 hint: 'development'. The just-created branch can be renamed via this command:
 hint:
-hint: 	git branch -m <name>
+hint:   git branch -m <name>
 Initialized empty Git repository in /tmp/remote-sample/git-server/node-1.git/tmp/.git/
 Switched to a new branch 'master'
 
@@ -386,4 +406,60 @@ Launching git server. Checkout your project from git://127.0.0.1:60101/node-1.gi
 Similarly run git server for "remote test app"
 ```bash
 scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/../examples/graph-perf-test-app
+```
+
+Please note that when these projects will be feetched from local git by `k8-deployer`, the fetched project will have no `.env` file! However, our deployment scripts under `deployment/pit/*` can locate `.env` file by reading global environment variables. This is intended for local development. Below is the list of global environment variables 
+controlling the location of `.env` files. Export these either globally or in the terminal where you will be launching `k8-deployer`
+
+| Project | Variable |
+| --------|----------|
+| lock-manager  |  PIT_LOCK_MANAGER_ENV_FILE |
+| examples/node-1  |  PIT_NODE_1_ENV_FILE |
+| examples/node-1/pit-test-app  |  PIT_NODE_1_TEST_APP_ENV_FILE |
+| examples/graph-perf-test-app  |  PIT_GRAPH_TEST_APP_ENV_FILE |
+
+Example:
+```bash
+export PIT_LOCK_MANAGER_ENV_FILE=~/pit-toolkit/lock-manager/.env
+```
+
+#### Performance Reports
+
+After each successful run PIT will be expecting a test report from test application. These test reports will be submitted into GIT server. When developing locally we need to have GIT server hosting reports project.
+
+
+```bash
+# Create tmp home directory
+mkdir /tmp/git-reports
+
+# there will be some warning messages, just ignore them
+scripts/host-project-in-git.sh /tmp/remote-sample /tmp/git-reports 60102
+
+# Checkout reports, there will be no content at this stage
+mkdir /tmp/git-reports-client
+cd /tmp/git-reports-client
+git clone git://127.0.0.1:60102/git-reports.git .
+
+branch=master
+git checkout -b $branch \
+  && touch .gitignore \
+  && git add --all \
+  && git commit -a -m "Initial commit" \
+  && git push -u origin $branch
+
+# Create branches, one per project, repeat the same command by changing 'branch' variable.
+# branch=node-1
+# ...
+# branch=graph-perf-test-app
+# ...
+
+```
+
+After successful execution the performance reports will be pushed into relevant branch. To access reports, we need to check them out from GIT
+
+```bash
+# Get reports fro node-1 application:
+cd /tmp/git-reports-client
+git checkout node-1
+git pull
 ```
