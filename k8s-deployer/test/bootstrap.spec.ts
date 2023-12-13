@@ -12,7 +12,8 @@ import {
   PARAM_SUBNS_NAME_GENERATOR_TYPE, 
   PARAM_PITFILE, 
   PARAM_WORKSPACE, 
-  readParams 
+  readParams,
+  PARAM_LOCK_MANAGER_API_RETRIES
 } from "../src/bootstrap.js"
 import { 
   DEFAULT_CLUSTER_URL, 
@@ -34,7 +35,8 @@ describe("bootstrap with correct configs", () => {
       PARAM_CLUSTER_URL, "http://some-host.name",
       PARAM_PARENT_NS, "dev",
       PARAM_SUBNS_PREFIX, DEFAULT_SUB_NAMESPACE_PREFIX,
-      PARAM_LOCK_MANAGER_MOCK, "false"
+      PARAM_LOCK_MANAGER_MOCK, "false",
+      PARAM_LOCK_MANAGER_API_RETRIES, 3
      ])
   })
 
@@ -47,6 +49,7 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.subNamespacePrefix).eq(DEFAULT_SUB_NAMESPACE_PREFIX)
     chai.expect(config.subNamespaceGeneratorType).eq(DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE)
     chai.expect(config.useMockLockManager).be.false
+    chai.expect(config.lockManagerApiRetries).be.eq(3)
   })
 
   afterEach(() => {
@@ -106,6 +109,7 @@ describe("bootstrap with invalid configs", () => {
     chai.expect(config.subNamespacePrefix).eq(DEFAULT_SUB_NAMESPACE_PREFIX)
     chai.expect(config.subNamespaceGeneratorType).eq(DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE)
     chai.expect(config.useMockLockManager).be.false
+    chai.expect(config.lockManagerApiRetries).be.eq(3)
     sandbox.restore()
   })
 

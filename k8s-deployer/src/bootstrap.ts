@@ -22,6 +22,7 @@ export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
 export const PARAM_LOCK_MANAGER_MOCK = "--lock-manager-mock"
 export const PARAM_USE_KUBE_PROXY = "--use-kube-proxy"
+export const PARAM_LOCK_MANAGER_API_RETRIES = "--lock-manager-api-retries"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -66,6 +67,7 @@ const readParams = (): Config => {
   const reportRepo = params.get(PARAM_REPORT_REPOSITORY)
   const reportBranch = params.get(PARAM_REPORT_BRANCH_NAME)
   const useMockLockManager = params.get(PARAM_LOCK_MANAGER_MOCK) === "true"
+  const lockManagerApiRetries = params.get(PARAM_LOCK_MANAGER_API_RETRIES) ? parseInt(params.get(PARAM_LOCK_MANAGER_API_RETRIES)) : 3
 
   let subNsPrefix = params.get(PARAM_SUBNS_PREFIX)
   if (!subNsPrefix) subNsPrefix = DEFAULT_SUB_NAMESPACE_PREFIX
@@ -91,7 +93,8 @@ const readParams = (): Config => {
     new TestReportConfig(reportRepo, reportBranch),
     params,
     useMockLockManager,
-    params.get(PARAM_USE_KUBE_PROXY) === "true"
+    params.get(PARAM_USE_KUBE_PROXY) === "true",
+    lockManagerApiRetries
   )
 }
 

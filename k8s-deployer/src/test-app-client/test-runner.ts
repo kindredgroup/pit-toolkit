@@ -61,7 +61,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
       lockManager = LockManagerMock.create()
     } else {
       const url = K8s.makeServiceUrl(config.clusterUrl, spec.namespace, "lock-manager")
-      lockManager = LockManager.create(url)
+      lockManager = LockManager.create(url, config.lockManagerApiRetries)
     } 
 
     await lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
