@@ -13,7 +13,6 @@ describe("LockManager", () => {
         let lockId = "id1";
         let lockManager = await esmock("../src/locks/lock-manager.js", {
             '../src/locks/lock-api-fetch.js':{ 
-                apiFetch: ()=> ({lockId,acquired: true}),
                 retryFetch: ()=> ({lockId,acquired: true})
             }
         });
@@ -28,13 +27,11 @@ describe("LockManager", () => {
     it("should throw error if lock is not acquired", async () => {
         let lockManager = await esmock("../src/locks/lock-manager.js", {
             '../src/locks/lock-api-fetch.js':{ 
-                apiFetch: ()=>  {throw new Error("Failed to acquire lock")},
                 retryFetch: ()=>  {throw new Error("Failed to acquire lock")}
             }
         });
 
          lockMangerInstance = new lockManager.LockManager("http://foobar:8080")
-         lockMangerInstance.startKeepAliveJob = ()=>{}
 
          try{
             await lockMangerInstance.lock("owner", {ids: ["id1", "id2"]});
@@ -47,7 +44,6 @@ describe("LockManager", () => {
         let mockIdList =["id1", "id2"];
         let lockManager = await esmock("../src/locks/lock-manager.js", {
             '../src/locks/lock-api-fetch.js':{ 
-                apiFetch: ()=> (mockIdList),
                 retryFetch: ()=> (mockIdList)
             }
         });
@@ -62,7 +58,6 @@ describe("LockManager", () => {
         let mockIdList =["id1", "id2"];
         let lockManager = await esmock("../src/locks/lock-manager.js", {
             '../src/locks/lock-api-fetch.js':{ 
-                apiFetch: ()=>  {throw new Error("Failed to release lock")},
                 retryFetch: ()=>  {throw new Error("Failed to release lock")}
             }
         });

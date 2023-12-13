@@ -8,7 +8,6 @@ import { PostgresDb } from './db/pg.js'
 let db = new PostgresDb()
 
 const DEFAULT_PORT = 60001
-const TARGET_SERVICE_URL = "http://localhost"
 
 const main = async () => {
   const app: Express = express()
@@ -19,10 +18,7 @@ const main = async () => {
 
   const _apiRoutes = new ApiRoutes(app, db)
   
-  const targetServiceUrl = ConfigReader.getParam("--target-service-url", TARGET_SERVICE_URL)
   const servicePort = ConfigReader.getParam("--service-port", DEFAULT_PORT)
-
-  logger.info("Test app will be connecting to: %s", targetServiceUrl)
 
   app.listen(servicePort, () => {
     logger.info("HTTP server is running at http://localhost:%d", servicePort)

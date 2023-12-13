@@ -130,8 +130,9 @@ LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --report-branch-name $(basename $PROJECT_DIR) \
   --lock-manager-mock $LOCK_MANAGER_MOCK \
   --use-kube-proxy $USE_KUBE_PROXY \
-  --LOCK_MANAGER_API_RETRIES $lock_manager_api_retries
-  --cluster-url $CLUSTER_URL"
+  --cluster-url $CLUSTER_URL \
+  --lock_manager_api_retries $LOCK_MANAGER_API_RETRIES"
+
 
 echo "LAUNCH_ARGS="
 echo "${LAUNCH_ARGS}"

@@ -10,7 +10,7 @@ export class LockManager {
   private api = {
     check: {endpoint: "", options: {}},
     acquire: {endpoint: "", options: {}},
-    keeAlive: {endpoint: "", options: {}},
+    keepAlive: {endpoint: "", options: {}},
     release: {endpoint: "", options: {}},
   };
 
@@ -18,8 +18,6 @@ export class LockManager {
     return new LockManager(urlPrefix,apiRetries);
   }
 
-  // Handle to the timer
-  keepAliveJobHandle: NodeJS.Timeout = null;
 
   constructor(readonly urlPrefix: string, apiRetries: number) {
     const baseUrl = `${urlPrefix}`;
@@ -28,7 +26,7 @@ export class LockManager {
     this.api = {
       check:    { endpoint: `${ baseUrl }/`,                options: { method: "GET",  headers: { "Accept": "application/json" }}},
       acquire:  { endpoint: `${ baseUrl }/lock/acquire`,    options: { method: "POST", headers: { "Content-Type": "application/json" }}},
-      keeAlive: { endpoint: `${ baseUrl }/lock/keep-alive`, options: { method: "POST", headers: { "Content-Type": "application/json" }}},
+      keepAlive: { endpoint: `${ baseUrl }/lock/keep-alive`, options: { method: "POST", headers: { "Content-Type": "application/json" }}},
       release:  { endpoint: `${ baseUrl }/lock/release`,    options: { method: "POST", headers: { "Content-Type": "application/json" }}},
     }
   }
@@ -60,7 +58,7 @@ export class LockManager {
         let respJson = await retryFetch(retryOptions, {
           owner,
           lockId,
-        });
+        })as any;
         if (respJson.acquired) {
           locksAcquired.push(respJson.lockId);
         }
@@ -70,6 +68,7 @@ export class LockManager {
           lock.ids[0],
           error
         );
+        this.release(owner, {ids: locksAcquired, timeout: lock.timeout});
         throw new Error(`Failed to acquire lock for ${lockId}`);
       }
       if(locksAcquired.length > 0 && locksAcquired.includes(lockId)){
@@ -77,7 +76,7 @@ export class LockManager {
       }
     }
     logger.info(
-      "LockManager.lockWithId(): %s is acquire success for owner",
+      "LockManager.lock(): %s is acquire success for owner",
       lock.ids,
       owner
     );
@@ -121,7 +120,7 @@ export class LockManager {
   // Doesnt retry to keep the locks alive
   private async startKeepAliveJob(owner: string, lockIds: Array<string> = [], timeout:string) {
     try {
-      let resp = (await apiFetch(this.api.keeAlive, {
+      let resp = (await apiFetch(this.api.keepAlive, {
         owner,
         lockIds,
         expiryInSec: timeout,

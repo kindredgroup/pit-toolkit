@@ -15,8 +15,6 @@ export interface DbPoolConfig {
 }
 
 export interface DbPool {
-    // connect(): Promise<Db>
-    // connect() : Promise<void>
     disconnect(): Promise<void>
 }
   

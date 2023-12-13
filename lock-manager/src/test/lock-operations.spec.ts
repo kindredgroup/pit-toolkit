@@ -1,16 +1,16 @@
-import assert from "node:assert";
 import { mock} from "node:test";
 import LockFactory, {Storage} from "../lock-operations.js";
 import {PostgresDb} from "../db/pg.js";
 import {LockAcquireObject} from "../db/db.js";
 import { describe, it, beforeEach } from "mocha";
+import { assert } from "chai";
 
 describe("Lock Operation", () => {
   // Mock the pg class
-  let key = "key1";
+  let lockId = "key1";
   let owner = "owner1";
   let lock: LockAcquireObject = {
-    lockId: key,
+    lockId,
     owner: owner,
     expiryInSec: 10,
   };
@@ -18,7 +18,7 @@ describe("Lock Operation", () => {
     return {
       rows: [
         {
-          lock_id: key,
+          lock_id: lockId,
           owner: owner,
           expiration: new Date(),
         },
@@ -29,7 +29,7 @@ describe("Lock Operation", () => {
     return {
       rows: [
         {
-          lock_id: key,
+          lock_id: lockId,
         },
       ],
     };
@@ -47,16 +47,16 @@ describe("Lock Operation", () => {
     });
   });
 
-  it("should release lease ofr requested keys ", async () => {
-    key = "key2";
-    assert.deepStrictEqual(await storage.release([key], new PostgresDb()), [
-      key,
+  it("should release locks  ", async () => {
+    lockId = "key2";
+    assert.deepStrictEqual(await storage.release([lockId], new PostgresDb()), [
+      lockId,
     ]);
   });
-  it("should renew lease for requested keys ", async () => {
+  it("should keep alive the existing locks ", async () => {
     assert.deepStrictEqual(
-      await storage.keepAlive({lockIds: [key], owner: owner}, new PostgresDb()),
-      [key]
+      await storage.keepAlive({lockIds: [lockId], owner: owner}, new PostgresDb()),
+      [lockId]
     );
   });
 });

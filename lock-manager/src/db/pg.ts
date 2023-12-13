@@ -9,13 +9,11 @@ let getPoolConfig = ()=>{
   let host = getParam("PGHOST", "localhost") as string
   let port = getParam("PGPORT", 5432) as number
 
-  let user = getParam("PGUSER", "admin") as string
-  let password = getParam("PGPASSWORD", "admin") as string
-  let database = getParam("PGDATABASE", "lock_manager") as string
+  let user = getParam("PGUSER", "") as string
+  let password = getParam("PGPASSWORD", "") as string
+  let database = getParam("PGDATABASE", "pit-lock-manager") as string
   let poolSizeMax = getParam("PGMAXPOOLSIZE", 10) as number
   let poolSizeMin = getParam("PGMINPOOLSIZE", 10) as number
-  // connection string
-  // return `postgres://${user}:${password}@${hostName}:${port}/${db}`
 
   const config:PoolConfig = {
     user,
@@ -31,11 +29,9 @@ let getPoolConfig = ()=>{
 
 export class PostgresDb implements Db {
   private pg_pool: pg.Pool
-  // private pool_client: pg.PoolClient
 
   constructor() {
     let config = getPoolConfig()
-    logger.debug("connection config", config)
     this.pg_pool = new pg.Pool(config)
   }
 

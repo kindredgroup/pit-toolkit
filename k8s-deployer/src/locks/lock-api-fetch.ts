@@ -13,21 +13,23 @@ export type RetryOptions={
     api: ApiOptions
 }
 
-const retryFetch = async (retryAPIOtpions:RetryOptions, apiBody:Object) =>{ 
+const retryFetch = async (retryAPIOptions:RetryOptions, apiBody:Object) =>{ 
 
-    let {retryOptions, retryDelay, api } = retryAPIOtpions as any
+    let {retries, retryDelay, api } = retryAPIOptions
     attempts++
     try{
+        logger.info("retryFetch(): fetching %s", attempts)
         let resp  = await apiFetch(api, apiBody)
+        logger.info("retryFetch(): returning resp %s", resp)
         return resp
     }catch(error){
         logger.warn("retryFetch(): retrying fetch %s", attempts)
-        if (attempts <= retryOptions.retries) {
-            await wait(retryDelay)
-            return retryFetch(retryAPIOtpions, apiBody)
+        if (attempts <= retries) {
+            await retryWait(retryDelay)
+            await retryFetch(retryAPIOptions, apiBody)
         }else{
             logger.warn("retryFetch(): failed to fetch %s", attempts)
-            throw new Error(`Failed to fetch ${api.enpoint} after ${attempts} retries`)
+            throw new Error(`Failed to fetch ${api.endpoint} after ${attempts} retries`)
         }
     }
 }
@@ -44,11 +46,7 @@ const apiFetch = async (api:{endpoint:string, options}, apiBody:Object) =>{
       return respJson
   }
 
-  const wait = (time = 0) => {
-    return new Promise(() => {
-      setTimeout(() => { }, time * 1000);
-    });
-  };
+  const retryWait = (time) =>  new Promise(resolve => setTimeout(resolve, time))
 
   export {apiFetch,retryFetch}
 
