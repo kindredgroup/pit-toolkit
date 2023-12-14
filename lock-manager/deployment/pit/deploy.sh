@@ -5,8 +5,14 @@ STATUS_ERROR="Status=ERROR"
 OVERWRITE_K8S_NAMESPACE=$1
 WEB_APP_CONTEXT_ROOT=$2
 
+if [ "${PIT_LOCK_MANAGER_ENV_FILE}" == "" ];
+then
+  PIT_LOCK_MANAGER_ENV_FILE=".env"
+fi
+echo "PIT_LOCK_MANAGER_ENV_FILE=${PIT_LOCK_MANAGER_ENV_FILE}"
+
 set -o allexport
-source .env
+source $PIT_LOCK_MANAGER_ENV_FILE
 echo ""
 if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then

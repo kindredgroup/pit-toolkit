@@ -5,9 +5,15 @@ STATUS_ERROR="Status=ERROR"
 OVERWRITE_K8S_NAMESPACE=$1
 OVERWRITE_SERVICE_PORT=$2
 
-cat .env
+if [ "${PIT_NODE_1_ENV_FILE}" == "" ];
+then
+  PIT_NODE_1_ENV_FILE=".env"
+fi
+echo "PIT_NODE_1_ENV_FILE=${PIT_NODE_1_ENV_FILE}"
+
+cat $PIT_NODE_1_ENV_FILE
 set -o allexport
-source .env
+source $PIT_NODE_1_ENV_FILE
 if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];
 then
   K8S_NAMESPACE="$OVERWRITE_K8S_NAMESPACE"
