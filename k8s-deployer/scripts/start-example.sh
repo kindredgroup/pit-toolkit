@@ -21,14 +21,20 @@ LOCK_MANAGER_MOCK=$3
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
+SUB_NS_PREFIX=pit
+ # Can be "date" or "commit-sha", using "date" makes locl development faster because resulting name 
+ # will be less random and will need to be generated only in the morning
+SUB_NS_NAME_GENERATOR_TYPE=date
 COMMIT_SHA=$(git rev-parse --short HEAD)
 
 echo "EXAMPLES_TEMP_DIR=$EXAMPLES_TEMP_DIR"
 echo "PROJECT_DIR=$PROJECT_DIR"
 echo "LOCK_MANAGER_MOCK=$LOCK_MANAGER_MOCK"
-echo "Current director is \"$PROJECT_ROOT\""
+echo "Current directory is \"$PROJECT_ROOT\""
 echo "Application under test is \"$APP_NAME\""
-echo "Parent namespace \"$PARENT_NS\""
+echo "Parent namespace is \"$PARENT_NS\""
+echo "Subnamespace prefix is \"$SUB_NS_PREFIX\""
+echo "Subnamespace name generator type is \"${SUB_NS_NAME_GENERATOR_TYPE}\"
 echo "Simulated CI commit \"$COMMIT_SHA\""
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
@@ -96,6 +102,8 @@ node $PROJECT_ROOT/dist/src/index.js \
   --workspace $CI_HOME_DIR \
   --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml \
   --parent-ns $PARENT_NS \
+  --subns-prefix $SUB_NS_PREFIX \
+  --subns-name-generator-type $SUB_NS_NAME_GENERATOR_TYPE \
   --report-repository "git://127.0.0.1:60102/pit-reports.git" \
   --report-branch-name $(basename $PROJECT_DIR) \
   --lock-manager-mock $LOCK_MANAGER_MOCK

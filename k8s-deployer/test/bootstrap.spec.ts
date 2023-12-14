@@ -2,8 +2,24 @@
 import * as sinon from "sinon"
 import * as chai from "chai"
 
-import { PARAM_CLUSTER_URL, PARAM_COMMIT_SHA, PARAM_LOCK_MANAGER_MOCK, PARAM_NAMESPACE_TIMEOUT, PARAM_PARENT_NS, PARAM_PITFILE, PARAM_WORKSPACE, readParams } from "../src/bootstrap.js"
-import { DEFAULT_CLUSTER_URL, DEFAULT_NAMESPACE_TIMEOUT } from "../src/config.js"
+import { 
+  PARAM_CLUSTER_URL, 
+  PARAM_COMMIT_SHA, 
+  PARAM_LOCK_MANAGER_MOCK, 
+  PARAM_NAMESPACE_TIMEOUT, 
+  PARAM_PARENT_NS, 
+  PARAM_SUBNS_PREFIX, 
+  PARAM_SUBNS_NAME_GENERATOR_TYPE, 
+  PARAM_PITFILE, 
+  PARAM_WORKSPACE, 
+  readParams 
+} from "../src/bootstrap.js"
+import { 
+  DEFAULT_CLUSTER_URL, 
+  DEFAULT_NAMESPACE_TIMEOUT, 
+  DEFAULT_SUB_NAMESPACE_PREFIX, 
+  DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE
+} from "../src/config.js"
 
 describe("bootstrap with correct configs", () => {
   const sandbox = sinon.createSandbox()
@@ -17,6 +33,7 @@ describe("bootstrap with correct configs", () => {
       PARAM_NAMESPACE_TIMEOUT, "100",
       PARAM_CLUSTER_URL, "http://some-host.name",
       PARAM_PARENT_NS, "dev",
+      PARAM_SUBNS_PREFIX, DEFAULT_SUB_NAMESPACE_PREFIX,
       PARAM_LOCK_MANAGER_MOCK, "false"
      ])
   })
@@ -27,6 +44,8 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.pitfile).eq("/some-pitfile.yml")
     chai.expect(config.namespaceTimeoutSeconds).eq(100)
     chai.expect(config.clusterUrl).eq("http://some-host.name")
+    chai.expect(config.subNamespacePrefix).eq(DEFAULT_SUB_NAMESPACE_PREFIX)
+    chai.expect(config.subNamespaceGeneratorType).eq(DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE)
     chai.expect(config.useMockLockManager).be.false
   })
 
@@ -63,11 +82,29 @@ describe("bootstrap with invalid configs", () => {
     sandbox.restore()
   })
 
+  it("readParams() should expect predefined namespace name generators", () => {
+    sandbox.stub(process, 'argv').value([ "skip-first", "", 
+      PARAM_WORKSPACE, "./some-dir", 
+      PARAM_PARENT_NS, "dev", 
+      PARAM_COMMIT_SHA, "abcdef1",
+      PARAM_SUBNS_NAME_GENERATOR_TYPE, "unknown",
+    ])
+    chai.expect(readParams).to.throw(`${PARAM_SUBNS_NAME_GENERATOR_TYPE} can be "DATE" or "COMMITSHA"`)
+    sandbox.restore()
+  })
+
   it("readParams() should use default values", () => {
-    sandbox.stub(process, 'argv').value([ "skip-first", "", PARAM_COMMIT_SHA, "abcdef1", PARAM_WORKSPACE, "/dir", PARAM_PARENT_NS, "dev" ])
+    sandbox.stub(process, 'argv').value([ "skip-first", "", 
+      PARAM_COMMIT_SHA, "abcdef1", 
+      PARAM_WORKSPACE, "/dir", 
+      PARAM_PARENT_NS, "dev"
+    ])
     const config = readParams()
     chai.expect(config.namespaceTimeoutSeconds).eq(DEFAULT_NAMESPACE_TIMEOUT)
     chai.expect(config.clusterUrl).eq(DEFAULT_CLUSTER_URL)
+    chai.expect(config.useMockLockManager).be.false
+    chai.expect(config.subNamespacePrefix).eq(DEFAULT_SUB_NAMESPACE_PREFIX)
+    chai.expect(config.subNamespaceGeneratorType).eq(DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE)
     chai.expect(config.useMockLockManager).be.false
     sandbox.restore()
   })

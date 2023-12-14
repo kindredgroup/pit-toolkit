@@ -90,7 +90,7 @@ const deployLocal = async (
     testAppDirForRemoteTestSuite?: string): Promise<DeployedTestSuite> => {
   logger.info("%s Processing test suite '%s' %s", LOG_SEPARATOR_LINE, testSuite.name, LOG_SEPARATOR_LINE)
 
-  const namespace = await K8s.generateNamespaceName(seqNumber)
+  const namespace = await K8s.generateNamespaceName(config, seqNumber)
   await K8s.createNamespace(workspace, config.parentNamespace, namespace, config.namespaceTimeoutSeconds)
 
   await deployLockManager(config, workspace, pitfile.lockManager.enabled, namespace)
