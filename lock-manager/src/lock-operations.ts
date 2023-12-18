@@ -22,7 +22,7 @@ class LockFactory {
 
 class DatabaseStorage implements Storage {
   async acquire(lock: LockAcquireObject, db: Db): Promise<LockManagerResponse> {
-    let {expiryInSec = 0} = lock // start only with keepAlive
+    let {expiryInSec = 1} = lock // start only with keepAlive
     const currentTime = Date.now()
     const expirationTime = new Date(currentTime + expiryInSec * 1000) // Add seconds to current time
     logger.info("acquire(): acquire lock with args lock %s currentTime %s expiryInSec %s expirationTime %s", lock, currentTime, expiryInSec, expirationTime)

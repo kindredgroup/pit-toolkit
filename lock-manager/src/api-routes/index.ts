@@ -53,7 +53,7 @@ export class ApiRoutes {
       let keysSaved = await this.operations.keepAlive(locks, this.db);
       res.status(200).send(keysSaved);
     } catch (error) {
-      logger.error("api-route.acqukeepAliveire()", error);
+      logger.error("api-route.keepAlive()", error);
 
       res.status(400).send(error.message);
     }

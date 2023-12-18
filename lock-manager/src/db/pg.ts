@@ -69,8 +69,9 @@ export class PostgresDb implements Db {
     } catch (error) {
       logger.error("Error from pg.execute()::", error)
       await client.query("ROLLBACK")
-      client.release()
       throw error
+    }finally{
+       client?.release()
     }
     const in_duration = Date.now() - start
     logger.info("executed query", {
@@ -78,7 +79,6 @@ export class PostgresDb implements Db {
       in_duration,
       rows_returned: result.rowCount,
     })
-    client.release()
     return result
   }
 

@@ -1,23 +1,25 @@
-import {logger} from "../logger.js";
-import {Schema} from "../model.js";
-import {RetryOptions, apiFetch, retryFetch} from "./lock-api-fetch.js";
+import {logger} from "../logger.js"
+import {Schema} from "../model.js"
+import {RetryOptions, apiFetch, retryFetch} from "./lock-api-fetch.js"
 
-const KEEP_ALIVE_INTERVAL = 60; // seconds
-const RETRY_COUNT = 3;
-const RETRY_TIMEOUT = 1000; // milliseconds
+const KEEP_ALIVE_INTERVAL = 5 // seconds
+const RETRY_COUNT = 3
+const RETRY_TIMEOUT = 1000 // milliseconds
 export class LockManager {
-  private readonly apiRetries: number;
+  private readonly apiRetries: number
   private api = {
     check: {endpoint: "", options: {}},
     acquire: {endpoint: "", options: {}},
     keepAlive: {endpoint: "", options: {}},
     release: {endpoint: "", options: {}},
-  };
-
-  static create(urlPrefix: string, apiRetries: number): LockManager {
-    return new LockManager(urlPrefix,apiRetries);
   }
 
+  static create(urlPrefix: string, apiRetries: number): LockManager {
+    return new LockManager(urlPrefix,apiRetries)
+  }
+
+  // Handle to the timer
+  keepAliveJobHandle: NodeJS.Timeout = null
 
   constructor(readonly urlPrefix: string, apiRetries: number) {
     const baseUrl = `${urlPrefix}`;
@@ -36,111 +38,143 @@ export class LockManager {
   // in case of fetch error the method retries for RETRY_COUNT times
   //
   async lock(owner: string, lock: Schema.Lock) {
-    lock.ids = lock.ids.sort();
+    lock.ids = lock.ids.sort()
 
-    let locksAcquired = new Array<string>();
+    let locksAcquired = new Array<string>()
 
     let retryOptions: RetryOptions = {
       retries: this.apiRetries,
       retryDelay: RETRY_TIMEOUT,
       api: this.api.acquire,
-    };
+    }
     for (let i = 1; i <= lock.ids.length; i++) {
-      const lockId = lock.ids[i - 1];
+      const lockId = lock.ids[i - 1]
       logger.info(
         "LockManager.lock(): Locking %s of %s: %s",
         i,
         lock.ids.length,
         JSON.stringify({owner, lockId})
-      );
+      )
 
       try {
         let respJson = await retryFetch(retryOptions, {
           owner,
           lockId,
-        })as any;
+        })as any
         if (respJson.acquired) {
-          locksAcquired.push(respJson.lockId);
+          locksAcquired.push(respJson.lockId)
         }
       } catch (error) {
         logger.error(
           "LockManager.lock(): Failed to acquire lock for %s",
           lock.ids[0],
           error
-        );
-        this.release(owner, {ids: locksAcquired, timeout: lock.timeout});
-        throw new Error(`Failed to acquire lock for ${lockId}`);
+        )
+        this.release(owner, {ids: locksAcquired, timeout: lock.timeout})
+        throw new Error(`Failed to acquire lock for ${lockId}`)
       }
-      if(locksAcquired.length > 0 && locksAcquired.includes(lockId)){
-        this.startKeepAliveJob(owner, [lockId], lock.timeout);
+
+      if (i === 1) {
+        // start job only once
+        this.startKeepAliveJob(owner, lock)
       }
     }
     logger.info(
       "LockManager.lock(): %s is acquire success for owner",
       lock.ids,
       owner
-    );
-    return locksAcquired;
+    )
+    return locksAcquired
   }
 
   // Release the lock for the owner using fetch
   // in case of fetch error the method retries for RETRY_COUNT times
   async release(owner: string, lock: Schema.Lock) {
-    let {ids} = lock;
-    let respJson;
+    let {ids} = lock
+    let respJson
     let retryOptions: RetryOptions = {
       retries: this.apiRetries,
       retryDelay: RETRY_TIMEOUT,
       api: this.api.release,
-    };
+    }
 
-    logger.info("LockManager.release(): Releasing lock for %s", lock.ids);
+    if (this.keepAliveJobHandle) {
+      clearInterval(this.keepAliveJobHandle)
+    }
+
+    logger.info("LockManager.release(): Releasing lock for %s", lock.ids)
     try {
       respJson = await retryFetch(retryOptions, {
         owner,
         lockIds: ids,
-      });
+      })
     } catch (error) {
       logger.error(
         "LockManager.release(): Failed to release lock for %s",
         lock.ids,
         error
-      );
-      throw new Error(`Failed to release lock for ${lock.ids}`);
+      )
+      throw new Error(`Failed to release lock for ${lock.ids}`)
     }
     logger.info(
       "LockManager.release(): %s is released for owner %s",
       lock.ids,
       owner
-    );
-    return respJson;
+    )
+    return respJson
   }
 
- 
-  // Doesnt retry to keep the locks alive
-  private async startKeepAliveJob(owner: string, lockIds: Array<string> = [], timeout:string) {
+  private async keepAliveFetch(owner: string, lock: Schema.Lock) {
+    const {ids:lockIds, timeout} = lock
+    // lock-manager expects expiryInSec as seconds
+    // but k8s-deployer passes it as string 1h or 1m
+    // convert it to seconds
+    let expiryInSec = 0
+    if (typeof timeout === "string") {
+      let timeUnit = timeout.trim().slice(-1)
+      let timeValue = parseInt(timeout.slice(0, -1))
+      if (timeUnit === "h") {
+        expiryInSec = timeValue * 60 * 60
+      } else if (timeUnit === "m") {
+        expiryInSec = timeValue * 60
+      } else if (timeUnit === "s") {
+        expiryInSec = timeValue
+      }
+    } else {
+      throw new Error(`LockManager.keepAliveFetch(): timeout is not in correct format ${timeout} expected string like 1h or 1m`)
+    }
+
     try {
       let resp = (await apiFetch(this.api.keepAlive, {
         owner,
         lockIds,
-        expiryInSec: timeout,
-      })) as any;
-      let respJson = await resp.json();
+        expiryInSec,
+      })) as any
+      let respJson = await resp.json()
       logger.info(
-        "LockManager: Heartbeat for: %s with resp %s",
+        "LockManager.keepAliveFetch(): keepAlive api for: %s with resp %s",
         JSON.stringify({
           owner,
           lockIds,
           expiryInSec: timeout,
         }),
         respJson
-      );
+      )
     } catch (error) {
       logger.error(
-        "LockManager: failed to keep alive for %s with %s",
+        "LockManager.keepAliveFetch(): failed to keep alive for %s with %s",
         {lockIds, owner},
         error
-      );
+      )
     }
   }
+
+  private async startKeepAliveJob(owner: string, locks: Schema.Lock) {
+    this.keepAliveJobHandle = setInterval(async () => {
+      logger.info("LockManager.startKeepAliveJob(): Heartbeat for: %s", JSON.stringify({owner,locks}))
+       await  this.keepAliveFetch(owner, locks)
+    }, KEEP_ALIVE_INTERVAL)
+
+  }
+   
 }
