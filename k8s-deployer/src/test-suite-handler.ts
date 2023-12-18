@@ -9,6 +9,11 @@ import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
 import * as Shell from "./shell-facade.js"
 
+/**
+ * Deploying:
+ *  1. all components in the graph,
+ *  2. test app for the graph.
+ */
 const deployGraph = async (config: Config, workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
   const deployments: Array<DeployedComponent> = new Array()
   for (let i = 0; i < graph.components.length; i++) {
@@ -81,6 +86,11 @@ const deployLockManager = async (config: Config, workspace: string, isEnabled: b
   logger.info("")
 }
 
+/**
+ * - Creates namespace, 
+ * - deploys lock manager,
+ * - deploys components graph.
+ */
 const deployLocal = async (
     config: Config,
     workspace: string,
@@ -148,7 +158,6 @@ const deployAll = async (
 
   const deployedSuites = new Array<DeployedTestSuite>()
   if (testSuite.location.type === Schema.LocationType.Local) {
-    // TODO create logs and reports directory
     const summary = await deployLocal(config, workspace, pitfile, seqNumber, testSuite)
     deployedSuites.push(summary)
   } else {
