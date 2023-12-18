@@ -1,13 +1,13 @@
 # Why PIT needs a Cleanup process?
-In case of successful completion of the graph run, test components should release all the resources at graceful shutdown and the K8-deployer should free all the locked resources blocked for PIT toolkit. Unfortunately, in case of a crash the resources are left unattached to any process creating a need for an extra method to do the cleanup after.
+In case of successful completion of the graph run, test components should release all the resources at graceful shutdown and the K8-deployer should free all the locked resources for PIT toolkit. But in case of a crash the resources are left abandoned, creating a need for a method to do the cleanup and free the abandoned resources.
 
 
 # When to start Clean up action
 1. Once the tests are complete - The test-runner app will release the locks, and K8 deployer will run un-deploy apps and delete namespaces
-2. Deployment failure - 
-    - K8-deployer deployment failure
-    - In case of an incomplete graph deploy
-    - When there is a test execution exception within the test component if the exception is bubbled (right now, the locks are cleared and an exception is logged in case the status for the runner is not OK)
+2. CD pipeline failure - 
+    - K8-deployer 
+    - Graph deployment
+    - Test Run failure
 3. In case of silent failure of the Test Component, getting to a state of coma. It exists but is not executing tests; it is hard to detect this failure. Can keep a tab on the number of restarts of the component pods
 4. When there is an environment exception Eg Jenkins crash
 
