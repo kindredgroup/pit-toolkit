@@ -27,7 +27,7 @@ const retryFetch = async (retryAPIOptions:RetryOptions, apiBody:Object) =>{
         if (attempts < retries) {
             attempts++
             await retryWait(retryDelay)
-            await retryFetch(retryAPIOptions, apiBody)
+            return await retryFetch(retryAPIOptions, apiBody)
         }else{
             logger.warn("retryFetch(): failed to fetch %s", attempts)
             throw new Error(`Failed to fetch ${api.endpoint} after ${attempts} retries`)

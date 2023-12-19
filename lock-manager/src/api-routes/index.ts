@@ -32,6 +32,7 @@ export class ApiRoutes {
 
   private async acquire(req: Request, res: Response) {
     let locks = req.body as LockAcquireObject;
+    logger.info("api-route.acquire():locks %s", locks);
     
     try {
       let keysSaved = await this.operations.acquire(locks, this.db);

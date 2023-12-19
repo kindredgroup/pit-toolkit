@@ -27,7 +27,7 @@ describe("lock-api-fetch", async () => {
 
     it("should retry fetch", async () => {
         let api = { endpoint: "http://foobar:8080", options: {} }
-        let apiBody = { ids: ["id1", "id2"] }
+        let apiBody = { lockId: "id1", owner: "owner1" }
         let retryOptions: RetryOptions = { retries: 3, retryDelay: 1, api: api }
         let resp = await esmockedLockFetch.retryFetch(retryOptions, apiBody)
         assert.deepEqual(resp, { lockId: "id1", acquired: true })
