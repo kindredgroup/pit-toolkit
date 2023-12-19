@@ -22,7 +22,7 @@ describe("Deployment happy path", async () => {
     clusterUrl: "http://localhost:333",
     parentNamespace: "nsParent",
     subNamespacePrefix: DEFAULT_SUB_NAMESPACE_PREFIX,
-    subNamespaceGeneratorType: SUB_NAMESPACE_GENERATOR_TYPE_DATE,    
+    subNamespaceGeneratorType: SUB_NAMESPACE_GENERATOR_TYPE_DATE,
     pitfile: "not-used",
     namespaceTimeoutSeconds: 2,
     report: {},
@@ -30,7 +30,8 @@ describe("Deployment happy path", async () => {
     testTimeoutMs: 2_000,
     deployCheckFrequencyMs: 500,
     params: new Map(),
-    useMockLockManager: true
+    useMockLockManager: true,
+    servicesAreExposedViaProxy: false
   }
 
   const testSuiteNumber = "1"

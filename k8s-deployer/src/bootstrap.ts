@@ -21,6 +21,7 @@ export const PARAM_REPORT_BRANCH_NAME = "--report-branch-name"
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
 export const PARAM_LOCK_MANAGER_MOCK = "--lock-manager-mock"
+export const PARAM_USE_KUBE_PROXY = "--use-kube-proxy"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -89,7 +90,8 @@ const readParams = (): Config => {
     namespaceTimeoutSeconds,
     new TestReportConfig(reportRepo, reportBranch),
     params,
-    useMockLockManager
+    useMockLockManager,
+    params.get(PARAM_USE_KUBE_PROXY) === "true"
   )
 }
 

@@ -44,3 +44,27 @@ export const deleteNamespace = async (rootNamespace: Namespace, namespace: Names
   const command = `k8s-deployer/scripts/k8s-manage-namespace.sh ${ rootNamespace } delete "${ namespace }" ${ timeoutSeconds }`
   await Shell.exec(command, { logFileName: logFile, tailTarget: logger.info, timeoutMs })
 }
+
+
+export class ServiceUrlOptions {
+  exposedViaProxy?: boolean
+  servicePort?: number
+}
+
+export const makeServiceUrl = (clusterUrl: string, namespace: Namespace, service: string, testId?: string, options?: ServiceUrlOptions) => {
+  let url
+  if (options?.exposedViaProxy) {
+    url = `${ clusterUrl }/api/v1/namespaces/${ namespace }/services/${ service }`
+    let servicePort = 80
+    if (options.servicePort) {
+      servicePort = options.servicePort
+    }
+    url = `${ url }:${ servicePort }/proxy`
+  } else {
+    let serviceName = testId || service
+    // This is exposed via NGINX Ingress, "service" here is test suite id
+    url = `${ clusterUrl }/${ namespace }.${ serviceName }`
+  }
+
+  return url
+}

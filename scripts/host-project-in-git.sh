@@ -59,15 +59,12 @@ rsync -avhq --executability --exclude .git/hooks --exclude node_modules --exclud
 cd $TMP_PATH
 echo ""
 git branch
+git checkout -b tmp_current
 
-git checkout master
-returnStatus=$(($?+0))
-if [ $returnStatus -ne 0 ];
-then
-  git branch
-  git checkout -b master
-fi
-
+git branch -D master
+git branch -m master
+git branch
+cat deployment/pit/deploy.sh
 git checkout master && git add --all && git commit -a -m "Initial commit" 1> /dev/null
 
 cd ..

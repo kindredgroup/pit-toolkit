@@ -65,7 +65,15 @@ then
   if [ "${existsAlready}" == "" ];
   then
     echo "Creating namespace: ${NS} under parent ${PARENT_NS}, this may take some time..."
-    kubectl hns create $NS -n $PARENT_NS
+    
+    if [ "${MOCK_NS}" != "" ];
+    then
+      echo "Faking ns creation...."
+      echo "$STATUS_DONE"
+      exit 0
+    fi
+
+    kubectl hns create $NS -n $PARENT_NS  
     returnStatus=$(($?+0))
 
     if [ $returnStatus -ne 0 ];

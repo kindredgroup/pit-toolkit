@@ -100,14 +100,22 @@ const deployLocal = async (
     testAppDirForRemoteTestSuite?: string): Promise<DeployedTestSuite> => {
   logger.info("%s Processing test suite '%s' %s", LOG_SEPARATOR_LINE, testSuite.name, LOG_SEPARATOR_LINE)
 
-  const namespace = await K8s.generateNamespaceName(config, seqNumber)
-  await K8s.createNamespace(workspace, config.parentNamespace, namespace, config.namespaceTimeoutSeconds)
+  let ns = await K8s.generateNamespaceName(config, seqNumber)
+  await K8s.createNamespace(workspace, config.parentNamespace, ns, config.namespaceTimeoutSeconds)
 
-  await deployLockManager(config, workspace, pitfile.lockManager.enabled, namespace)
+  if (process.env.MOCK_NS === "true") {
+    ns = config.parentNamespace
+  } else {
+    logger.info("process.env.MOCK_NS=%s", process.env.MOCK_NS)
+  }
 
-  const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, namespace, testAppDirForRemoteTestSuite)
+  logger.info("NAMEPSACE IN USE=%s, process.env.MOCK_NS=%s", ns, process.env.MOCK_NS)
 
-  return new DeployedTestSuite(workspace, namespace, testSuite, deployedGraph)
+  await deployLockManager(config, workspace, pitfile.lockManager.enabled, ns)
+
+  const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, ns, testAppDirForRemoteTestSuite)
+
+  return new DeployedTestSuite(workspace, ns, testSuite, deployedGraph)
 }
 
 const deployRemote = async (
@@ -193,6 +201,11 @@ export const processTestSuite = async (
   logger.info("--------------- Processig %s ---------------", testSuite.id)
   logger.info("")
   const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
+
+  if (config.servicesAreExposedViaProxy) {
+    const sleep = new Promise(resolve => setTimeout(resolve, 15_000))
+    await sleep
+  }
 
   logger.info("")
   logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)

@@ -49,6 +49,7 @@ export class Lock {
 export class DeployableComponent {
   name: string
   id: string
+  servicePort?: number
   location: Location
   deploy: DeployInstructions
   undeploy: DeployInstructions
