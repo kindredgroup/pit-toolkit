@@ -11,7 +11,7 @@ let getPoolConfig = ()=>{
 
   let user = getParam("PGUSER", "") as string
   let password = getParam("PGPASSWORD", "") as string
-  let database = getParam("PGDATABASE", "pit-lock-manager") as string
+  let database = getParam("PGDATABASE", "") as string
   let poolSizeMax = getParam("PGMAXPOOLSIZE", 10) as number
   let poolSizeMin = getParam("PGMINPOOLSIZE", 10) as number
 
@@ -60,7 +60,6 @@ export class PostgresDb implements Db {
     let result
     let client 
     try {
-      logger.info("query", query)
       client = await this.pg_pool.connect()
       await client.query("BEGIN")
       await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
@@ -74,11 +73,11 @@ export class PostgresDb implements Db {
        client?.release()
     }
     const in_duration = Date.now() - start
-    logger.info("executed query", {
+    logger.debug("executed query %s in duration %s millis and rows returned %s", 
       query,
       in_duration,
-      rows_returned: result.rowCount,
-    })
+      result.rowCount,
+    )
     return result
   }
 
@@ -99,7 +98,7 @@ export class PostgresDb implements Db {
       result = error
     }
     const in_duration = Date.now() - start
-    logger.info("executed query", {
+    logger.info("executed query %s", {
       sql,
       in_duration,
       rows_returned: result.rowCount,

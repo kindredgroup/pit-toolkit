@@ -35,8 +35,10 @@ class DatabaseStorage implements Storage {
     let query = {
       name: "insert-lock",
       text: `INSERT INTO locks (lock_id, lock_metadata) VALUES ($1, $2) 
+            ON CONFLICT (lock_id) DO UPDATE SET lock_metadata = $2 WHERE locks.lock_id = $1 AND locks.lock_metadata ->> 'lockExpiry' < $3
             RETURNING lock_id`,
-      values: [lock.lockId, JSON.stringify(lockMetadata)],
+      // values: [lock.lockId, JSON.stringify(lockMetadata), new Date().toISOString()],
+      values: [lock.lockId, JSON.stringify(lockMetadata), lockMetadata.lockCreated],
     }
 
     const result = await db.execute(query)
@@ -71,7 +73,7 @@ class DatabaseStorage implements Storage {
 
     const result = await db.execute(query)
 
-    logger.info("update result ", result)
+    logger.info("update result %s ", result)
     if (result?.rows.length === 0) {
       throw new Error("KeepAlive(): No valid lock and owner combination found")
     } else {

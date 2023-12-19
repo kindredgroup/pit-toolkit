@@ -16,15 +16,16 @@ export type RetryOptions={
 const retryFetch = async (retryAPIOptions:RetryOptions, apiBody:Object) =>{ 
 
     let {retries, retryDelay, api } = retryAPIOptions
-    attempts++
+    logger.info("retryFetch(): fetching %s", api)
     try{
         logger.info("retryFetch(): fetching %s", attempts)
         let resp  = await apiFetch(api, apiBody)
         logger.info("retryFetch(): returning resp %s", resp)
         return resp
     }catch(error){
-        logger.warn("retryFetch(): retrying fetch %s", attempts)
-        if (attempts <= retries) {
+        logger.warn("retryFetch(): retrying fetch %s because of %s", attempts, error)
+        if (attempts < retries) {
+            attempts++
             await retryWait(retryDelay)
             await retryFetch(retryAPIOptions, apiBody)
         }else{
@@ -36,7 +37,7 @@ const retryFetch = async (retryAPIOptions:RetryOptions, apiBody:Object) =>{
 
 
 const apiFetch = async (api:{endpoint:string, options}, apiBody:Object) =>{
-    
+    logger.info("apiFetch(): fetching %s", api)
     let resp = await fetch(api.endpoint,
       {...api.options, body: JSON.stringify(apiBody) }
       )
