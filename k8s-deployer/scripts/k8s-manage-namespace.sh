@@ -59,20 +59,26 @@ Missing namespace paramter. Usage:
   exit 1
 fi
 
+echo "PARENT_NS=${PARENT_NS}"
+echo "ACTION=${ACTION}"
+echo "NS=${NS}"
+echo "TIMEOUT_SECONDS=${TIMEOUT_SECONDS}"
+
 if [ "${ACTION}" == "create" ];
 then
+
+  if [ "${MOCK_NS}" != "" ];
+  then
+    echo "Faking ns creation...."
+    echo "$STATUS_DONE"
+    exit 0
+  fi
+
   existsAlready=$(kubectl get ns ${NS} --ignore-not-found)
   if [ "${existsAlready}" == "" ];
   then
     echo "Creating namespace: ${NS} under parent ${PARENT_NS}, this may take some time..."
     
-    if [ "${MOCK_NS}" != "" ];
-    then
-      echo "Faking ns creation...."
-      echo "$STATUS_DONE"
-      exit 0
-    fi
-
     kubectl hns create $NS -n $PARENT_NS  
     returnStatus=$(($?+0))
 
