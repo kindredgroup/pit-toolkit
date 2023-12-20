@@ -14,14 +14,13 @@ private api = { check: { endpoint: "", options: {} }, acquire: { endpoint: "", o
   // Handle to the timer
   keepAliveJobHandle: NodeJS.Timeout = null
 
-  constructor(readonly urlPrefix:string) {
-    const baseUrl = `${ urlPrefix }.lock-manager`
+  constructor(readonly baseUrl: string) {
     logger.info("LockManager.instantiate: Base URL: %s", baseUrl)
     this.api = {
-      check:         { endpoint: `${ baseUrl }/`,          options: { method: "GET", headers: { "Accept": "application/json" }}},
-      acquire:        { endpoint: `${ baseUrl }/lock/acquire`,         options: { method: "POST", headers: { "Content-Type": "application/json" }}},
-      keeAlive:       { endpoint: `${ baseUrl }/lock/keep-alive`,      options: { method: "POST", headers: { "Content-Type": "application/json" }}},
-      release:       { endpoint: `${ baseUrl }/lock/release`,        options: { method: "POST", headers: { "Content-Type": "application/json" }}},
+      check:    { endpoint: `${ baseUrl }/`,                options: { method: "GET",  headers: { "Accept": "application/json" }}},
+      acquire:  { endpoint: `${ baseUrl }/lock/acquire`,    options: { method: "POST", headers: { "Content-Type": "application/json" }}},
+      keeAlive: { endpoint: `${ baseUrl }/lock/keep-alive`, options: { method: "POST", headers: { "Content-Type": "application/json" }}},
+      release:  { endpoint: `${ baseUrl }/lock/release`,    options: { method: "POST", headers: { "Content-Type": "application/json" }}},
     }
   }
 

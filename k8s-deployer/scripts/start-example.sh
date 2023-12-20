@@ -18,18 +18,36 @@ EXAMPLES_TEMP_DIR=$1
 # The project where push happened. For example directory pointing to node-1 in the examples.
 PROJECT_DIR=$2
 LOCK_MANAGER_MOCK=$3
+USE_KUBE_PROXY=$4
+if [ "${USE_KUBE_PROXY}" == "" ]; then USE_KUBE_PROXY="false"; fi
+
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
+SUB_NS_PREFIX=pit
+CLUSTER_URL="http://127.0.0.1"
+
+if [ "${USE_KUBE_PROXY}" == "true" ];
+then
+  CLUSTER_URL="http://127.0.0.1:8001"
+fi
+
+ # Can be "date" or "commit-sha", using "date" makes locl development faster because resulting name 
+ # will be less random and will need to be generated only in the morning
+SUB_NS_NAME_GENERATOR_TYPE="DATE"
 COMMIT_SHA=$(git rev-parse --short HEAD)
 
-echo "EXAMPLES_TEMP_DIR=$EXAMPLES_TEMP_DIR"
-echo "PROJECT_DIR=$PROJECT_DIR"
-echo "LOCK_MANAGER_MOCK=$LOCK_MANAGER_MOCK"
-echo "Current director is \"$PROJECT_ROOT\""
-echo "Application under test is \"$APP_NAME\""
-echo "Parent namespace \"$PARENT_NS\""
+echo "EXAMPLES_TEMP_DIR=${EXAMPLES_TEMP_DIR}"
+echo "PROJECT_DIR=${PROJECT_DIR}"
+echo "LOCK_MANAGER_MOCK=${LOCK_MANAGER_MOCK}"
+echo "CLUSTER_URL=${CLUSTER_URL}"
+echo "Current directory is \"${PROJECT_ROOT}\""
+echo "Application under test is \"${APP_NAME}\""
+echo "Parent namespace is \"${PARENT_NS}\""
+echo "Subnamespace prefix is \"${SUB_NS_PREFIX}\""
+echo "Subnamespace name generator type is \"${SUB_NS_NAME_GENERATOR_TYPE}\""
 echo "Simulated CI commit \"$COMMIT_SHA\""
+
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then
@@ -47,7 +65,7 @@ fi
 # check LOCK_MANAGER_MOCK else set process envvar to true
 if [ "${LOCK_MANAGER_MOCK}" == "" ];
 then
-  echo "Missing third parameter: boolean to use lock-manager-mock"
+  echo "Using mock lock manager"
   LOCK_MANAGER_MOCK=true
 fi
 
@@ -91,14 +109,25 @@ echo ""
 echo -e "${clear}"
 
 cd $CI_HOME_DIR
-node $PROJECT_ROOT/dist/src/index.js \
+
+LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --commit-sha $COMMIT_SHA \
   --workspace $CI_HOME_DIR \
   --pitfile $CI_HOME_DIR/$APP_NAME/pitfile.yml \
   --parent-ns $PARENT_NS \
-  --report-repository "git://127.0.0.1:60102/pit-reports.git" \
+  --subns-prefix $SUB_NS_PREFIX \
+  --subns-name-generator-type $SUB_NS_NAME_GENERATOR_TYPE \
+  --report-repository \"git://127.0.0.1:60102/pit-reports.git\" \
   --report-branch-name $(basename $PROJECT_DIR) \
-  --lock-manager-mock $LOCK_MANAGER_MOCK
+  --lock-manager-mock $LOCK_MANAGER_MOCK \
+  --use-kube-proxy $USE_KUBE_PROXY \
+  --cluster-url $CLUSTER_URL"
+
+echo "LAUNCH_ARGS="
+echo "${LAUNCH_ARGS}"
+echo ""
+
+node $LAUNCH_ARGS
 
 returnStatus=$(($?+0))
 

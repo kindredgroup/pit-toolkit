@@ -35,6 +35,7 @@ testSuites:
         components:
           - name: Node 1
             id: node-1
+            servicePort: 3333
             deploy:
               timeoutSeconds: 60
               command: deployment/pit/deploy.sh

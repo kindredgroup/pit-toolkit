@@ -8,7 +8,7 @@ import { logger } from "../src/logger.js"
 import { LocationType } from "../src/pitfile/schema-v1.js"
 import { SchemaVersion } from "../src/pitfile/version.js"
 import { RequestInit } from "node-fetch"
-import { Config } from "../src/config.js"
+import { Config, DEFAULT_SUB_NAMESPACE_PREFIX, SUB_NAMESPACE_GENERATOR_TYPE_DATE } from "../src/config.js"
 import { ScalarMetric, TestOutcomeType, TestStream } from "../src/test-app-client/report/schema-v1.js"
 
 describe("Deployment happy path", async () => {
@@ -21,6 +21,8 @@ describe("Deployment happy path", async () => {
     workspace: "/tmp/some/dir",
     clusterUrl: "http://localhost:333",
     parentNamespace: "nsParent",
+    subNamespacePrefix: DEFAULT_SUB_NAMESPACE_PREFIX,
+    subNamespaceGeneratorType: SUB_NAMESPACE_GENERATOR_TYPE_DATE,
     pitfile: "not-used",
     namespaceTimeoutSeconds: 2,
     report: {},
@@ -28,7 +30,8 @@ describe("Deployment happy path", async () => {
     testTimeoutMs: 2_000,
     deployCheckFrequencyMs: 500,
     params: new Map(),
-    useMockLockManager: true
+    useMockLockManager: true,
+    servicesAreExposedViaProxy: false
   }
 
   const testSuiteNumber = "1"

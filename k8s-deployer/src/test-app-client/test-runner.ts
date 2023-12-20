@@ -9,6 +9,7 @@ import * as webapi from "./web-api/schema-v1.js"
 import * as ReportSchema from "./report/schema-v1.js"
 import { Config } from "../config.js"
 import * as Report from "../report/report-service.js"
+import * as K8s from "../k8s.js"
 
 export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<DeployedTestSuite>) => {
   for (let deployedSuite of testSuites) {
@@ -48,7 +49,9 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
 
 const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
   const testSuiteId = spec.testSuite.id
-  const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`;
+
+  // const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`
+  // const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }/services/${ sepc.testSuite.deployment.graph.testApp.id }`
 
   let lockManager: LockManager | LockManagerMock
   if (spec.testSuite.lock) {
@@ -57,7 +60,8 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
       logger.info("Test suite: '%s' - preparing to run with mock lock manager", testSuiteId)
       lockManager = LockManagerMock.create()
     } else {
-      lockManager = LockManager.create(urlPrefix)
+      const url = K8s.makeServiceUrl(config.clusterUrl, spec.namespace, "lock-manager")
+      lockManager = LockManager.create(url)
     } 
 
     await lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
@@ -66,7 +70,19 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 
   try {
 
-    const baseUrl = `${urlPrefix}.${ spec.testSuite.id }`
+    const baseUrl = K8s.makeServiceUrl(
+      config.clusterUrl, 
+      spec.namespace, 
+      spec.testSuite.deployment.graph.testApp.id,
+      spec.testSuite.id,
+      { 
+        exposedViaProxy: config.servicesAreExposedViaProxy, 
+        servicePort: spec.testSuite.deployment.graph.testApp.servicePort 
+      }
+    )
+
+    logger.info("API will be accessible at: '%s'", baseUrl)
+    
     const api = {
       start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
       status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},

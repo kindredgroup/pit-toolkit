@@ -1,6 +1,7 @@
 import * as Shell from "./shell-facade.js"
 import { logger } from "./logger.js"
 import { Namespace } from "./model.js"
+import * as cfg from "./config.js"
 
 const pad = (v: string | number, len: number = 2): string => {
   let result = `${ v }`
@@ -8,13 +9,20 @@ const pad = (v: string | number, len: number = 2): string => {
   return result
 }
 
-export const generateNamespaceName = async (seqNumber: string, attempt: number = 1) => {
-  const date = new Date()
-  let namespaceName = "ns"
-  namespaceName = `${ namespaceName }${ pad(date.getUTCMonth() + 1, 2) }`
-  namespaceName = `${ namespaceName }${ pad(date.getUTCDate(), 2) }`
-  namespaceName = `${ namespaceName }-${ seqNumber }-${ attempt }`
-  return namespaceName
+export const generateNamespaceName = async (config: cfg.Config, seqNumber: string, attempt: number = 1) => {
+  let namespaceName = config.subNamespacePrefix
+
+  if (config.subNamespaceGeneratorType == cfg.SUB_NAMESPACE_GENERATOR_TYPE_DATE) {
+    const date = new Date()
+    
+    namespaceName = `${ namespaceName }${ pad(date.getUTCMonth() + 1, 2) }`
+    namespaceName = `${ namespaceName }${ pad(date.getUTCDate(), 2) }`
+    namespaceName = `${ namespaceName }-${ seqNumber }-${ attempt }`
+  } else if (config.subNamespaceGeneratorType == cfg.SUB_NAMESPACE_GENERATOR_TYPE_COMMITSHA) {
+    namespaceName = `${ namespaceName }-${ config.commitSha }-${ seqNumber }-${ attempt }`
+  }
+
+  return namespaceName  
 }
 
 export const createNamespace = async (workspace: string, rootNamespace: Namespace, namespace: Namespace, timeoutSeconds: number) => {
@@ -35,4 +43,28 @@ export const deleteNamespace = async (rootNamespace: Namespace, namespace: Names
   const timeoutMs = timeoutSeconds * 1_000
   const command = `k8s-deployer/scripts/k8s-manage-namespace.sh ${ rootNamespace } delete "${ namespace }" ${ timeoutSeconds }`
   await Shell.exec(command, { logFileName: logFile, tailTarget: logger.info, timeoutMs })
+}
+
+
+export class ServiceUrlOptions {
+  exposedViaProxy?: boolean
+  servicePort?: number
+}
+
+export const makeServiceUrl = (clusterUrl: string, namespace: Namespace, service: string, testId?: string, options?: ServiceUrlOptions) => {
+  let url
+  if (options?.exposedViaProxy) {
+    url = `${ clusterUrl }/api/v1/namespaces/${ namespace }/services/${ service }`
+    let servicePort = 80
+    if (options.servicePort) {
+      servicePort = options.servicePort
+    }
+    url = `${ url }:${ servicePort }/proxy`
+  } else {
+    let serviceName = testId || service
+    // This is exposed via NGINX Ingress, "service" here is test suite id
+    url = `${ clusterUrl }/${ namespace }.${ serviceName }`
+  }
+
+  return url
 }

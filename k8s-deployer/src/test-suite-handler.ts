@@ -9,6 +9,11 @@ import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
 import * as Shell from "./shell-facade.js"
 
+/**
+ * Deploying:
+ *  1. all components in the graph,
+ *  2. test app for the graph.
+ */
 const deployGraph = async (config: Config, workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
   const deployments: Array<DeployedComponent> = new Array()
   for (let i = 0; i < graph.components.length; i++) {
@@ -81,6 +86,11 @@ const deployLockManager = async (config: Config, workspace: string, isEnabled: b
   logger.info("")
 }
 
+/**
+ * - Creates namespace, 
+ * - deploys lock manager,
+ * - deploys components graph.
+ */
 const deployLocal = async (
     config: Config,
     workspace: string,
@@ -90,14 +100,22 @@ const deployLocal = async (
     testAppDirForRemoteTestSuite?: string): Promise<DeployedTestSuite> => {
   logger.info("%s Processing test suite '%s' %s", LOG_SEPARATOR_LINE, testSuite.name, LOG_SEPARATOR_LINE)
 
-  const namespace = await K8s.generateNamespaceName(seqNumber)
-  await K8s.createNamespace(workspace, config.parentNamespace, namespace, config.namespaceTimeoutSeconds)
+  let ns = await K8s.generateNamespaceName(config, seqNumber)
+  await K8s.createNamespace(workspace, config.parentNamespace, ns, config.namespaceTimeoutSeconds)
 
-  await deployLockManager(config, workspace, pitfile.lockManager.enabled, namespace)
+  if (process.env.MOCK_NS === "true") {
+    ns = config.parentNamespace
+  } else {
+    logger.info("process.env.MOCK_NS=%s", process.env.MOCK_NS)
+  }
 
-  const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, namespace, testAppDirForRemoteTestSuite)
+  logger.info("NAMEPSACE IN USE=%s, process.env.MOCK_NS=%s", ns, process.env.MOCK_NS)
 
-  return new DeployedTestSuite(workspace, namespace, testSuite, deployedGraph)
+  await deployLockManager(config, workspace, pitfile.lockManager.enabled, ns)
+
+  const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, ns, testAppDirForRemoteTestSuite)
+
+  return new DeployedTestSuite(workspace, ns, testSuite, deployedGraph)
 }
 
 const deployRemote = async (
@@ -148,7 +166,6 @@ const deployAll = async (
 
   const deployedSuites = new Array<DeployedTestSuite>()
   if (testSuite.location.type === Schema.LocationType.Local) {
-    // TODO create logs and reports directory
     const summary = await deployLocal(config, workspace, pitfile, seqNumber, testSuite)
     deployedSuites.push(summary)
   } else {
@@ -184,6 +201,11 @@ export const processTestSuite = async (
   logger.info("--------------- Processig %s ---------------", testSuite.id)
   logger.info("")
   const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
+
+  if (config.servicesAreExposedViaProxy) {
+    const sleep = new Promise(resolve => setTimeout(resolve, 15_000))
+    await sleep
+  }
 
   logger.info("")
   logger.info("%s Deployment is done. Running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)

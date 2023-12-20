@@ -9,7 +9,6 @@ import { Config } from "./config.js"
 
 export class DeployOptions {
   namespace?: Namespace
-  servicePort?: number
   deployerParams?: Array<string>
 }
 
@@ -74,7 +73,6 @@ export const deployApplication = async (
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     let command = instructions.command
     if (options?.namespace) command = `${ command } ${ options.namespace }`
-    if (options?.servicePort) command = `${ command } ${ options.servicePort }`
 
     const allParams = new Array()
     // first pass params delcared in the pitfile

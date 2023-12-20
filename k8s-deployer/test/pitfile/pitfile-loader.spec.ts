@@ -25,6 +25,9 @@ describe("Loads pitfile from disk", () => {
     chai.expect(file.testSuites).lengthOf(3)
     chai.expect(file.testSuites[1].location.gitRef).eq(`refs/remotes/origin/${ suffix }`)
     chai.expect(file.testSuites[1].location.gitRepository).eq(`git://127.0.0.1:60100/example-project-${ suffix }.git`)
+
+    chai.expect(file.testSuites[0].deployment.graph.testApp.servicePort).eq(80)
+    chai.expect(file.testSuites[0].deployment.graph.components[0].servicePort).eq(3333)
   })
 
   it("should load pitfile with incomplete sections", async () => {
