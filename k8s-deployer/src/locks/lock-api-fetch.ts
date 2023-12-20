@@ -1,8 +1,6 @@
 import { logger } from "../logger.js";
 import fetch from "node-fetch"
 
-let attempts = 0
-
 export type ApiOptions = {
     endpoint: string,
     options: Object
@@ -10,29 +8,33 @@ export type ApiOptions = {
 export type RetryOptions={
     retries: number,
     retryDelay: number
-    api: ApiOptions
+    api: ApiOptions,
 }
 
 const retryFetch = async (retryAPIOptions:RetryOptions, apiBody:Object) =>{ 
 
-    let {retries, retryDelay, api } = retryAPIOptions
-    logger.info("retryFetch(): fetching %s", api)
-    try{
-        logger.info("retryFetch(): fetching %s", attempts)
-        let resp  = await apiFetch(api, apiBody)
-        logger.info("retryFetch(): returning resp %s", resp)
-        return resp
-    }catch(error){
-        logger.warn("retryFetch(): retrying fetch %s because of %s", attempts, error)
-        if (attempts < retries) {
-            attempts++
-            await retryWait(retryDelay)
-            return await retryFetch(retryAPIOptions, apiBody)
-        }else{
-            logger.warn("retryFetch(): failed to fetch %s", attempts)
-            throw new Error(`Failed to fetch ${api.endpoint} after ${attempts} retries`)
+    let {retries, retryDelay, api} = retryAPIOptions
+    let attempts = 0
+    while (retries > 0) {
+        logger.info("retryFetch(): fetching %s", api)
+        try{
+            logger.info("retryFetch(): fetching %s", attempts)
+            let resp  = await apiFetch(api, apiBody)
+            logger.info("retryFetch(): returning resp %s", resp)
+            return resp
+        }catch(error){
+            logger.warn("retryFetch(): retrying fetch %s because of %s", attempts, error)
+            if (attempts < retries) {
+                attempts++
+                await retryWait(retryDelay)
+                continue
+            }else{
+                logger.warn("retryFetch(): failed to fetch %s", attempts)
+                throw new Error(`Failed to fetch ${api.endpoint} after ${attempts} retries`)
+            }
         }
     }
+    
 }
 
 
@@ -49,5 +51,5 @@ const apiFetch = async (api:{endpoint:string, options}, apiBody:Object) =>{
 
   const retryWait = (time) =>  new Promise(resolve => setTimeout(resolve, time))
 
-  export {apiFetch,retryFetch}
+  export {retryFetch}
 

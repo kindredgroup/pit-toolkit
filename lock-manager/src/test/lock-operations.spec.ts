@@ -7,7 +7,7 @@ import { assert } from "chai";
 
 describe("Lock Operation", () => {
   // Mock the pg class
-  let lockId = "key1";
+  let lockId = "lock-test-comp";
   let owner = "owner1";
   let lock: LockAcquireObject = {
     lockId,
@@ -42,13 +42,13 @@ describe("Lock Operation", () => {
 
   it("should store and result values", async () => {
     assert.deepStrictEqual(await storage.acquire(lock, new PostgresDb()), {
-      lockId: "key1",
+      lockId: "lock-test-comp",
       acquired: true,
     });
   });
 
   it("should release locks  ", async () => {
-    lockId = "key2";
+    lockId = "lock-test-comp2";
     assert.deepStrictEqual(await storage.release([lockId], new PostgresDb()), [
       lockId,
     ]);

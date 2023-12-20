@@ -74,7 +74,7 @@ fi
 # check LOCK_MANAGER_API_RETRIES else set process envvar to true
 if [ "${LOCK_MANAGER_API_RETRIES}" == "" ];
 then
-  echo "Missing fourth parameter: boolean to use lock_manager_api_retries"
+  echo "Missing fourth parameter: boolean to use lock-manager-api-retries"
   LOCK_MANAGER_API_RETRIES=3
 fi
 
