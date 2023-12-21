@@ -4,6 +4,7 @@ import {
   LockAcquireObject,
   LockManagerResponse,
   LockMetadata,
+  ReleaseLocks,
 } from "./db/db.js"
 import {getParam} from "./configuration.js"
 import {logger} from "./logger.js"
@@ -11,7 +12,7 @@ import {logger} from "./logger.js"
 export interface Storage {
   acquire(lock: LockAcquireObject, db: Db): Promise<LockManagerResponse>
   keepAlive(locks: LockKeepAlive, db: Db): Promise<Array<String>>
-  release(lockIds: Array<String>, db: Db): Promise<Array<String>>
+  release(releaseLocks: ReleaseLocks, db: Db): Promise<Array<String>>
 }
 
 class LockFactory {
@@ -82,18 +83,22 @@ class DatabaseStorage implements Storage {
     }
   }
 
-  async release(keys: Array<String>, db: Db): Promise<Array<String>> {
-    logger.debug("release keys", keys)
+  async release(releaseReq: ReleaseLocks, db: Db): Promise<Array<String>> {
+    logger.debug("release keys", JSON.stringify(releaseReq))
+    let {lockIds: keys, owner} = releaseReq
     const query = {
       name: "delete-key",
       text: `DELETE FROM locks WHERE lock_id = ANY ($1) AND
-        EXISTS (SELECT lock_id FROM locks WHERE lock_id = ANY ($1) ) RETURNING lock_id`,
-      values: [keys],
+        EXISTS (SELECT lock_id FROM locks WHERE lock_id = ANY ($1) ) AND lock_metadata ->> 'lockOwner' = $2 RETURNING lock_id`,
+      values: [keys, owner],
     }
 
     const result = await db.execute(query)
     logger.debug("release() result %s", result)
     let unlocked_keys = result?.rows?.map(({lock_id}) => lock_id)
+    if (unlocked_keys?.length === 0) {
+      throw new Error("release(): No valid lock and owner combination found in database to delete")
+    }
     logger.debug("release lock ids %s ", unlocked_keys)
     return unlocked_keys
   }

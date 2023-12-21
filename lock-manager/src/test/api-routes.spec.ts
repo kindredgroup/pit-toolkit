@@ -32,6 +32,7 @@ describe("API routes", () => {
 
   let releasePostPayload = {
     lockIds:[lockId],
+    owner
   }
 
 
@@ -69,7 +70,7 @@ describe("API routes", () => {
       const response = await request.post("/locks/release")
       .set("Accept", "application/json")
       .set('Content-Type', 'application/json')
-      .send(releasePostPayload.lockIds)
+      .send(releasePostPayload)
       expect(response.status).to.equal(200)
     })
 

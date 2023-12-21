@@ -56,3 +56,8 @@ export interface Db extends DbPool {
       owner: String
       expiryInSec?: number
   }
+
+  export type ReleaseLocks = {
+      lockIds: Array<String>
+      owner: String
+  }

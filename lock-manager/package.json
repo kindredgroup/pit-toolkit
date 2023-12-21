@@ -32,7 +32,7 @@
     "build": "npm run clean && npx tsc",
     "test": "npm run build && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
     "watch": "npx tsc --watch",
-    "dev.start": "npm run build && npm run start",
+    "dev.start": "set -o allexport; source .env ; set +o allexport;npm run build && npm run start",
     "dev.build-image": "source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
     "dev.k8-deploy": "./deployment/pit/deploy.sh",
     "start": "node dist/index.js",

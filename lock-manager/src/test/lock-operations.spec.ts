@@ -1,7 +1,7 @@
 import { mock} from "node:test";
 import LockFactory, {Storage} from "../lock-operations.js";
 import {PostgresDb} from "../db/pg.js";
-import {LockAcquireObject} from "../db/db.js";
+import {LockAcquireObject, ReleaseLocks} from "../db/db.js";
 import { describe, it, beforeEach } from "mocha";
 import { assert } from "chai";
 
@@ -48,8 +48,11 @@ describe("Lock Operation", () => {
   });
 
   it("should release locks  ", async () => {
-    lockId = "lock-test-comp2";
-    assert.deepStrictEqual(await storage.release([lockId], new PostgresDb()), [
+    let releaseObj :ReleaseLocks ={
+        lockIds:["lock-test-comp2"],
+        owner: "test-app"
+    }
+    assert.deepStrictEqual(await storage.release(releaseObj, new PostgresDb()), [
       lockId,
     ]);
   });
