@@ -27,6 +27,7 @@ export class Config {
     readonly params: Map<string, string>,
     readonly useMockLockManager: boolean,
     readonly servicesAreExposedViaProxy: boolean = true,
+    readonly lockManagerApiRetries: number,
     readonly testStatusPollFrequencyMs: number = 15_000,
     readonly deployCheckFrequencyMs: number = 5_000,
     readonly testTimeoutMs: number = 60_000,

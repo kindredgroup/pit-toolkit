@@ -18,7 +18,8 @@ EXAMPLES_TEMP_DIR=$1
 # The project where push happened. For example directory pointing to node-1 in the examples.
 PROJECT_DIR=$2
 LOCK_MANAGER_MOCK=$3
-USE_KUBE_PROXY=$4
+LOCK_MANAGER_API_RETRIES=$4
+USE_KUBE_PROXY=$5
 if [ "${USE_KUBE_PROXY}" == "" ]; then USE_KUBE_PROXY="false"; fi
 
 PROJECT_ROOT=$(pwd)
@@ -40,6 +41,7 @@ COMMIT_SHA=$(git rev-parse --short HEAD)
 echo "EXAMPLES_TEMP_DIR=${EXAMPLES_TEMP_DIR}"
 echo "PROJECT_DIR=${PROJECT_DIR}"
 echo "LOCK_MANAGER_MOCK=${LOCK_MANAGER_MOCK}"
+echo "LOCK_MANAGER_API_RETRIES=$LOCK_MANAGER_API_RETRIES"
 echo "CLUSTER_URL=${CLUSTER_URL}"
 echo "Current directory is \"${PROJECT_ROOT}\""
 echo "Application under test is \"${APP_NAME}\""
@@ -67,6 +69,13 @@ if [ "${LOCK_MANAGER_MOCK}" == "" ];
 then
   echo "Using mock lock manager"
   LOCK_MANAGER_MOCK=true
+fi
+
+# check LOCK_MANAGER_API_RETRIES else set process envvar to true
+if [ "${LOCK_MANAGER_API_RETRIES}" == "" ];
+then
+  echo "Missing fourth parameter: boolean to use lock-manager-api-retries"
+  LOCK_MANAGER_API_RETRIES=3
 fi
 
 cd $EXAMPLES_TEMP_DIR
@@ -121,7 +130,9 @@ LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --report-branch-name $(basename $PROJECT_DIR) \
   --lock-manager-mock $LOCK_MANAGER_MOCK \
   --use-kube-proxy $USE_KUBE_PROXY \
-  --cluster-url $CLUSTER_URL"
+  --cluster-url $CLUSTER_URL \
+  --lock_manager_api_retries $LOCK_MANAGER_API_RETRIES"
+
 
 echo "LAUNCH_ARGS="
 echo "${LAUNCH_ARGS}"

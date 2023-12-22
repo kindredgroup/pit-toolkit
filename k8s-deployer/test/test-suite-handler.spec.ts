@@ -31,7 +31,8 @@ describe("Deployment happy path", async () => {
     deployCheckFrequencyMs: 500,
     params: new Map(),
     useMockLockManager: true,
-    servicesAreExposedViaProxy: false
+    servicesAreExposedViaProxy: false,
+    lockManagerApiRetries: 3
   }
 
   const testSuiteNumber = "1"
