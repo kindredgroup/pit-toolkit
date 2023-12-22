@@ -66,8 +66,7 @@ export class LockManager {
           // start job only once
           await this.startKeepAliveJob(owner, lock)
         }
-      } catch (error) {logger.error("LockManager.lock(): Failed to acquire lock for %s",
-          lock.ids[0],error)
+      } catch (error) {logger.error("LockManager.lock(): Failed to acquire lock for %s", lockId,error)
           if(locksAcquired.length > 0){
             // release the locks acquired so far
             await this.release(owner, {ids: locksAcquired, timeout: lock.timeout})
