@@ -15,24 +15,23 @@ As 3,4 all need to remove resources to be cleaned, it would be ideal to have a r
 
 ### PIT stray resources are
 - Locks
-- Deployed apps
-- Namespaces
+- Namespaces -  force delete including all the apps within that namespace
 
 ## Removing the PIT stray resources
-Pre-requisite - Jenkins is up and running, also K8-deployer is in the deployed state. 
-> TO clarify while implementing whether pit-cleanup can be called from within the working pipeline when there is a failure, or a Jenkins job is triggered 
-The knowledge of all the components in the graph is available through PIT file
-1. To remove locks
-2. Names of all the apps 
-Namespaces are present in the K8-deployer context that will need to be undeployed as a step in clean up process.
+    - `Cleanup process` POD is deployed under the DPT 
+    - It is scheduled to run each night(configurable)
 
 
-### Test component not in PIT control
-- Db resources
-- Topics
-As PIT will not be aware of the test component's blocked resources, thus the cleanup for DB resources and Kafka topics will be done in a seaparate function.
+### Environemnt Cleanup proposal 
+Resources created by Test components are not in PIT control
+- Databases 
+- Kafka Topics
+- Namespaces
+- Lock-manager stale entries
+As PIT will not be aware of the test component's blocked resources, thus the cleanup for Databases and Kafka topics will be done in a seaparate function. 
+The names to the DB used by the Test Components should depict their usage for PIT thus prefixed as `pit-${db_name}`, similarly kafka topic names prefixed as `pit-${kafka_topic}` making it evident for `environment cleanup` on what resources to be cleaned. The namespaces still left after the `pit-cleanup`s run would be under the parent namespace or `dpt` or something on the line `dpt` and can be picked by the `age` of a namespace being alive. In usual PIT tests should run for at max a day(understanding may change as the system matures), also giving a grace time over the 24 hrs for picking the resources to be cleaned by the `environmental cleanup`. Process will either be manual or run at a set frequecy not very vigrous ( once a week or maybe even once every month). 
 
-### Options of where can the clean up scripts live
-Manual clean-ups
-Jenkins cron job
-K8 cron job
+
+
+
+
