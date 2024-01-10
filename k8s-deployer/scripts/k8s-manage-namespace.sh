@@ -84,6 +84,7 @@ then
 
     if [ $returnStatus -ne 0 ];
     then
+      echo "$STATUS_ERROR"      
       exit $returnStatus
     fi
 
@@ -118,6 +119,9 @@ then
     totalAttempts=$((($TIMEOUT_SECONDS - ($sleepDuration * $iteration)) / $sleepDuration))
     iteration=0
     nsCreated="false"
+
+    echo "Checking hierarchy tree, will use ${totalAttempts} attempts"
+
     while [ $iteration -lt $totalAttempts ];
     do
       result=$(kubectl hns tree $PARENT_NS | grep "\[s\] ${NS}")
@@ -131,6 +135,8 @@ then
         exit 0
       fi
 
+      kubectl hns tree $PARENT_NS
+
       sleep $sleepDuration
       iteration=$(($iteration+1))
       echo "...waiting for confirmation attempt $iteration of $totalAttempts"
@@ -138,6 +144,7 @@ then
 
     if [ "${nsCreated}" != "true" ];
     then
+      echo "Could not detect new namespace by reading tree of ns named ${$PARENT_NS}"
       # This will signal to the monitor the stop event
       echo "$STATUS_ERROR"
       exit 1
