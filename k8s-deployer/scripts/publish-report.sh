@@ -17,10 +17,6 @@ echo "BRANCH_NAME=${BRANCH_NAME}"
 echo "PUBLISH_DIR=${PUBLISH_DIR}"
 echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}"
 
-echo "<---- env ------"
-env
-echo "</---- env ------"
-
 if [ "${GIT_REPO}" == "" ];
 then
   echo "Git repository is required"
