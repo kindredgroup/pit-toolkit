@@ -67,7 +67,7 @@ echo "TIMEOUT_SECONDS=${TIMEOUT_SECONDS}"
 if [ "${ACTION}" == "create" ];
 then
 
-  if [ ! "${MOCK_NS}" == "true" ];
+  if [ "${MOCK_NS}" == "true" ];
   then
     echo "Faking ns creation...."
     echo "$STATUS_DONE"
