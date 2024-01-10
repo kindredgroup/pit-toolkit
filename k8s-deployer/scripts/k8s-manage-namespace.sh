@@ -125,7 +125,7 @@ then
     while [ $iteration -lt $totalAttempts ];
     do
       result=$(kubectl hns tree $PARENT_NS | grep "\[s\] ${NS}")
-      if [ "$result" == "└── [s] ${NS}" ];
+      if [ "$result" == "└── [s] ${NS}" ] || [ "$result" == "├── [s] ${NS}" ];
       then
         # This will signal to the monitor the stop event
         echo "Namespace hierarchy was created ${PARENT_NS} > ${NS}"
