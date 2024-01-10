@@ -17,8 +17,8 @@ echo "BRANCH_NAME=${BRANCH_NAME}"
 echo "PUBLISH_DIR=${PUBLISH_DIR}"
 echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}"
 
-git config --global user.email "jenkins-pit@kindredgroup.com"
-git config --global user.name "Jenkins PIT"
+git config --global user.email "${USERNAME}@kindredgroup.com"
+git config --global user.name "${USERNAME}"
 
 if [ "${GIT_REPO}" == "" ];
 then
