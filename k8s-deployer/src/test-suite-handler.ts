@@ -201,12 +201,11 @@ export const processTestSuite = async (
   logger.info("--------------- Processig %s ---------------", testSuite.id)
   logger.info("")
   const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
-  
-  logger.info("")
-  logger.info("%s Deployment is done. Sleeping before running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
-  logger.info("")
 
   if (config.servicesAreExposedViaProxy) {
+    logger.info("")
+    logger.info("%s Deployment is done. Sleeping before running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+    logger.info("")    
     const sleep = new Promise(resolve => setTimeout(resolve, 2_000))
     await sleep
   }
