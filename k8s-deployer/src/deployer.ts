@@ -185,7 +185,7 @@ export const deployLockManager = async (config: Config, workspace: string, names
   }
 }
 
-export const undeployLockManager = async (workspace: string, namespace: Namespace) => {
+export const undeployLockManager = async (config: Config, workspace: string, namespace: Namespace) => {
   const spec = getLockManagerConfig()
   if (config.useMockLockManager) {
     logger.info("Lock manager mock is enabled. Skipping undeployment of LockManager app.")

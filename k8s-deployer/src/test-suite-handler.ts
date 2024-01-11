@@ -176,12 +176,13 @@ const deployAll = async (
   return deployedSuites
 }
 
-export const undeployAll = async (config: Config, suites: Array<DeployedTestSuite>) => {
+export const undeployAll = async (config: Config, pitfile: Schema.PitFile, suites: Array<DeployedTestSuite>) => {
+
   for (let item of suites) {
     if (pitfile.lockManager.enabled) {
-      await Deployer.undeployLockManager(item.namespace)
+      await Deployer.undeployLockManager(config, item.workspace, item.namespace)
     } else {
-      logger.info("%s The 'Lock Manager' was not be deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+      logger.info("%s The 'Lock Manager' was not deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
       logger.info("")        
     }
 
