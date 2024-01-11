@@ -4,10 +4,10 @@ FROM node:18.18.2-alpine3.18 AS baseimage
 FROM baseimage AS BUILD
 
 WORKDIR /opt/build
-COPY package.json package-lock.json tsconfig.json ./
+COPY ${pwd}/lock-manager/package.json ${pwd}/lock-manager/package-lock.json ${pwd}/lock-manager/tsconfig.json ./
 RUN npm ci
 
-COPY src/ ./src
+COPY ${pwd}/lock-manager/src/ ./src
 
 RUN npm run build
 
@@ -16,10 +16,10 @@ FROM baseimage AS RUN
 
 WORKDIR /opt/build
 
-COPY package.json package-lock.json ./
+COPY ${pwd}/lock-manager/package.json ${pwd}/lock-manager/package-lock.json ./
 COPY --from=BUILD /opt/build/node_modules/ ./node_modules
 COPY --from=BUILD /opt/build/dist/ ./dist
-COPY migrations/ ./migrations
+COPY ${pwd}/lock-manager/migrations/ ./migrations
 
 CMD ["npm", "run", "migrate_and_start"]
 
