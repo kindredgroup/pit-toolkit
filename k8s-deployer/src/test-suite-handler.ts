@@ -178,11 +178,16 @@ const deployAll = async (
 
 export const undeployAll = async (config: Config, suites: Array<DeployedTestSuite>) => {
   for (let item of suites) {
-    await Deployer.undeployLockManager(item.namespace)
+    if (pitfile.lockManager.enabled) {
+      await Deployer.undeployLockManager(item.namespace)
+    } else {
+      logger.info("%s The 'Lock Manager' was not be deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+      logger.info("")        
+    }
 
-    await Deployer.undeployComponent(item.namespace, item.workspace, item.graphDeployment.testApp)
+    await Deployer.undeployComponent(item.workspace, item.namespace, item.graphDeployment.testApp)
     for (let deploymentInfo of item.graphDeployment.components) {
-      await Deployer.undeployComponent(item.namespace, item.workspace, deploymentInfo)
+      await Deployer.undeployComponent(item.workspace, item.namespace, deploymentInfo)
     }
 
     await K8s.deleteNamespace(config.parentNamespace, item.namespace, config.namespaceTimeoutSeconds, item.workspace)

@@ -134,22 +134,30 @@ export const deployApplication = async (
   }
 }
 
-const undeployApplication = async (appName: string, appDirectory: string, namespace: Namespace, instructions: Schema.DeployInstructions) => {
-  logger.info("Undeploying app: '%s'", appName)
-
+const undeployApplication = async (
+  workspace: string,
+  namespace: Namespace,
+  appId: string,  
+  appDirectory: string, 
+  instructions: Schema.DeployInstructions) => {
   await isExecutable(`${appDirectory}/${instructions.command}`)
   try {
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     const timeoutMs = instructions.timeoutSeconds * 1_000
-    const logFileName = `${appName}-undeploy.log`
+
+    const logFileName = `${ workspace }/logs/undeploy-${ namespace }-${ appId }.log`
     const command = `${ instructions.command } ${ namespace }`
-    await Shell.exec(command, { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: line => {
+
+    const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
       if (line.toLowerCase().startsWith("error:")) {
         logger.error("%s", line)
       } else {
-        if (line.trim().length !== 0) logger.info("%s", line)
+        logger.info("%s", line)
       }
-    }})
+    }}
+    if (instructions.timeoutSeconds) opts.timeoutMs = instructions.timeoutSeconds * 1_000
+    await Shell.exec(command, opts)
+
   } catch (e) {
     throw new Error(`Error invoking undeployment launcher: '${instructions.command}'`, { cause: e })
   }
@@ -177,9 +185,14 @@ export const deployLockManager = async (config: Config, workspace: string, names
   }
 }
 
-export const undeployLockManager = async (namespace: Namespace) => {
+export const undeployLockManager = async (workspace: string, namespace: Namespace) => {
   const spec = getLockManagerConfig()
-  await undeployApplication(spec.id, spec.id, namespace, spec.undeploy)
+  if (config.useMockLockManager) {
+    logger.info("Lock manager mock is enabled. Skipping undeployment of LockManager app.")
+  } else {
+    let appDir = `${ workspace }/${ spec.id }`
+    await undeployApplication(spec.id, workspace, namespace, appDir, spec.undeploy)
+  }
 }
 
 export const deployComponent = async (
@@ -209,7 +222,7 @@ export const deployComponent = async (
   return commitSha
 }
 
-export const undeployComponent = async (namespace: Namespace, workspace: string, deploymentInfo: DeployedComponent) => {
+export const undeployComponent = async (workspace: string, namespace: Namespace, deploymentInfo: DeployedComponent) => {
   const spec = deploymentInfo.component
   let appDir = `${workspace}/${ spec.id }`
 
@@ -223,5 +236,5 @@ export const undeployComponent = async (namespace: Namespace, workspace: string,
     }
   }
 
-  await undeployApplication(spec.id, appDir, namespace, spec.undeploy)
+  await undeployApplication(spec.id, workspace, namespace, appDir, spec.undeploy)
 }
