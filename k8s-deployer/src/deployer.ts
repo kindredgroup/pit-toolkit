@@ -236,5 +236,5 @@ export const undeployComponent = async (workspace: string, namespace: Namespace,
     }
   }
 
-  await undeployApplication(spec.id, workspace, namespace, appDir, spec.undeploy)
+  await undeployApplication(workspace, namespace, spec.id, appDir, spec.undeploy)
 }
