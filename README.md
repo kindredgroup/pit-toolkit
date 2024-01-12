@@ -76,6 +76,8 @@ The responsibilities of all mentioned components are defined as:
 
 ## Example of specification YAML
 
+In the following explanation, [Talos](https://github.com/kindredgroup/talos) mentioned providing a real application reference in pit file creation.
+
 ```YAML
 version: "1.0"
 projectName: "Tests for xyz"
