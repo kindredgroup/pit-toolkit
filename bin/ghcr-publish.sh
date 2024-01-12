@@ -3,7 +3,7 @@
 set -e
 package_name=$1
 version=$2
-echo $(pwd)
+
 cd $package_name
 tag_with_version=pit-$package_name:$version
 tag_ref=ghcr.io/kindredgroup/pit-toolkit/$tag_with_version
