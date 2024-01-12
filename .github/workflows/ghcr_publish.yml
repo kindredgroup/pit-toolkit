@@ -32,10 +32,8 @@ jobs:
             - run: |
                 echo $RELEASE_VERSION
                 echo ${{ env.RELEASE_VERSION }}
-
-
             - name: Build and publish lock manager image with ver and latest tag
-              run: sh bin/ghcr-publish.sh lock-manager ${{ env.RELEASE_VERSION }}
+              run: sh bin/ghcr-publish.sh lock-manager $RELEASE_VERSION
 
              
 
