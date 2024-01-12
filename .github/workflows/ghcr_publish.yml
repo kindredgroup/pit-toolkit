@@ -29,7 +29,7 @@ jobs:
             - run: PATH=$PATH:$(pwd) bin/ubuntu-setup.sh
 
             - name: Build and publish lock manager image with ver and latest tag
-              run: PATH=$PATH:$(pwd) bin/component-test-setup.shsh bin/ghcr-publish.sh lock-manager ${{ github.ref }}
+              run: PATH=$PATH:$(pwd) bin/ghcr-publish.sh lock-manager ${{ github.ref }}
 
              
 

@@ -15,4 +15,4 @@ jobs:
             node-version: 18
             check-latest: true
         - name: npm install, build and test lock-manager
-          run: PATH=$PATH:$(pwd) bin/npm-build.sh lock-manager
+          run: sh bin/npm-build.sh lock-manager
