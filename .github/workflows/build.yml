@@ -1,0 +1,7 @@
+name: build
+
+on: push
+
+jobs:
+  npm_build:
+    uses:  ./.github/workflows/npm_build.yml
