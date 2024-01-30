@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migration
+  labels:
+    {{- include "application.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-weight": "3"
+spec:
+  ttlSecondsAfterFinished: 6000
+  template:
+    metadata:
+      name: {{ .Release.Name }}-migration-pod
+      labels:
+        {{- include "application.labels" . | nindent 8 }}
+      annotations:
+        "sidecar.istio.io/inject": "false"
+    spec:
+      containers:
+        - name: db-migration
+          image: {{ .Values.migration.repository }}/{{ .Values.migration }}/{{ .Values.image }}:{{ .Values.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            # There is no point creating configmap for a single env variable.
+            # This will be used by docker entry point script
+            - name: DB_ENV
+              value: {{ .Values.DB_ENV | quote }}
+            - name: RUST_LOG
+              value: {{ .Values.RUST_LOG | default "debug" }}
+            - name: PG_DATABASE_TEMPLATE
+              value: {{ .Values.PG_DATABASE_TEMPLATE }}
+            - name: PG_POOL_SIZE
+              value: {{ .Values.PG_POOL_SIZE | default "10" | quote }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-auth
+      restartPolicy: Never

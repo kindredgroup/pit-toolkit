@@ -47,11 +47,15 @@ deploy.node-1-test-app:
 		helm package ./deployment/helm --debug --app-version=$$IMAGE_TAG; \
 		helm upgrade --install \
 			--atomic \
-			--timeout 60s \
+			--timeout 160s \
 			--namespace $$K8S_NAMESPACE \
 			--set image.tag=$$IMAGE_TAG \
-			--set pod.repository=$$REGISTRY_URL/$$TEST_APP_SERVICE_NAME \
+			--set service.repository=$$REGISTRY_URL \
 			--set service.port=$$TEST_APP_SERVICE_PORT \
+			--set service.name=$$TEST_APP_SERVICE_NAME \
+			--set migration.repository=$$DB_MIGRATION_IMAGE_REPO \
+			--set migration.name=$$DB_MIGRATION_IMAGE_NAME \
+			--set migration.tag=$$DB_MIGRATION_IMAGE_TAG \
 			--set environment.TARGET_SERVICE_URL="http://$$SERVICE_NAME:$$SERVICE_PORT" \
 			--set webApp.contextRoot="$$K8S_NAMESPACE.$$TEST_APP_SERVICE_NAME" \
 			$$TEST_APP_SERVICE_NAME ./$$CHART_PACKAGE; \
@@ -62,7 +66,7 @@ deploy.node-1-test-app:
 
 deploy.graph-perf-test-app:
 	bash -c '\
-		cd examples/graph-perf-test-app; \
+		cd examples/graph-perf-test-app1 ; \
 		cat .env > .env-tmp; echo "" >> .env-tmp; \
 		cat ../node-1/.env | sed s/=/_NODE_1=/ | grep -e "^SERVICE_NAME_NODE_1.*" >> .env-tmp; \
 		cat ../node-1/.env | sed s/=/_NODE_1=/ | grep -e "^SERVICE_PORT_NODE_1.*" >> .env-tmp; \
@@ -79,6 +83,12 @@ deploy.graph-perf-test-app:
 			--set service.port=$$SERVICE_PORT \
 			--set environment.TARGET_SERVICE_URL="http://$$SERVICE_NAME_NODE_1:$$SERVICE_PORT_NODE_1" \
 			--set webApp.contextRoot=$$K8S_NAMESPACE.$$SERVICE_NAME \
+			--set host=$PG_HOST \
+			--set port=$PG_PORT \
+			--set user=$PG_USER \
+			--set password=$PG_PASSWORD \
+			--set databse=$PG_DATABASE \
+			--set pool_size=$PG_POOL_SIZE \
 			$$SERVICE_NAME ./$$CHART_PACKAGE; \
 			rm $$CHART_PACKAGE; \
 		echo ""; \

@@ -4,16 +4,16 @@ import {Express, Request, Response, response} from "express";
 import {logger} from "../logger.js";
 import * as webapi from "./schema-v1.js";
 import * as report from "../report/schema-v1.js";
-import ScyllaManager, {
-  AddTaskModel,
-  DbConfig,
-  GetTaskModel,
-  Task,
-  TaskStatus,
-} from "scylla_pg_client";
-import {v4 as uuid} from "uuid";
-import * as hdr from "hdr-histogram-js";
 
+import * as hdr from "hdr-histogram-js";
+import { ScyllaTests } from "./ScyllaLib.js";
+
+
+enum TESTFLOW {
+  WORKER = 'WORKER',
+  LISTENER = 'LISTENER',
+  COMPLETE = 'COMPLETE',
+}
 export class WebService {
   private globalSessionId: number = 0;
   private sessions: Map<number, any> = new Map()
@@ -133,36 +133,47 @@ export class WebService {
     const specs = [
      
       {
-        // iterations: 1000,
-        name: 'Complete Task Flow',
-        requirements: [new report.ScalarMetric("p95", 300)],
-      }
+        iterations: 1000,
+        name: TESTFLOW.COMPLETE,
+        requirements: [new report.ScalarMetric("p90", 2)],
+      },
+      {
+        iterations: 1000,
+        name: TESTFLOW.LISTENER,
+        requirements: [new report.ScalarMetric("p90", 2)],
+      },
+      // Not implemented yet
+      // {
+      //   iterations: 1000,
+      //   name: TESTFLOW.WORKER,
+      //   requirements: [new report.ScalarMetric("p90", 2)],
+      // }
     ]
 
     const scenarios = new Array<webapi.ExecutedTestScenario>()
 
     for (let spec of specs) {
       const startedAt = new Date()
-      const stats = await this.runTestScenario(testSuiteId, iterationsCount,spec.name)
+      const stats = await this.runTestScenario(testSuiteId, spec.iterations, spec.name)
       const finishedAt = new Date()
 
       const elapsedMs = finishedAt.getTime() - startedAt.getTime()
       const objectToMap = obj => new Map(Object.entries(obj));
       const summaryMap = objectToMap(stats.summary)
 
-      const rate = summaryMap["p90"]
+      let bucket = spec.requirements[0].value
+      const rate = summaryMap[bucket]
       const outcome =
         rate >= spec.requirements[0].value
           ? report.TestOutcomeType.PASS
           : report.TestOutcomeType.FAIL;
-      const throughput = new report.ScalarMetric("throughput", 1000)
       console.log("stats: ", stats.summary, typeof stats.summary)
       const distribution =  new report.DistributionMetric("stats", summaryMap)
       const stream = new report.TestStream(
         "default",
         spec.requirements,
         [distribution],
-        report.TestOutcomeType.PASS
+        outcome
       )
       const scenario = new webapi.ExecutedTestScenario(
         spec.name,
@@ -182,115 +193,42 @@ export class WebService {
     iterationsCount: number,
     flowName: string
   ): Promise<any> {
-    // const endpoint = `${ this.targetServiceUrl }/addTask`
-    // console.log("start API test scenario:",endpoint)
-    const dbConfig: DbConfig = {
-      pgHost: "localhost",
-      pgPort: 5432,
-      pgUser: "postgres",
-      pgPassword: "postgres",
-      pgDatabase: "scylla",
-      pgPoolSize: 10,
-    };
-    const scyllaManager = await ScyllaManager.initiate(dbConfig)
-
-    const stats = {min: -1, max: -1, avg: -1, duration: 0, requests: 0};
-    const errors = {system: 0, api: 0};
-
-    let promises = []
-
     const sleep = (ms: number) => {
       return new Promise(resolve => setTimeout(resolve, ms))
     };
-    const addTask = async () => {
-      const task: AddTaskModel = {
-        rn: uuid(),
-        queue: "test",
-        spec: {},
-        priority: 1,
-      };
-      return await scyllaManager.addTask(task)
-      // await fetch(endpoint,{
-      //   method: 'GET',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     "Accept": "application/json"
-      //   },
-      // })
-    };
-
+    
     const start = new Date()
-  
 
     const h = hdr.build()
+    
     try {
-      //Listener
-      // for (let i = 0; i < iterationsCount; i++) {
-      //   promises.push(
-      //     startTimes[i] = new Date().getTime(),
-      //     new Promise(async resolved => {
-      //       let outcome = await addTask()
-      //       console.log("outcome: ", outcome)
-      //       sleep(10)
-      //       endTimes[i] = new Date().getTime()
-      //       return resolved(outcome)
-      //     })
-      //   )
+     
+      let scyllaTestFlow = new ScyllaTests()
+      await scyllaTestFlow.instantiateScyllaManager()
 
-      // }
-
-      // await Promise.all(promises)
-
-      //worker
-
-    const workerFlow = async () => {
-      const startTime = new Date().getTime()
-      let timeElapsed = 0;
-      const task: Task = await addTask()
-      let leasedTask;
-      let completedTask;
-      // Right now No retries
-      if(!!task?.rn) {
-        leasedTask = await scyllaManager.leaseTask(task?.rn,'scylla-test-app')
-      }
-      if(!!leasedTask?.rn) {
-        completedTask = await scyllaManager.completeTask(leasedTask?.rn)
-      }
-      if(!!completedTask?.rn) {
-        const endTimes = new Date().getTime()
-        timeElapsed = endTimes - startTime
-        // h.recordValue(timeElapsed[index])
-      }
-      
-      return timeElapsed
-    }
-      //break iterationsCount into chunks of 100
-      const chunkSize = 100
-      let chunks = iterationsCount
-      let counter = 0
-      while (chunks > 0) {
-
-        promises = []
-        for (let j = 0; j < chunkSize; j++) {
-          promises.push(
-            new Promise(async resolved => {
-              let outcome = await workerFlow()
-              h.recordValue(outcome)
-              return resolved(outcome)
-            })
-            )
-            counter++
-            sleep(10)
-          }
-          await Promise.all(promises)
-          chunks = chunks - chunkSize
+      let startTime = new Date().getTime()
+      let requiredRate = 1000
+      for (let i = 0; i <= iterationsCount; i++) {
+        
+        if (TESTFLOW.COMPLETE === flowName) {
+          const outcome = await scyllaTestFlow.completeFlow();
+          h.recordValue(outcome)
         }
-     
-     
-      stats.requests = iterationsCount
-      
-      // console.log(`Statistics for worker flow ${h}`)
+        if (TESTFLOW.LISTENER === flowName) {
+          const outcome = await scyllaTestFlow.listenerFlow();
+          h.recordValue(outcome)
+        }
 
+        const now = new Date().getTime()
+        const elapsedSec = (now - startTime) / 1000
+        const currentRate = i / elapsedSec
+        if(currentRate > requiredRate){
+          // console.log(`Current rate: ${currentRate} calls/s`)
+          const timeToFinCurrent = i/requiredRate
+          const requiredSleep = (timeToFinCurrent - elapsedSec) * 1000
+          await sleep(requiredSleep)
+        }
+      }
     } catch (err) {
       // no retries
       console.log("Error: ", err)
@@ -305,6 +243,6 @@ export class WebService {
 
     return h;
   }
+  
 
- 
 }

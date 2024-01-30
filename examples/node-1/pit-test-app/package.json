@@ -26,7 +26,7 @@
     "express": "^4.18.2",
     "hdr-histogram-js": "^3.0.0",
     "node-fetch": "^3.3.2",
-    "scylla_pg_client": "^0.1.19",
+    "scylla_pg_client": "^0.1.20",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
   }

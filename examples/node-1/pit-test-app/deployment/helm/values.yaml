@@ -1,11 +1,40 @@
-pod.repository: ""
-image.tag: ""
+ENVIRONMENT: "dev"
+
+image:
+  pullPolicy: IfNotPresent
+  tag: ""
+
 service:
-  name: ""
-  port:
+  repository: 
+  name: "scylla-test-app"
+  port: 80
+
+migration:
+  repository: 
+  name: "scylla-pg-migration"
+  tag: "v0.1.20"
+
 
 webApp:
   contextRoot: # set this to the currently running test suite name
 
 environment:
   TARGET_SERVICE_URL:
+
+externalSecrets:
+  refreshInterval: 10m
+  vaultPaths:
+    db: secret/devs/dev/postgres/scylla/scylla
+    dbAdmin: secret/devs/dev/postgres/scylla/scylla-admin
+
+PG_ADMIN_USER: "admin"
+PG_ADMIN_PASSWORD: "admin"
+PG_POOL_SIZE:
+
+PG_HOST: "127.0.0.1"
+PG_USER: "postgres"
+PG_PASSWORD: "postgres"
+PG_DATABASE: "scylla"
+PG_PORT: 5432
+PG_POOL_SIZE: 10
+DB_ENV: mig-test

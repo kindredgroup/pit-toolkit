@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.pod.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.service.repository }}/{{ .Values.service.name }}:{{ .Values.image.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
