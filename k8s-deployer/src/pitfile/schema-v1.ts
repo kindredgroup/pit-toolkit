@@ -49,7 +49,6 @@ export class Lock {
 export class DeployableComponent {
   name: string
   id: string
-  servicePort?: number
   location: Location
   deploy: DeployInstructions
   undeploy: DeployInstructions
@@ -67,7 +66,7 @@ export class Deployment {
 export class TestSuite {
   name: string
   id: string
-  timeoutMs?: number
+  timeoutSeconds?: number
   location: Location
   lock?: Lock
   deployment: Deployment

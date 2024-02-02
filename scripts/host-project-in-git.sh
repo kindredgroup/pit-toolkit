@@ -1,6 +1,6 @@
 #!/bin/bash
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# This scirpts takes pathof the project and exposes it through locally running
+# This scirpts takes path of the project and exposes it through locally running
 # git server. Useful when testing PIT functionality which expect location.type
 # to be REMOTE.
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -64,8 +64,10 @@ git checkout -b tmp_current
 git branch -D master
 git branch -m master
 git branch
-cat deployment/pit/deploy.sh
-git checkout master && git add --all && git commit -a -m "Initial commit" 1> /dev/null
+git checkout master && \
+  mv ./.gitignore ./.gitignore.tmp && cat ./.gitignore.tmp | grep -v "docker-desktop" > ./.gitignore && \
+  git add --all && \
+  git commit -a -m "Initial commit" 1> /dev/null
 
 cd ..
 mv ./tmp/.git .git

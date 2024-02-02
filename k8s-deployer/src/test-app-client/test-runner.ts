@@ -1,5 +1,6 @@
 import fetch, { Response } from "node-fetch"
 import * as fs from "fs"
+import { v4 as uuidv4 } from "uuid"
 
 import { LockManager } from "../locks/lock-manager.js"
 import { LockManagerMock } from "../locks/lock-manager-mock.js"
@@ -54,35 +55,43 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
   // const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }/services/${ sepc.testSuite.deployment.graph.testApp.id }`
 
   let lockManager: LockManager | LockManagerMock
+  const lockOwner = `${ spec.testSuite.id }-${ uuidv4() }-${ spec.namespace }`
   if (spec.testSuite.lock) {
-    
+
     if (config.useMockLockManager) {
       logger.info("Test suite: '%s' - preparing to run with mock lock manager", testSuiteId)
-      lockManager = LockManagerMock.create()
+      lockManager = LockManagerMock.create(lockOwner)
     } else {
-      const url = K8s.makeServiceUrl(config.clusterUrl, spec.namespace, "lock-manager")
-      lockManager = LockManager.create(url, config.lockManagerApiRetries)
-    } 
+      const url = K8s.makeServiceUrl(
+        config.clusterUrl,
+        spec.namespace,
+        "lock-manager",
+        spec.testSuite.id,
+        {
+          exposedViaProxy: config.servicesAreExposedViaProxy
+        }
+      )
+      lockManager = LockManager.create(lockOwner, url, config.lockManagerApiRetries)
+    }
 
-    await lockManager.lock(spec.testSuite.id, spec.testSuite.lock)
+    await lockManager.lock(spec.testSuite.lock)
     logger.info("Test suite: '%s' - all required locks were acquired, starting test...", testSuiteId)
   }
 
   try {
 
     const baseUrl = K8s.makeServiceUrl(
-      config.clusterUrl, 
-      spec.namespace, 
+      config.clusterUrl,
+      spec.namespace,
       spec.testSuite.deployment.graph.testApp.id,
       spec.testSuite.id,
-      { 
-        exposedViaProxy: config.servicesAreExposedViaProxy, 
-        servicePort: spec.testSuite.deployment.graph.testApp.servicePort 
+      {
+        exposedViaProxy: config.servicesAreExposedViaProxy
       }
     )
 
     logger.info("API will be accessible at: '%s'", baseUrl)
-    
+
     const api = {
       start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
       status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
@@ -103,7 +112,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
     const startResult = await httpResponse.json() as webapi.StartResponse
     logger.info("Test suite: '%s' - started using session: %s", testSuiteId, startResult.sessionId)
 
-    const testTimeoutMs = spec.testSuite.timeoutMs || config.testTimeoutMs
+    const testTimeoutMs = spec.testSuite.timeoutSeconds * 1_000 || config.testTimeoutMs
     await waitUntilFinish(api, testSuiteId, startResult.sessionId, config.testStatusPollFrequencyMs, testTimeoutMs, 1_000)
 
     logger.info("Test suite: '%s' - waiting ended, obtaining report using session: %s", testSuiteId, startResult.sessionId)
@@ -140,8 +149,12 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
   } finally {
 
     if (lockManager) {
-      await lockManager.release(spec.testSuite.id, spec.testSuite.lock)
-      logger.info("Test suite: '%s' - all required locks were released.", testSuiteId)
+      try {
+        await lockManager.release(spec.testSuite.lock)
+        logger.info("Test suite: '%s' - all required locks were released by owner '%s'", testSuiteId, lockManager.lockOwner)
+      } catch (error) {
+        logger.warn("Test suite: '%s' - unexpected error while owner '%s' was releasing locks", testSuiteId, lockManager.lockOwner)
+      }
     }
 
   }

@@ -1,6 +1,6 @@
 import {expect} from "chai"
 import {describe, it} from "mocha"
-import {ApiRoutes} from "../api-routes/index.js"
+import {ApiRoutes} from "../api-routes.js"
 import express from "express"
 import supertest from "supertest"
 import Sinon from "sinon"
@@ -13,7 +13,7 @@ describe("API routes", () => {
 
   const app = express()
   const jsonParser = express.json()
-  
+
   app.use(jsonParser)
   let mockdb = Sinon.createStubInstance(PostgresDb)
   let apiRoutes = new ApiRoutes(app, mockdb)
@@ -51,21 +51,21 @@ describe("API routes", () => {
     })
 
     it("should test success for acquire API Route", async () => {
-     
+
       const response = await request.post("/locks/acquire")
       .set("Accept", "application/json")
       .set('Content-Type', 'application/json')
       .send(acquirePostPayload)
       expect(response.status).to.equal(200)
     })
-    
+
     it("should test success keep-alive API Route", async () => {
       const response = await request.post("/locks/keep-alive").set("Accept", "application/json")
       .set('Content-Type', 'application/json')
       .send(keepAlivePostPayload)
       expect(response.status).to.equal(200)
     })
-    
+
     it("should test success release API Route", async () => {
       const response = await request.post("/locks/release")
       .set("Accept", "application/json")
@@ -90,7 +90,7 @@ describe("API routes", () => {
     //   expect(response.status).to.equal(409)
     //   expect(response.body).to.be.empty
     // })
-    
+
     // it("should test failure keep-alive API Route", async () => {
     //   keepAlivePostPayload.lockIds = []
     //   const response = await request.post("/locks/keep-alive").set("Accept", "application/json")
@@ -100,7 +100,7 @@ describe("API routes", () => {
     //   expect(response.status).to.equal(400)
     //   expect(response.body).to.be.empty
     // })
-    
+
     // it("should test failure release API Route", async () => {
     //   const response = await request.post("/locks/release")
     //   .set("Accept", "application/json")

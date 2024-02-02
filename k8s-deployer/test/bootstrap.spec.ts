@@ -2,23 +2,23 @@
 import * as sinon from "sinon"
 import * as chai from "chai"
 
-import { 
-  PARAM_CLUSTER_URL, 
-  PARAM_COMMIT_SHA, 
-  PARAM_LOCK_MANAGER_MOCK, 
-  PARAM_NAMESPACE_TIMEOUT, 
-  PARAM_PARENT_NS, 
-  PARAM_SUBNS_PREFIX, 
-  PARAM_SUBNS_NAME_GENERATOR_TYPE, 
-  PARAM_PITFILE, 
-  PARAM_WORKSPACE, 
+import {
+  PARAM_CLUSTER_URL,
+  PARAM_COMMIT_SHA,
+  PARAM_LOCK_MANAGER_MOCK,
+  PARAM_NAMESPACE_TIMEOUT,
+  PARAM_PARENT_NS,
+  PARAM_SUBNS_PREFIX,
+  PARAM_SUBNS_NAME_GENERATOR_TYPE,
+  PARAM_PITFILE,
+  PARAM_WORKSPACE,
   readParams,
   PARAM_LOCK_MANAGER_API_RETRIES
 } from "../src/bootstrap.js"
-import { 
-  DEFAULT_CLUSTER_URL, 
-  DEFAULT_NAMESPACE_TIMEOUT, 
-  DEFAULT_SUB_NAMESPACE_PREFIX, 
+import {
+  DEFAULT_CLUSTER_URL,
+  DEFAULT_NAMESPACE_TIMEOUT,
+  DEFAULT_SUB_NAMESPACE_PREFIX,
   DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE
 } from "../src/config.js"
 
@@ -86,9 +86,9 @@ describe("bootstrap with invalid configs", () => {
   })
 
   it("readParams() should expect predefined namespace name generators", () => {
-    sandbox.stub(process, 'argv').value([ "skip-first", "", 
-      PARAM_WORKSPACE, "./some-dir", 
-      PARAM_PARENT_NS, "dev", 
+    sandbox.stub(process, 'argv').value([ "skip-first", "",
+      PARAM_WORKSPACE, "./some-dir",
+      PARAM_PARENT_NS, "dev",
       PARAM_COMMIT_SHA, "abcdef1",
       PARAM_SUBNS_NAME_GENERATOR_TYPE, "unknown",
     ])
@@ -97,9 +97,9 @@ describe("bootstrap with invalid configs", () => {
   })
 
   it("readParams() should use default values", () => {
-    sandbox.stub(process, 'argv').value([ "skip-first", "", 
-      PARAM_COMMIT_SHA, "abcdef1", 
-      PARAM_WORKSPACE, "/dir", 
+    sandbox.stub(process, 'argv').value([ "skip-first", "",
+      PARAM_COMMIT_SHA, "abcdef1",
+      PARAM_WORKSPACE, "/dir",
       PARAM_PARENT_NS, "dev"
     ])
     const config = readParams()

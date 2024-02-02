@@ -162,7 +162,7 @@ describe("Deployment happy path", async () => {
     // check verification for expected directories and shell executables
 
     chai.expect(fsAccessStubs.callCount).eq(5)
-    
+
     // restore line below once lock manager is stable
     //chai.expect(fsAccessStubs.callCount).eq(7)
 

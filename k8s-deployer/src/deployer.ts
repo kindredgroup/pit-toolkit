@@ -137,18 +137,20 @@ export const deployApplication = async (
 const undeployApplication = async (
   workspace: string,
   namespace: Namespace,
-  appId: string,  
-  appDirectory: string, 
-  instructions: Schema.DeployInstructions) => {
+  appId: string,
+  appDirectory: string,
+  instructions: Schema.DeployInstructions,
+  logsDir?: string) => {
   await isExecutable(`${appDirectory}/${instructions.command}`)
   try {
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     const timeoutMs = instructions.timeoutSeconds * 1_000
 
-    const logFileName = `${ workspace }/logs/undeploy-${ namespace }-${ appId }.log`
+    logsDir = logsDir || `${ workspace }/logs`
+    const logFileName = `${ logsDir }/undeploy-${ namespace }-${ appId }.log`
     const command = `${ instructions.command } ${ namespace }`
 
-    const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
+    const opts: any = { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: (line: string) => {
       if (line.toLowerCase().startsWith("error:")) {
         logger.error("%s", line)
       } else {
@@ -190,8 +192,8 @@ export const undeployLockManager = async (config: Config, workspace: string, nam
   if (config.useMockLockManager) {
     logger.info("Lock manager mock is enabled. Skipping undeployment of LockManager app.")
   } else {
-    let appDir = `${ workspace }/${ spec.id }`
-    await undeployApplication(spec.id, workspace, namespace, appDir, spec.undeploy)
+    let appDir = spec.id
+    await undeployApplication(workspace, namespace, spec.id, appDir, spec.undeploy, appDir)
   }
 }
 

@@ -1,9 +1,9 @@
-import { mock} from "node:test";
-import LockFactory, {Storage} from "../lock-operations.js";
-import {PostgresDb} from "../db/pg.js";
-import {LockAcquireObject, ReleaseLocks} from "../db/db.js";
-import { describe, it, beforeEach } from "mocha";
-import { assert } from "chai";
+import { mock} from "node:test"
+import LockFactory, {Storage} from "../lock-operations.js"
+import {PostgresDb} from "../db/pg.js"
+import {LockAcquireObject, ReleaseLocks} from "../db/db.js"
+import { describe, it, beforeEach } from "mocha"
+import { assert, expect } from "chai"
 
 describe("Lock Operation", () => {
   // Mock the pg class
@@ -41,15 +41,15 @@ describe("Lock Operation", () => {
   });
 
   it("should store and result values", async () => {
-    assert.deepStrictEqual(await storage.acquire(lock, new PostgresDb()), {
-      lockId: "lock-test-comp",
-      acquired: true,
-    });
+    const resp = await storage.acquire(lock, new PostgresDb())
+    expect(resp.lockId).eq("lock-test-comp")
+    expect(resp.acquired).eq(true)
+    expect(resp.lockExpiry).gt(new Date())
   });
 
   it("should release locks  ", async () => {
-    let releaseObj :ReleaseLocks ={
-        lockIds:["lock-test-comp2"],
+    let releaseObj: ReleaseLocks = {
+        lockIds: [ "lock-test-comp2" ],
         owner: "test-app"
     }
     assert.deepStrictEqual(await storage.release(releaseObj, new PostgresDb()), [

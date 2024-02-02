@@ -1,28 +1,19 @@
-pod.repository: ""
-image.tag: ""
-service:
-  name: ""
-  port:
-
-PGHOST: ""
-PGPORT: ""
-PGUSER: ""
-PGPASSWORD: ""
-PGDATABASE: ""
-PGMINPOOLSIZE: ""
-
-externalSecrets:
-  refreshInterval: 12h
-  vaultPaths:
-    db: "secret/devs/dev/postgres/dpt"
-
-
-
-webApp:
-  contextRoot: ""
-
-
+ENABLE_INGRESS: true
 ENVIRONMENT: dev
+EXTERNAL_SECRET_DB_PATH: not-set
+EXTERNAL_SECRET_REFRESH: 10m
+SECRET_STORE_NAME: lock-manager
 
-environment:
-  TARGET_SERVICE_URL:
+pod.repository:
+
+IMAGE_TAG:
+PG_MIN_POOL_SIZE:
+PGDATABASE:
+PGHOST:
+PGPORT:
+PGUSER:
+PGPASSWORD:
+SERVICE_NAME:
+CONTAINER_PORT: 60001
+SERVICE_PORT: 80
+WEB_APP_CONTEXT_ROOT:
