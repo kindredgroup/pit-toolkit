@@ -10,7 +10,11 @@ then
 fi
 echo "PIT_LOCK_MANAGER_ENV_FILE=${PIT_LOCK_MANAGER_ENV_FILE}"
 
-cat $PIT_LOCK_MANAGER_ENV_FILE
+if [ "${PIT_DEBUG_HELM}" == "true" ];
+then
+  cat $PIT_LOCK_MANAGER_ENV_FILE
+fi
+
 set -o allexport
 source $PIT_LOCK_MANAGER_ENV_FILE
 if [ "$OVERWRITE_K8S_NAMESPACE" != "" ];

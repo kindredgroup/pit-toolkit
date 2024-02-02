@@ -8,7 +8,7 @@ describe("K8S API", () => {
     chai.expect(url).eq("http://localhost:8001/api/v1/namespaces/ns/services/service-1:80/proxy")
 
     url = K8s.makeServiceUrl("http://localhost:8001", "ns", "service-1", "test-1", { exposedViaProxy: true, servicePort: 100 })
-    chai.expect(url).eq("http://localhost:8001/api/v1/namespaces/ns/services/service-1:100/proxy")    
+    chai.expect(url).eq("http://localhost:8001/api/v1/namespaces/ns/services/service-1:100/proxy")
   })
 
   it ("Generate service URL for access via ingress", () => {

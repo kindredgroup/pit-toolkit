@@ -3,6 +3,6 @@ kind: ConfigMap
 metadata:
   name: {{ include "application.name" . }}
 data:
-  SERVICE_NAME:                             {{ .Values.service.name | quote}}
-  SERVICE_PORT:                             {{ .Values.service.port | quote }}
-  PGMINPOOLSIZE:                            {{ .Values.PGMINPOOLSIZE | quote}}
+  SERVICE_NAME: {{ .Values.SERVICE_NAME | quote }}
+  SERVICE_PORT: {{ .Values.SERVICE_PORT | quote }}
+  PG_MIN_POOL_SIZE: {{ .Values.PG_MIN_POOL_SIZE | quote }}

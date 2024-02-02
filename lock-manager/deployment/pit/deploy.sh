@@ -27,24 +27,47 @@ echo "WEB_APP_CONTEXT_ROOT=${WEB_APP_CONTEXT_ROOT}"
 # env | sort
 # echo "D: ----------------------------"
 
-CHART_PACKAGE="$SERVICE_NAME-0.1.0.tgz"
+CHART_PACKAGE="${SERVICE_NAME}-0.1.0.tgz"
+
+HELM_OVERWRITES="--set CONTAINER_PORT=${CONTAINER_PORT} \
+  --set ENABLE_INGRESS=${ENABLE_INGRESS} \
+  --set EXTERNAL_SECRET_DB_PATH=${EXTERNAL_SECRET_DB_PATH} \
+  --set IMAGE_TAG=${IMAGE_TAG} \
+  --set SERVICE_NAME=${SERVICE_NAME} \
+  --set PG_MIN_POOL_SIZE=${PG_MIN_POOL_SIZE} \
+  --set PGDATABASE=${PGDATABASE} \
+  --set PGHOST=${PGHOST} \
+  --set PGPORT=${PGPORT} \
+  --set PGUSER=${PGUSER} \
+  --set PGPASSWORD=${PGPASSWORD} \
+  --set pod.repository=${REGISTRY_URL}/${SERVICE_NAME}"
+
+if [ "${ENABLE_INGRESS}" != "true" ];
+then
+  HELM_OVERWRITES="${HELM_OVERWRITES} --set webApp.contextRoot=${K8S_NAMESPACE}.${WEB_APP_CONTEXT_ROOT}"
+fi
+
+HELM_ARGS="upgrade --install --atomic --timeout 120s --namespace ${K8S_NAMESPACE}"
+HELM_TEMPLATE="template --debug --namespace ${K8S_NAMESPACE}"
+
+if [ "${PIT_DEBUG_HELM}" == "true" ];
+then
+  HELM_ARGS="${HELM_ARGS} --debug"
+fi
+
+HELM_ARGS="${HELM_ARGS} ${HELM_OVERWRITES} ${SERVICE_NAME} ./${CHART_PACKAGE}"
+HELM_TEMPLATE="${HELM_TEMPLATE} ${HELM_OVERWRITES} ${SERVICE_NAME} ./${CHART_PACKAGE}"
+
 helm package ./deployment/helm --debug --app-version=$IMAGE_TAG
-helm upgrade --install \
-  --atomic \
-  --timeout 120s \
-  --namespace $K8S_NAMESPACE \
-  --set image.tag=$IMAGE_TAG \
-  --set pod.repository=$REGISTRY_URL/$SERVICE_NAME \
-  --set service.port=$SERVICE_PORT \
-  --set environment.TARGET_SERVICE_URL=$TARGET_SERVICE_URL \
-  --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \
-  --set PGHOST=$PGHOST \
-  --set PGPORT=$PGPORT \
-  --set PGUSER=$PGUSER \
-  --set PGPASSWORD=$PGPASSWORD \
-  --set PGDATABASE=$PGDATABASE \
-  --set PGMINPOOLSIZE=$PGMINPOOLSIZE \
-  $SERVICE_NAME ./$CHART_PACKAGE
+if [ "${PIT_DEBUG_HELM}" == "true" ];
+then
+  helm $HELM_TEMPLATE > "./${SERVICE_NAME}-helm-debug.log"
+fi
+
+echo "Helm command is"
+echo "helm $HELM_ARGS"
+
+helm $HELM_ARGS
 returnStatus=$(($?+0))
 rm $CHART_PACKAGE
 

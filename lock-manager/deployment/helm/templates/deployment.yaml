@@ -16,11 +16,11 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.pod.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.pod.repository }}:{{ .Values.IMAGE_TAG }}"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.CONTAINER_PORT }}
               protocol: TCP
           resources:
             limits:

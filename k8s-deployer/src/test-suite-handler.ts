@@ -87,7 +87,7 @@ const deployLockManager = async (config: Config, workspace: string, isEnabled: b
 }
 
 /**
- * - Creates namespace, 
+ * - Creates namespace,
  * - deploys lock manager,
  * - deploys components graph.
  */
@@ -183,7 +183,7 @@ export const undeployAll = async (config: Config, pitfile: Schema.PitFile, suite
       await Deployer.undeployLockManager(config, item.workspace, item.namespace)
     } else {
       logger.info("%s The 'Lock Manager' was not deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
-      logger.info("")        
+      logger.info("")
     }
 
     await Deployer.undeployComponent(item.workspace, item.namespace, item.graphDeployment.testApp)
@@ -211,7 +211,7 @@ export const processTestSuite = async (
   if (config.servicesAreExposedViaProxy) {
     logger.info("")
     logger.info("%s Deployment is done. Sleeping before running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
-    logger.info("")    
+    logger.info("")
     const sleep = new Promise(resolve => setTimeout(resolve, 2_000))
     await sleep
   }

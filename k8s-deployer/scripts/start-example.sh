@@ -8,7 +8,10 @@
 # Input:
 # 1. Workspace directory for deployer. Should be empty.
 # 2. Path to the directory where we have source code of the PROJECT.
-#
+# 3. Flag for lock manager mock
+# 4. Lock manager retries count
+# 5. Flag for kube proxy
+# 6. Flag for generator which makes a new sub-namespace
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 echo "Starting k8s-deployer application..."
@@ -22,6 +25,13 @@ LOCK_MANAGER_API_RETRIES=$4
 USE_KUBE_PROXY=$5
 if [ "${USE_KUBE_PROXY}" == "" ]; then USE_KUBE_PROXY="false"; fi
 
+ # Can be "DATE" or "COMMITSHA", using "DATE" makes local development faster because resulting name
+ # will be less random and will need to be generated only in the morning
+SUB_NS_NAME_GENERATOR_TYPE=$6
+if [ "${SUB_NS_NAME_GENERATOR_TYPE}" == "" ]; then SUB_NS_NAME_GENERATOR_TYPE="DATE"; fi
+
+TEST_SESSION=$7
+
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
@@ -33,10 +43,8 @@ then
   CLUSTER_URL="http://127.0.0.1:8001"
 fi
 
- # Can be "date" or "commit-sha", using "date" makes locl development faster because resulting name 
- # will be less random and will need to be generated only in the morning
-SUB_NS_NAME_GENERATOR_TYPE="DATE"
 COMMIT_SHA=$(git rev-parse --short HEAD)
+COMMIT_SHA="${COMMIT_SHA}${TEST_SESSION}"
 
 echo "EXAMPLES_TEMP_DIR=${EXAMPLES_TEMP_DIR}"
 echo "PROJECT_DIR=${PROJECT_DIR}"
@@ -131,7 +139,7 @@ LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --lock-manager-mock $LOCK_MANAGER_MOCK \
   --use-kube-proxy $USE_KUBE_PROXY \
   --cluster-url $CLUSTER_URL \
-  --lock_manager_api_retries $LOCK_MANAGER_API_RETRIES"
+  --lock-manager-api-retries $LOCK_MANAGER_API_RETRIES"
 
 
 echo "LAUNCH_ARGS="

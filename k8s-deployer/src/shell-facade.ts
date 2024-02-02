@@ -90,7 +90,7 @@ const monitorProgress = async (state: FileReadingState, timeoutMs: number, error
     if (elapsed >= timeoutMs) {
       tailLogFile(state, true, fnTailTarget)
       if (state.stoppedWithStatusDone == null) {
-        throw new Error(`Timeout deploying app. Waited for: ${elapsed}ms. See log for more details: '${state.file}'`)
+        throw new Error(`Timeout. Waited for: ${elapsed}ms. See log for more details: '${state.file}'`)
       }
     }
 

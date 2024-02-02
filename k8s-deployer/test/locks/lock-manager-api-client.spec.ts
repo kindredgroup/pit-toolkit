@@ -1,11 +1,13 @@
-import { describe, it } from "mocha";
-import { RetryOptions } from "../src/locks/lock-api-fetch.js";
-import { assert } from "chai";
-import esmock from "esmock";
-import { logger } from "../src/logger.js";
+import esmock from "esmock"
+
+import { describe, it } from "mocha"
+import { assert } from "chai"
+
+import { logger } from "../../src/logger.js"
+import { RetryOptions } from "../../src/locks/lock-manager-api-client.js"
 
 describe("lock-api-fetch", async () => {
-   let esmockedLockFetch = await esmock("../src/locks/lock-api-fetch.js", {
+    let mockedLockManagerApi = await esmock("../../src/locks/lock-manager-api-client.js", {
         'node-fetch': {
             default: () => {
                 return {
@@ -16,7 +18,8 @@ describe("lock-api-fetch", async () => {
             }
         }
     })
-   let esmockedLockFailFetch = await esmock("../src/locks/lock-api-fetch.js", {
+
+    let esmockedLockFailFetch = await esmock("../../src/locks/lock-manager-api-client.js", {
         'node-fetch': {
             default: () => {
                 throw new Error("fetch error")
@@ -24,18 +27,17 @@ describe("lock-api-fetch", async () => {
         }
     })
 
-
     it("should test retryFetch", async () => {
-        let api = { endpoint: "http://foobar:8080", options: {} }
+        let fetchParams = { endpoint: "http://foobar:8080", options: {} }
         let apiBody = { lockId: "id1", owner: "owner1" }
-        let retryOptions: RetryOptions = { retries: 3, retryDelay: 1, api: api }
-        let resp = await esmockedLockFetch.retryFetch(retryOptions, apiBody)
+        let retryOptions: RetryOptions = { retries: 3, retryDelay: 1, fetchParams }
+        let resp = await mockedLockManagerApi.invoke(retryOptions, apiBody)
         assert.deepEqual(resp, { lockId: "id1", acquired: true })
     })
 
     it("should retry failed fetch", async () => {
         let baseUrl = "http://localhost:60001"
-        let api =  {
+        let fetchParams =  {
             endpoint: `${baseUrl}/locks/acquire`,
             options: {
               method: "POST",
@@ -43,15 +45,12 @@ describe("lock-api-fetch", async () => {
             },
           }
         let apiBody = { lockId: "id1", owner: "owner1" }
-        let retryOptions: RetryOptions = { retries: 3, retryDelay: 1, api: api }
-        try{
-            let resp = await esmockedLockFailFetch.retryFetch(retryOptions, apiBody)
-            // let resp = await retryFetch(retryOptions, apiBody)
-        }catch(error){
+        let retryOptions: RetryOptions = { retries: 3, retryDelay: 1, fetchParams }
+        try {
+            let _resp = await mockedLockManagerApi.invoke(retryOptions, apiBody)
+        } catch (error) {
             logger.info("*****************",error)
-            assert.equal(error, `Error: Failed to fetch ${api.endpoint} after ${retryOptions.retries} retries`)
+            assert.equal(error, `Error: Failed to fetch ${ fetchParams.endpoint } after ${ retryOptions.retries } retries`)
         }
     })
-   
-
 })

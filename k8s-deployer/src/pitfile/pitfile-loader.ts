@@ -71,10 +71,6 @@ const applyDefaultsToLocation = (name: string, input: SchemaV1.Location): Schema
   return applyEnvironmentToLocation(location)
 }
 
-const applyDefaultsToComponent = (component: SchemaV1.DeployableComponent) => {
-  if (!component.servicePort) component.servicePort = 80
-}
-
 const applyDefaults = (file: SchemaV1.PitFile): SchemaV1.PitFile => {
   const result = {...file}
   for (const testSuite of result.testSuites) {
@@ -84,10 +80,7 @@ const applyDefaults = (file: SchemaV1.PitFile): SchemaV1.PitFile => {
       const testApp = testSuite.deployment.graph.testApp
       testApp.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph."${testApp.id}"`, testApp.location)
 
-      applyDefaultsToComponent(testApp)
-
       for (const component of testSuite.deployment.graph.components) {
-        applyDefaultsToComponent(component)
         component.location = applyDefaultsToLocation(`${testSuite.id}.deployment.graph.components."${component.id}"`, component.location)
       }
     }

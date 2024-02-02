@@ -78,13 +78,13 @@ then
   if [ "${existsAlready}" == "" ];
   then
     echo "Creating namespace: ${NS} under parent ${PARENT_NS}, this may take some time..."
-    
-    kubectl hns create $NS -n $PARENT_NS  
+
+    kubectl hns create $NS -n $PARENT_NS
     returnStatus=$(($?+0))
 
     if [ $returnStatus -ne 0 ];
     then
-      echo "$STATUS_ERROR"      
+      echo "$STATUS_ERROR"
       exit $returnStatus
     fi
 

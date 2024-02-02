@@ -5,9 +5,9 @@ export interface DbConfig {
     database: String
     password: String
     port: number
-} 
+}
 
-export interface DbPoolConfig { 
+export interface DbPoolConfig {
     max: number
     min: number
     connectionTimeoutMillis: number
@@ -17,7 +17,7 @@ export interface DbPoolConfig {
 export interface DbPool {
     disconnect(): Promise<void>
 }
-  
+
 
 export interface Db extends DbPool {
     release(): Promise<void>
@@ -49,6 +49,7 @@ export interface Db extends DbPool {
  export type LockManagerResponse = {
     lockId: String
     acquired: boolean
+    lockExpiry?: Date
  }
 
   export type LockKeepAlive = {
