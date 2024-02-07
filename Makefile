@@ -12,18 +12,21 @@ deploy.lock-manager:
 			--atomic \
 			--timeout 60s \
 			--namespace $$K8S_NAMESPACE \
+			--set CONTAINER_PORT=$$CONTAINER_PORT \
+			--set ENABLE_INGRESS=$$ENABLE_INGRESS \
 			--set EXTERNAL_SECRET_DB_PATH=$$EXTERNAL_SECRET_DB_PATH \
+			--set SECRET_STORE_NAME=$$SECRET_STORE_NAME \
 			--set IMAGE_TAG=$$IMAGE_TAG \
 			--set SERVICE_NAME=$$SERVICE_NAME \
-			--set SERVICE_PORT=$$SERVICE_PORT \
 			--set PG_MIN_POOL_SIZE=$$PG_MIN_POOL_SIZE \
 			--set PGDATABASE=$$PGDATABASE \
 			--set PGHOST=$$PGHOST \
 			--set PGPORT=$$PGPORT \
 			--set PGUSER=$$PGUSER \
 			--set PGPASSWORD=$$PGPASSWORD \
+			--set PIT_LOCK_MANAGER_DEPLOY_DEV_SECRET_STORE=$$PIT_LOCK_MANAGER_DEPLOY_DEV_SECRET_STORE \
 			--set pod.repository=$$REGISTRY_URL/$$SERVICE_NAME \
-			--set webApp.contextRoot=$$K8S_NAMESPACE.$$WEB_APP_CONTEXT_ROOT"
+			--set webApp.contextRoot=$$K8S_NAMESPACE.$$WEB_APP_CONTEXT_ROOT \
 			$$SERVICE_NAME ./$$CHART_PACKAGE; \
 		rm $$CHART_PACKAGE; \
 		kubectl -n $$K8S_NAMESPACE port-forward service/$$SERVICE_NAME $$SERVICE_PORT:http'
