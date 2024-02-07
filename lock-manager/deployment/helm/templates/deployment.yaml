@@ -16,6 +16,8 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}        
           image: "{{ .Values.pod.repository }}:{{ .Values.IMAGE_TAG }}"
           imagePullPolicy: IfNotPresent
           ports:

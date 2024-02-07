@@ -21,4 +21,4 @@ WEB_APP_CONTEXT_ROOT:
 securityContext:
   allowPrivilegeEscalation: false
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 1001
