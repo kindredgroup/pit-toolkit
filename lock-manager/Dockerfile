@@ -17,7 +17,7 @@ RUN adduser \
 WORKDIR /opt/build
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci
-RUN sudo chown -R 1001:0 "/.npm"
+RUN chown -R 1001:0 "/.npm"
 
 COPY src/ ./src
 
