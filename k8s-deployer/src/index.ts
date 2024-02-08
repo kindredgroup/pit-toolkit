@@ -45,7 +45,7 @@ const main = async () => {
   logger.info("--------------------- Cleaning up --------------------- ")
   logger.info("")
   for (let deployments of artefacts) {
-    await SuiteHandler.undeployAll(config, file, deployments)
+    //await SuiteHandler.undeployAll(config, file, deployments)
   }
 
   logger.info("DONE")
