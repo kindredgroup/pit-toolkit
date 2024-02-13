@@ -1,6 +1,8 @@
 import {logger} from "../logger.js"
 import {Schema} from "../model.js"
-import * as LockManagerApi from "./lock-manager-api-client.js"
+import * as HttpClient from "./http-client.js"
+import { FetchParams } from "./http-client.js"
+import { AcquireResponse, KeepAliveRequest, KeepAliveResponse, ReleaseResponse } from "./schema-v1.js"
 
 const KEEP_ALIVE_INTERVAL = 10 // seconds
 const RETRY_TIMEOUT = 1000 // milliseconds
@@ -10,10 +12,10 @@ export class LockManager {
   }
 
   private api = {
-    check: { endpoint: "", options: {} },
-    acquire: { endpoint: "", options: {} },
-    keepAlive: { endpoint: "", options: {} },
-    release: { endpoint: "", options: {} },
+    acquire:   {} as FetchParams,
+    check:     {} as FetchParams,
+    keepAlive: {} as FetchParams,
+    release:   {} as FetchParams
   }
 
   // Handle to the timer
@@ -44,9 +46,9 @@ export class LockManager {
     this.validateArgs(this.lockOwner, lock)
     lock.ids = this.cleanupIds(lock.ids)
 
-    let locksAcquired = new Array<string>()
+    const locksAcquired = new Array<string>()
 
-    let retryOptions: LockManagerApi.RetryOptions = {
+    const retryOptions: HttpClient.RetryOptions = {
       retries: this.apiRetries,
       retryDelay: RETRY_TIMEOUT,
       fetchParams: this.api.acquire,
@@ -60,7 +62,7 @@ export class LockManager {
 
       while (locksAcquired.indexOf(lockId) == -1) {
         try {
-          let response = await LockManagerApi.invoke(retryOptions, { owner: this.lockOwner, lockId }) as any
+          const response = await HttpClient.invoke(retryOptions, { owner: this.lockOwner, lockId }) as AcquireResponse
           logger.info("LockManager.lock(): %s of %s. Outcome: %s", i, lock.ids.length, JSON.stringify({ request: { owner: this.lockOwner, lockId }, response }))
           if (response.acquired) {
             locksAcquired.push(response.lockId)
@@ -69,9 +71,6 @@ export class LockManager {
               await this.startKeepAliveJob(this.lockOwner, lock, new Date(Date.parse(response.lockExpiry)))
             }
             break
-          } else {
-            const sleep = new Promise(resolve => setTimeout(resolve, 2_000))
-            await sleep
           }
         } catch (error) {
           logger.error("LockManager.lock(): Failed to acquire lock for %s", lockId)
@@ -93,7 +92,7 @@ export class LockManager {
     this.validateArgs(this.lockOwner, lock)
     lock.ids = this.cleanupIds(lock.ids)
 
-    let retryOptions: LockManagerApi.RetryOptions = {
+    const retryOptions: HttpClient.RetryOptions = {
       retries: this.apiRetries,
       retryDelay: RETRY_TIMEOUT,
       fetchParams: this.api.release,
@@ -105,9 +104,9 @@ export class LockManager {
 
     logger.info("LockManager.release(): Releasing lock for %s", lock.ids)
     try {
-      let respJson = await LockManagerApi.invoke(retryOptions, { owner: this.lockOwner, lockIds: lock.ids })
+      const lockIds = await HttpClient.invoke(retryOptions, { owner: this.lockOwner, lockIds: lock.ids }) as ReleaseResponse
       logger.info("LockManager.release(): %s is released for %s", lock.ids, this.lockOwner)
-      return respJson
+      return lockIds
     } catch (error) {
       logger.error("LockManager.release(): Failed to release lock for %s", lock.ids, error)
       throw new Error(`Failed to release lock for ${ lock.ids }`, { cause: error })
@@ -133,15 +132,15 @@ export class LockManager {
       expiryInSec = timeValue
     }
 
-    let retryOptions: LockManagerApi.RetryOptions = {
+    let retryOptions: HttpClient.RetryOptions = {
       retries: this.apiRetries,
       retryDelay: RETRY_TIMEOUT,
       fetchParams: this.api.keepAlive,
     }
     try {
-      let params = { owner: this.lockOwner, lockIds: lock.ids, expiryInSec }
-      let resp = (await LockManagerApi.invoke(retryOptions, params)) as any
-      logger.debug("LockManager.keepAliveFetch(): keepAlive api for: %s with resp %s", JSON.stringify(params), resp)
+      const request: KeepAliveRequest = { owner: this.lockOwner, lockIds: lock.ids, expiryInSec }
+      const resp = (await HttpClient.invoke(retryOptions, request)) as KeepAliveResponse
+      logger.debug("LockManager.keepAliveFetch(): keepAlive api for: %s with resp %s", JSON.stringify(request), resp)
       return resp
     } catch (error) {
       logger.error("LockManager.keepAliveFetch(): failed to keep alive for %s with %s", { lock, owner: this.lockOwner }, error)
@@ -165,8 +164,8 @@ export class LockManager {
 
     this.keepAliveJobHandle = setInterval(async () => {
       try {
-          logger.info("LockManager. Heartbeat for: %s", JSON.stringify({ owner, lock }))
-          return await this.keepAliveFetch(lock)
+        logger.info("LockManager. Heartbeat for: %s", JSON.stringify({ owner, lock }))
+        return await this.keepAliveFetch(lock)
       } catch (error) {
         clearInterval(this.keepAliveJobHandle)
         logger.error("LockManager. Heartbeat failed for %s with %s", JSON.stringify({ lock, owner }), error)
@@ -190,10 +189,10 @@ export class LockManager {
     const msg = `Timeout ${ lock.timeout } should be a string eg 1h, 1m or 1s`
     if (typeof(lock.timeout) !== "string") throw new Error(msg)
 
-    let timeUnit = lock.timeout.trim().slice(-1)
+    const timeUnit = lock.timeout.trim().slice(-1)
     if (![ "h", "m", "s" ].includes(timeUnit)) throw new Error(msg)
 
-    let timeValue = parseInt(lock.timeout.slice(0, -1), 10)
+    const timeValue = parseInt(lock.timeout.slice(0, -1), 10)
     if (isNaN(timeValue) || timeValue < 0) throw new Error(msg)
   }
 }

@@ -2,7 +2,7 @@ import { logger } from "./logger.js"
 
 export let PG_POOL_CLIENT;
 
-const getParam = (name: String, defaultValue: string | number): string | number => {
+const getConfigParam = (name: String, defaultValue: string | number): string | number => {
   if (process.argv.length > 2) {
     for (let i = 2; i + 1 < process.argv.length; i++) {
       if (process.argv[i].toLowerCase() !== name) continue
@@ -23,7 +23,7 @@ const getParam = (name: String, defaultValue: string | number): string | number 
 
   const envValue = process.env[envName]
   logger.debug(envName,'-->',envValue);
-  
+
   if (!envValue) return defaultValue
 
   if (typeof(defaultValue) == 'string') return envValue + ""
@@ -36,4 +36,4 @@ const getParam = (name: String, defaultValue: string | number): string | number 
   return numValue
 }
 
-export { getParam }
+export { getConfigParam }

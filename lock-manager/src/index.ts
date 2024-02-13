@@ -1,4 +1,8 @@
 import express, { Express } from 'express'
+import swaggerUi from 'swagger-ui-express'
+
+import * as fs from "fs"
+import YAML from "yaml"
 
 import { logger } from "./logger.js"
 import * as ConfigReader from "./configuration.js"
@@ -17,8 +21,16 @@ const main = async () => {
   app.use(jsonParser)
 
   const _apiRoutes = new ApiRoutes(app, db)
+  const oasFilePath = new URL("web-api/v1/open-api-schema-v1.yml", import.meta.url).pathname
+  try {
+    await fs.promises.access(oasFilePath, fs.constants.R_OK)
+  } catch (e) {
+    throw new Error(`There is no OAS schema file or it is not readable. File: "${ oasFilePath }"`, { cause: e })
+  }
+  const oasSchema = YAML.parse(fs.readFileSync(oasFilePath, "utf8"))
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(oasSchema));
 
-  const servicePort = ConfigReader.getParam("--container-port", DEFAULT_PORT)
+  const servicePort = ConfigReader.getConfigParam("--container-port", DEFAULT_PORT)
 
   app.listen(servicePort, () => {
     logger.info("HTTP server is running at http://localhost:%d", servicePort)

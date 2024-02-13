@@ -1,0 +1,158 @@
+openapi: "3.1.0"
+info:
+  title: PIT Lock Manager API
+  version: "1.0"
+components:
+  headers:
+    "Content-Type":
+      required: true
+      schema:
+        type: "string"
+  schemas:
+
+    AcquireRequest:
+      type: object
+      properties:
+        lockId:
+          type: string
+        owner:
+          type: string
+        expiryInSec:
+          type: integer
+      required:
+        - lockId
+        - owner
+
+    LockAcquiredResponse:
+      type: object
+      properties:
+        lockId:
+          type: string
+        acquired:
+          type: boolean
+        lockExpiry:
+          type: string
+          format: "date-time"
+      required:
+        - lockId
+        - acquired
+        - lockExpiry
+
+    LockNotAcquiredResponse:
+      type: object
+      properties:
+        lockId:
+          type: string
+        acquired:
+          type: boolean
+      required:
+        - lockId
+        - acquired
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    KeepAliveRequest:
+      type: object
+      properties:
+        lockIds:
+          type: array
+          items:
+            type: string
+        owner:
+          type: string
+      required:
+        - lockIds
+        - owner
+
+    ReleaseRequest:
+      type: object
+      properties:
+        lockIds:
+          type: array
+          items:
+            type: string
+        owner:
+          type: string
+      required:
+        - lockIds
+        - owner
+
+    SetOfLocks:
+      type: array
+      items:
+        type: string
+
+paths:
+  "/locks/acquire":
+    post:
+      summary: Obtains a lock on the given resource
+      operationId: acquire
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcquireRequest"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/LockAcquiredResponse"
+                  - $ref: "#/components/schemas/LockNotAcquiredResponse"
+        "4XX":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  "/locks/keep-alive":
+    post:
+      summary: Maintains the ownership of previously acquired lock
+      operationId: keepAlive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeepAliveRequest"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SetOfLocks"
+        "4XX":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  "/locks/release":
+    post:
+      summary: Releases lock of the given resource
+      operationId: release
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleaseRequest"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SetOfLocks"
+        "4XX":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

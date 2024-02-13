@@ -26,8 +26,6 @@ At this point we have:
 
 Upon deployment, Lock Manager will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the namespace. This DB is permanent it survives the lifespan of temporary namespace where Lock Manager is running. The DB is used to implement exclusivity over components (graph) used in the tests. Multiple instances of Lock Manager may be present in the K8s cluster each sitting in its own temporary namespace. With the help of locking only one test suite will ever run at the same time unless there is no dependency between tests.
 
-There could be multiple Test Runner Apps deployed in the namespace. These apps may be designed to test different graphs. In such setup the invocation of these multiple Test Runners is orchestrated by PIT and subject to locking strategy.
-
 All tests are divided into test suites as defined in the relevant section of pitfile. Pitfile may contain a mixed definition of local and remote test suites.
 
 _Local_ test suites are defined in the same repository as pitfile.
@@ -35,7 +33,7 @@ _Remote_ test suites are defined as reference to remote pitfile. In this case PI
 
 Once Test Runner App finishes executing the test report is available via dedicated endpoint, for example via `GET /reports/{$execution_id}`
 
-Test reports are stored permanently. Multiple reports which are obtained from different Test Runner Apps but produced in the same test session may be stitched together before storing.
+Test reports are stored permanently.
 
 The responsibilities of all mentioned components are defined as:
 
@@ -48,9 +46,9 @@ The responsibilities of all mentioned components are defined as:
 
 - Parses `pitfile.yml`
 - Executes main PIT logic described above
-- Creates K8s namepsace
+- Creates K8s namespace (one for each test suite)
 - Deploys Lock Manager
-- Deploys Test Runner App
+- Deploys Test Runner App (one for each test suite)
 - Deploys graph
 - Collects test report and stores it permanently
 - Cleans up namespace
@@ -67,9 +65,8 @@ The responsibilities of all mentioned components are defined as:
 
 **The YAML specification (pitfile)**
 
-- Controls whether PIT should run at all based on optional filters
-- Encapsulates the location of graph within each test suite
-- Defines what to do with test report
+- Defines test suites
+- Describes components graph for each test suite
 
 ![](./docs/arch.png)
 
@@ -120,37 +117,51 @@ testSuites:
     deployment:
       graph:
         testApp:
-          componentName: Talos Certifier Test App
+          name: Talos Certifier Test App
+          id: talos-certifier-test-app
           location:
             type: LOCAL # optional, defautls to 'LOCAL'
           deploy:
-            command: deployment/talos-certifier-test-app/pit/deploy.sh
+            timeoutSeconds: 120
+            command: deployment/pit/deploy.sh
             params: # Optional command line parameters
               - param1
               - param2
             statusCheck:
-              command: deployment/talos-certifier-test-app/pit/is-deployment-ready.sh
+              command: deployment/pit/is-deployment-ready.sh
+          undeploy:
+            timeoutSeconds: 120
+            command: deployment/pit/undeploy.sh
 
         components:
-          - componentName: Talos Certifier"
+          - name: Talos Certifier"
+            id: talos-certifier
             # Lets assume that pipeline fired as a result of push into Talos Certifier project
             location:
               type: LOCAL
             deploy:
-              command: deployment/talos-certifier/pit/deploy.sh
+              command: deployment/pit/deploy.sh
               statusCheck:
-                command: deployment/talos-certifier/pit/is-deployment-ready.sh
+                command: deployment/pit/is-deployment-ready.sh
+            undeploy:
+              timeoutSeconds: 120
+              command: deployment/pit/undeploy.sh
 
-          - componentName: Talos Replicator
+          - name: Talos Replicator
+            id: talos-replicator
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
             location:
               type: LOCAL
             deploy:
-              command: deployment/talos-replicator/pit/deploy.sh
+              command: deployment/pit/deploy.sh
               statusCheck:
-                command: deployment/talos-replicator/pit/is-deployment-ready.sh
+                command: deployment/pit/is-deployment-ready.sh
+            undeploy:
+              timeoutSeconds: 120
+              command: deployment/pit/undeploy.sh
 
-          - componentName: Some Other Component
+          - name: Some Other Component
+            id: some-id
             # This is an example how to define the remote component
             location:
               type: REMOTE
@@ -158,7 +169,11 @@ testSuites:
               gitRef: # Optional, defaults to "refs/remotes/origin/master"
             deploy:
               command: deployment/pit/deploy.sh
-
+              statusCheck:
+                command: deployment/pit/is-deployment-ready.sh
+            undeploy:
+              timeoutSeconds: 120
+              command: deployment/pit/undeploy.sh
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Testset for Talos Certifier integrated with Messenger
     id: testset-talos-certifier-and-messenger
@@ -220,11 +235,11 @@ testSuites:
 - Ingress Controller named "kubernetes-ingress". [See instructions here](https://kubernetes.github.io/ingress-nginx/deploy/_)
   - All your namespaces are being observed by HNC system. When installing NGINX ingress controller it will create its own namespace and HNC system will complain. To prevent that we need to exclude namespace used by NGINX insgress controller from HNC.
   - Use inline editing method: `kubectl edit -n hnc-system deploy hnc-controller-manager` find deployment with name "name: hnc-controller-manager" and add one more entry into the list under `spec/containers/args`. Entry looks like this: `--excluded-namespace=ingress-nginx`
-- Custom resource definition "External secrets" is installed in your local cluster: 
+- Custom resource definition "External secrets" is installed in your local cluster:
     - `helm repo add external-secrets https://charts.external-secrets.io`
     - `helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace`
     - Also exclude namespace "external-secrets" from hnc-controller-manager as you did with nginx controller.
-  
+
 - The port 80 is free. Port 80 is used by ingress controller in your local desktop-docker.
 
 ## Ports used
@@ -408,7 +423,7 @@ Similarly run git server for "remote test app"
 scripts/host-project-in-git.sh /tmp/remote-sample $(pwd)/../examples/graph-perf-test-app
 ```
 
-Please note that when these projects will be feetched from local git by `k8-deployer`, the fetched project will have no `.env` file! However, our deployment scripts under `deployment/pit/*` can locate `.env` file by reading global environment variables. This is intended for local development. Below is the list of global environment variables 
+Please note that when these projects will be fetched from local git by `k8-deployer`, the fetched project will have no `.env` file! However, our deployment scripts under `deployment/pit/*` can locate `.env` file by reading global environment variables. This is intended for local development. Below is the list of global environment variables
 controlling the location of `.env` files. Export these either globally or in the terminal where you will be launching `k8-deployer`
 
 | Project | Variable |
