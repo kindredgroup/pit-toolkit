@@ -1,9 +1,9 @@
 
 export interface DbConfig {
-    user: String
-    host: String
-    database: String
-    password: String
+    user: string
+    host: string
+    database: string
+    password: string
     port: number
 }
 
@@ -22,43 +22,42 @@ export interface DbPool {
 export interface Db extends DbPool {
     release(): Promise<void>
     execute( query: {
-        name?: String
-        text: String
-        values: any // TODO fix type(String | Date)[]
+        name?: string
+        text: string
+        values: any // TODO fix type(string | Date)[]
       }): Promise<any>
     format_nd_execute( query: {
-        name?: String
-        text: String
-        values: any // TODO fix type(String | Date)[]
+        name?: string
+        text: string
+        values: any // TODO fix type(string | Date)[]
       }): Promise<any>
 }
 
  export type LockAcquireObject = {
-    lockId: String
-    owner: String
+    lockId: string
+    owner: string
     expiryInSec?: number
  }
 
  export type LockMetadata = {
-        lockOwner: String
-        lockExpiry: Date
-        lockCreated: Date
+  lockOwner: string
+  lockExpiry: Date
+  lockCreated: Date
  }
 
 
  export type LockManagerResponse = {
-    lockId: String
+    lockId: string
     acquired: boolean
     lockExpiry?: Date
  }
 
   export type LockKeepAlive = {
-      lockIds: Array<String>
-      owner: String
-      expiryInSec?: number
+    lockIds: Array<string>
+    owner: string
   }
 
   export type ReleaseLocks = {
-      lockIds: Array<String>
-      owner: String
+    lockIds: Array<string>
+    owner: string
   }

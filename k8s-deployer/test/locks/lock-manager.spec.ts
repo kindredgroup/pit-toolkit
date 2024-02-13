@@ -9,7 +9,7 @@ describe("LockManager", () => {
   it("should acquire and release lock", async () => {
     const lockId = "id1"
     const LockManagerModule = await esmock("../../src/locks/lock-manager.js", {
-      '../../src/locks/lock-manager-api-client.js': {
+      '../../src/locks/http-client.js': {
         invoke: ()=> ({ lockId, acquired: true })
       }
     })
@@ -35,7 +35,7 @@ describe("LockManager", () => {
       .onCall(3).returns({ lockIds: [ 'id1' ] })
 
     const LockManagerModule = await esmock("../../src/locks/lock-manager.js", {
-      "../../src/locks/lock-manager-api-client.js": apiClientStub
+      "../../src/locks/http-client.js": apiClientStub
     })
 
     const lockManger = new LockManagerModule.LockManager("test-owner", "http://foobar:8080")
@@ -59,7 +59,7 @@ describe("LockManager", () => {
 
   it("should throw error if lock is not acquired", async () => {
     const LockManagerModule = await esmock("../../src/locks/lock-manager.js", {
-      "../../src/locks/lock-manager-api-client.js": {
+      "../../src/locks/http-client.js": {
         invoke: ()=>  { throw new Error("Failed to acquire lock") }
       }
     })
@@ -77,7 +77,7 @@ describe("LockManager", () => {
     const mockIdList = [ "id1", "id2" ]
     const lock = { ids: mockIdList, timeout: "1h" }
     const LockManagerModule = await esmock("../../src/locks/lock-manager.js", {
-      '../../src/locks/lock-manager-api-client.js': {
+      '../../src/locks/http-client.js': {
         invoke: ()=> (mockIdList)
       }
     })
@@ -90,7 +90,7 @@ describe("LockManager", () => {
   it("should throw error if lock is not released", async () => {
     const mockIdList = [ "id1", "id2" ]
     const LockManagerModule = await esmock("../../src/locks/lock-manager.js", {
-      '../../src/locks/lock-manager-api-client.js': {
+      '../../src/locks/http-client.js': {
         invoke: ()=>  { throw new Error("Failed to release lock") }
       }
     })

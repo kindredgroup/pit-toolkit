@@ -1,19 +1,18 @@
 import pg, { PoolConfig } from "pg"
 import {Db} from "./db.js"
-import {getParam} from "../configuration.js"
+import {getConfigParam} from "../configuration.js"
 import format from "pg-format"
 import { logger } from "../logger.js"
 
 
 let getPoolConfig = ()=>{
-  let host = getParam("PGHOST", "localhost") as string
-  let port = getParam("PGPORT", 5432) as number
+  let host = getConfigParam("PGHOST", "localhost") as string
+  let port = getConfigParam("PGPORT", 5432) as number
 
-  let user = getParam("PGUSER", "") as string
-  let password = getParam("PGPASSWORD", "") as string
-  let database = getParam("PGDATABASE", "") as string
-  let poolSizeMax = getParam("PGMAXPOOLSIZE", 10) as number
-  let poolSizeMin = getParam("PGMINPOOLSIZE", 10) as number
+  let user = getConfigParam("PGUSER", "") as string
+  let password = getConfigParam("PGPASSWORD", "") as string
+  let database = getConfigParam("PGDATABASE", "") as string
+  let poolSizeMin = getConfigParam("PGMINPOOLSIZE", 10) as number
 
   const config:PoolConfig = {
     user,
@@ -39,7 +38,7 @@ export class PostgresDb implements Db {
     throw new Error("Method not implemented.")
   }
 
-  
+
 
   async connect(): Promise<void>{
     const client = new pg.Client(getPoolConfig())
@@ -58,7 +57,7 @@ export class PostgresDb implements Db {
   }): Promise<any> {
     const start = Date.now()
     let result
-    let client 
+    let client
     try {
       client = await this.pg_pool.connect()
       await client.query("BEGIN")
@@ -73,7 +72,7 @@ export class PostgresDb implements Db {
        client?.release()
     }
     const in_duration = Date.now() - start
-    logger.debug("executed query %s in duration %s millis and rows returned %s", 
+    logger.debug("executed query %s in duration %s millis and rows returned %s",
       query,
       in_duration,
       result.rowCount,
@@ -83,10 +82,10 @@ export class PostgresDb implements Db {
 
   async format_nd_execute(query: {
     text: string
-    values: any 
+    values: any
   }): Promise<any> {
     const start = Date.now()
-    let client 
+    let client
     let result
     let sql
     try {

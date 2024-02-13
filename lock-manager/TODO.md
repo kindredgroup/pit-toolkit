@@ -1,1 +1,0 @@
-1. Unit test to cover exhaustive case example more than one lock being acquired with a failure
