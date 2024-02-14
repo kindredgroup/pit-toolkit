@@ -44,7 +44,7 @@
     "migrate:down": "npm run migrate down",
     "migrate:redo": "npm run migrate redo",
     "migrate:create": "npm run migrate create",
-    "migrate_and_start": "npm run migrate:up && npm run start ${LOCK_MANAGER_NODE_OPTIONS}"
+    "migrate_and_start": "npm run migrate:up && npm run start $LOCK_MANAGER_NODE_OPTIONS"
   },
   "dependencies": {
     "express": "^4.18.2",
