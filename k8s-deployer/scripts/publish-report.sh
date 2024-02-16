@@ -16,9 +16,7 @@ echo "GIT_REPO=${GIT_REPO}"
 echo "BRANCH_NAME=${BRANCH_NAME}"
 echo "PUBLISH_DIR=${PUBLISH_DIR}"
 echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}"
-
-git config --global user.email "${USERNAME}@kindredgroup.com"
-git config --global user.name "${USERNAME}"
+echo "USERNAME=${USERNAME}"
 
 if [ "${GIT_REPO}" == "" ];
 then
@@ -31,6 +29,13 @@ if [ "${BRANCH_NAME}" == "" ];
 then
   echo "Reports branch name is required"
   echo "${STATUS_ERROR}"
+  exit 1
+fi
+
+if [ "${USERNAME}" == "" ];
+then
+  echo "The git username is required, it will be used for --author argument in 'git commit' command"
+  echo "${USERNAME}"
   exit 1
 fi
 
@@ -47,6 +52,9 @@ then
   echo "${COMMIT_MESSAGE}"
   exit 1
 fi
+
+# The caller is expected to set "USERNAME" env variable
+AUTHOR_ARG="${USERNAME} <${USERNAME}@kindredgroup.com>"
 
 CONTENT_DIR_PATH="${HOME_DIR}/${CONTENT_DIR}"
 if [ ! -d "${CONTENT_DIR_PATH}" ];
@@ -68,7 +76,7 @@ git clone $GIT_REPO . && \
   cp -R $CONTENT_DIR_PATH/* $PUBLISH_DIR && \
   git add --all && \
   git status && \
-  git commit -a -m "${COMMIT_MESSAGE}" && \
+  git commit --author "${AUTHOR_ARG}" -a -m "${COMMIT_MESSAGE}" && \
   git push -u origin $BRANCH_NAME
 
 resultStatus=$(($?+0))
