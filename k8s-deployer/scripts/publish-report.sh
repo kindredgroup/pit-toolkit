@@ -56,10 +56,6 @@ fi
 # The caller is expected to set "USERNAME" env variable
 AUTHOR_ARG="${USERNAME} <${USERNAME}@kindredgroup.com>"
 
-cp .git/config ./git/config_backup
-git config user.email "${USERNAME}@kindredgroup.com"
-git config user.name "${USERNAME}"
-
 CONTENT_DIR_PATH="${HOME_DIR}/${CONTENT_DIR}"
 if [ ! -d "${CONTENT_DIR_PATH}" ];
 then
@@ -75,6 +71,9 @@ CONTENT_DIR_PATH="../${CONTENT_DIR}"
 pwd
 
 git clone $GIT_REPO . && \
+  cp .git/config ./git/config_backup && \
+  git config user.email "${USERNAME}@kindredgroup.com" && \
+  git config user.name "${USERNAME}" && \
   git checkout -b $BRANCH_NAME "origin/${BRANCH_NAME}" && \
   mkdir $PUBLISH_DIR && \
   cp -R $CONTENT_DIR_PATH/* $PUBLISH_DIR && \
