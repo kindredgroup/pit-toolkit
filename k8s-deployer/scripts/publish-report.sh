@@ -71,7 +71,7 @@ CONTENT_DIR_PATH="../${CONTENT_DIR}"
 pwd
 
 git clone $GIT_REPO . && \
-  cp .git/config ./git/config_backup && \
+  cp .git/config .git/config_backup && \
   git config user.email "${USERNAME}@kindredgroup.com" && \
   git config user.name "${USERNAME}" && \
   git checkout -b $BRANCH_NAME "origin/${BRANCH_NAME}" && \
@@ -81,7 +81,7 @@ git clone $GIT_REPO . && \
   git status && \
   git commit --author "${AUTHOR_ARG}" -a -m "${COMMIT_MESSAGE}" && \
   git push -u origin $BRANCH_NAME && \
-  mv ./git/config_backup ./git/config
+  mv .git/config_backup .git/config
 
 resultStatus=$(($?+0))
 
