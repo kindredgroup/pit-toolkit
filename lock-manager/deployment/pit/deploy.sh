@@ -42,6 +42,7 @@ HELM_OVERWRITES="--set CONTAINER_PORT=${CONTAINER_PORT} \
   --set PGUSER=${PGUSER} \
   --set PGPASSWORD=${PGPASSWORD} \
   --set PIT_LOCK_MANAGER_DEPLOY_DEV_SECRET_STORE=${PIT_LOCK_MANAGER_DEPLOY_DEV_SECRET_STORE} \
+  --set LOCK_MANAGER_NODE_OPTIONS=${LOCK_MANAGER_NODE_OPTIONS} \
   --set pod.repository=${REGISTRY_URL}/${SERVICE_NAME}"
 
 if [ "${ENABLE_INGRESS}" != "true" ];
@@ -80,8 +81,6 @@ then
   echo "$STATUS_ERROR"
   exit $returnStatus
 fi
-
-#http://localhost:80/ns1201_1_1.lock-manager/
 
 # This will signal to the monitor the stop event
 echo "$STATUS_DONE"

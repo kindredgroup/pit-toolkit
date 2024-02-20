@@ -1,5 +1,5 @@
 dev-home
 dist
 node_modules
-tmp
+tmp*
 .env

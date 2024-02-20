@@ -1,10 +1,10 @@
 #!/bin/bash
 
-HOME_DIR=$1    # current directory where script will be executing
-CONTENT_DIR=$2 # relative to HOME_DIR
-GIT_REPO=$3    # publish location
+HOME_DIR=$1         # current directory where script will be executing
+CONTENT_DIR=$2      # relative to HOME_DIR
+GIT_REPO=$3         # publish location
 BRANCH_NAME=$4
-PUBLISH_DIR=$5 # the directory in the project where new report will be stored
+PUBLISH_DIR=$5      # the directory in the project where new report will be stored
 COMMIT_MESSAGE=$6
 
 STATUS_DONE="Status=DONE"
@@ -16,9 +16,7 @@ echo "GIT_REPO=${GIT_REPO}"
 echo "BRANCH_NAME=${BRANCH_NAME}"
 echo "PUBLISH_DIR=${PUBLISH_DIR}"
 echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}"
-
-git config --global user.email "${USERNAME}@kindredgroup.com"
-git config --global user.name "${USERNAME}"
+echo "USERNAME=${USERNAME}"
 
 if [ "${GIT_REPO}" == "" ];
 then
@@ -31,6 +29,13 @@ if [ "${BRANCH_NAME}" == "" ];
 then
   echo "Reports branch name is required"
   echo "${STATUS_ERROR}"
+  exit 1
+fi
+
+if [ "${USERNAME}" == "" ];
+then
+  echo "The git username is required, it will be used for --author argument in 'git commit' command"
+  echo "${USERNAME}"
   exit 1
 fi
 
@@ -48,6 +53,9 @@ then
   exit 1
 fi
 
+# The caller is expected to set "USERNAME" env variable
+AUTHOR_ARG="${USERNAME} <${USERNAME}@kindredgroup.com>"
+
 CONTENT_DIR_PATH="${HOME_DIR}/${CONTENT_DIR}"
 if [ ! -d "${CONTENT_DIR_PATH}" ];
 then
@@ -63,13 +71,17 @@ CONTENT_DIR_PATH="../${CONTENT_DIR}"
 pwd
 
 git clone $GIT_REPO . && \
+  cp .git/config .git/config_backup && \
+  git config user.email "${USERNAME}@kindredgroup.com" && \
+  git config user.name "${USERNAME}" && \
   git checkout -b $BRANCH_NAME "origin/${BRANCH_NAME}" && \
   mkdir $PUBLISH_DIR && \
   cp -R $CONTENT_DIR_PATH/* $PUBLISH_DIR && \
   git add --all && \
   git status && \
-  git commit -a -m "${COMMIT_MESSAGE}" && \
-  git push -u origin $BRANCH_NAME
+  git commit --author "${AUTHOR_ARG}" -a -m "${COMMIT_MESSAGE}" && \
+  git push -u origin $BRANCH_NAME && \
+  mv .git/config_backup .git/config
 
 resultStatus=$(($?+0))
 

@@ -6,3 +6,4 @@ data:
   SERVICE_NAME: {{ .Values.SERVICE_NAME | quote }}
   SERVICE_PORT: {{ .Values.SERVICE_PORT | quote }}
   PG_MIN_POOL_SIZE: {{ .Values.PG_MIN_POOL_SIZE | quote }}
+  LOCK_MANAGER_NODE_OPTIONS: {{ .Values.LOCK_MANAGER_NODE_OPTIONS | quote }}

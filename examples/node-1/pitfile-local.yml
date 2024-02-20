@@ -6,16 +6,12 @@ projectName: "Tests for node-1 app"
 # This optional config section is here only to indicate that lock manager
 # should be deployed.
 lockManager:
-  enabled: true
+  enabled: false
 
 testSuites:
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Default tests for Node 1
     id: node-1-default
-    lock:
-      timeout: 1h
-      ids:
-        - "lock-node-1"
 
     deployment:
       graph:
@@ -46,10 +42,3 @@ testSuites:
             undeploy:
               timeoutSeconds: 120
               command: deployment/pit/undeploy.sh
-
-  - name: K6 testset for Node 1
-    id: node-1-k6-tests
-    location:
-      type: REMOTE
-      gitRepository: git://127.0.0.1:60100/graph-perf-test-app.git
-    testSuiteIds: [] # Empty array is interpreted as "run all tests"

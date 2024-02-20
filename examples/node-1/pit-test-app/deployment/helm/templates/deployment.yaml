@@ -20,7 +20,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.container.port }}
               protocol: TCP
           resources:
             limits:

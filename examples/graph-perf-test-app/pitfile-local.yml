@@ -1,0 +1,34 @@
+version: "1.0"
+projectName: "K6 Tests for Node-1"
+lockManager:
+  enabled: false
+testSuites:
+  - name: "K6 tests for 'GET /time'"
+    id: node-1-k6-tests
+
+    deployment:
+      graph:
+        testApp:
+          name: "Performance Test App for Node 1"
+          id: "graph-perf-test-app"
+          location:
+            type: LOCAL
+          deploy:
+            command: deployment/pit/deploy.sh
+            params:
+              - 'node-1' # The name of target service. Deployer will compose it into the full URL
+            statusCheck:
+              command: deployment/pit/is-deployment-ready.sh
+          undeploy:
+            timeoutSeconds: 120
+            command: deployment/pit/undeploy.sh
+        components:
+          - name: Node 1
+            id: node-1
+            deploy:
+              command: deployment/pit/deploy.sh
+              statusCheck:
+                command: deployment/pit/is-deployment-ready.sh
+            undeploy:
+              timeoutSeconds: 120
+              command: deployment/pit/undeploy.sh
