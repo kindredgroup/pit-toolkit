@@ -1,7 +1,7 @@
 import http from 'k6/http'
-import { check, fail } from 'k6'
+import { check } from 'k6'
 
-//"GET /time [10s using 50 users at 500 TPS]"
+//"GET /time [5s using 5 users at 500 TPS] + [10s using 10 users at 500 TPS]"
 export const options = {
   scenarios: {
     u5_duration_5s: {

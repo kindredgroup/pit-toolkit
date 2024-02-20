@@ -36,6 +36,7 @@ helm upgrade --install \
   --namespace $K8S_NAMESPACE \
   --set image.tag=$IMAGE_TAG \
   --set pod.repository=$REGISTRY_URL/$SERVICE_NAME \
+  --set container.port=$CONTAINER_PORT \
   --set service.port=$SERVICE_PORT \
   --set environment.TARGET_SERVICE_URL=$TARGET_SERVICE_URL \
   --set webApp.contextRoot=$K8S_NAMESPACE.$WEB_APP_CONTEXT_ROOT \

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-HOME_DIR=$1    # current directory where script will be executing
-CONTENT_DIR=$2 # relative to HOME_DIR
-GIT_REPO=$3    # publish location
+HOME_DIR=$1         # current directory where script will be executing
+CONTENT_DIR=$2      # relative to HOME_DIR
+GIT_REPO=$3         # publish location
 BRANCH_NAME=$4
-PUBLISH_DIR=$5 # the directory in the project where new report will be stored
+PUBLISH_DIR=$5      # the directory in the project where new report will be stored
 COMMIT_MESSAGE=$6
 
 STATUS_DONE="Status=DONE"
@@ -56,6 +56,10 @@ fi
 # The caller is expected to set "USERNAME" env variable
 AUTHOR_ARG="${USERNAME} <${USERNAME}@kindredgroup.com>"
 
+cp .git/config ./git/config_backup
+git config user.email "${USERNAME}@kindredgroup.com"
+git config user.name "${USERNAME}"
+
 CONTENT_DIR_PATH="${HOME_DIR}/${CONTENT_DIR}"
 if [ ! -d "${CONTENT_DIR_PATH}" ];
 then
@@ -77,7 +81,8 @@ git clone $GIT_REPO . && \
   git add --all && \
   git status && \
   git commit --author "${AUTHOR_ARG}" -a -m "${COMMIT_MESSAGE}" && \
-  git push -u origin $BRANCH_NAME
+  git push -u origin $BRANCH_NAME && \
+  mv ./git/config_backup ./git/config
 
 resultStatus=$(($?+0))
 
