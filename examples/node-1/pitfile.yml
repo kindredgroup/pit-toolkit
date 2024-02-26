@@ -7,7 +7,7 @@ projectName: "Tests for node-1 app"
 # should be deployed.
 lockManager:
   enabled: true
-
+cleanup: true
 testSuites:
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   - name: Default tests for Node 1
@@ -16,7 +16,7 @@ testSuites:
       timeout: 1h
       ids:
         - "lock-node-1"
-
+   
     deployment:
       graph:
         testApp:

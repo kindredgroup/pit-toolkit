@@ -163,7 +163,7 @@ if [ "${ACTION}" == "delete" ];
 then
   echo "Deleting namespace ${NS} from ${PARENT_NS}, this may take some time..."
   kubectl hns set $NS --allowCascadingDeletion
-  kubectl delete subns -n $PARENT_NS $NS
+  # kubectl delete subns -n $PARENT_NS $NS
   kubectl hns tree $PARENT_NS
 
   echo "$STATUS_DONE"
