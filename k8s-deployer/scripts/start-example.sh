@@ -12,6 +12,9 @@
 # 4. Lock manager retries count
 # 5. Flag for kube proxy
 # 6. Flag for generator which makes a new sub-namespace
+# 7. Test session id
+# 8. Git username
+# 9. Git user email
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 echo "Starting k8s-deployer application..."
@@ -31,6 +34,9 @@ SUB_NS_NAME_GENERATOR_TYPE=$6
 if [ "${SUB_NS_NAME_GENERATOR_TYPE}" == "" ]; then SUB_NS_NAME_GENERATOR_TYPE="DATE"; fi
 
 TEST_SESSION=$7
+
+USER_NAME=$8
+USER_EMAIL=$9
 
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
@@ -57,7 +63,8 @@ echo "Parent namespace is \"${PARENT_NS}\""
 echo "Subnamespace prefix is \"${SUB_NS_PREFIX}\""
 echo "Subnamespace name generator type is \"${SUB_NS_NAME_GENERATOR_TYPE}\""
 echo "Simulated CI commit \"$COMMIT_SHA\""
-
+echo "Git username \"$USER_NAME\""
+echo "Git user email \"$USER_EMAIL\""
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then
@@ -134,13 +141,19 @@ LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --parent-ns $PARENT_NS \
   --subns-prefix $SUB_NS_PREFIX \
   --subns-name-generator-type $SUB_NS_NAME_GENERATOR_TYPE \
-  --report-repository \"git://127.0.0.1:60102/pit-reports.git\" \
-  --report-branch-name $(basename $PROJECT_DIR) \
   --lock-manager-mock $LOCK_MANAGER_MOCK \
   --use-kube-proxy $USE_KUBE_PROXY \
   --cluster-url $CLUSTER_URL \
   --lock-manager-api-retries $LOCK_MANAGER_API_RETRIES"
 
+if [ "${USER_NAME}" != "" ];
+then
+  LAUNCH_ARGS="${LAUNCH_ARGS} \
+  --report-repository \"git://127.0.0.1:60102/pit-reports.git\" \
+  --report-branch-name $(basename $PROJECT_DIR) \
+  --report-user-name ${USER_NAME} \
+  --report-user-email ${USER_EMAIL}"
+fi
 
 echo "LAUNCH_ARGS="
 echo "${LAUNCH_ARGS}"

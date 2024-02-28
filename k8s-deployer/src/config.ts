@@ -8,7 +8,9 @@ export const DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE = SUB_NAMESPACE_GENERATOR_TYPE
 export class TestReportConfig {
   constructor(
     readonly gitRepository?: string,
-    readonly branchName?: string
+    readonly branchName?: string,
+    readonly gitUserName?: string,
+    readonly gitUserEmail?: string
   ) {}
 }
 
@@ -25,9 +27,9 @@ export class Config {
     readonly namespaceTimeoutSeconds: number,
     readonly report: TestReportConfig,
     readonly params: Map<string, string>,
-    readonly useMockLockManager: boolean,
     readonly servicesAreExposedViaProxy: boolean = true,
-    readonly lockManagerApiRetries: number,
+    readonly useMockLockManager: boolean = false,
+    readonly lockManagerApiRetries: number = 3,
     readonly testStatusPollFrequencyMs: number = 15_000,
     readonly deployCheckFrequencyMs: number = 5_000,
     readonly testTimeoutMs: number = 60_000,

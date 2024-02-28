@@ -4,8 +4,10 @@ HOME_DIR=$1         # current directory where script will be executing
 CONTENT_DIR=$2      # relative to HOME_DIR
 GIT_REPO=$3         # publish location
 BRANCH_NAME=$4
-PUBLISH_DIR=$5      # the directory in the project where new report will be stored
-COMMIT_MESSAGE=$6
+USER_NAME=$5        # the uername for auth to git
+USER_EMAIL=$6
+PUBLISH_DIR=$7      # the directory in the project where new report will be stored
+COMMIT_MESSAGE=$8
 
 STATUS_DONE="Status=DONE"
 STATUS_ERROR="Status=ERROR"
@@ -14,9 +16,10 @@ echo "HOME_DIR=${HOME_DIR}"
 echo "CONTENT_DIR=${CONTENT_DIR}"
 echo "GIT_REPO=${GIT_REPO}"
 echo "BRANCH_NAME=${BRANCH_NAME}"
+echo "USER_NAME=${USER_NAME}"
+echo "USER_EMAIL=${USER_EMAIL}"
 echo "PUBLISH_DIR=${PUBLISH_DIR}"
 echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}"
-echo "USERNAME=${USERNAME}"
 
 if [ "${GIT_REPO}" == "" ];
 then
@@ -32,10 +35,17 @@ then
   exit 1
 fi
 
-if [ "${USERNAME}" == "" ];
+if [ "${USER_NAME}" == "" ];
 then
-  echo "The git username is required, it will be used for --author argument in 'git commit' command"
-  echo "${USERNAME}"
+  echo "Git user name is required"
+  echo "${USER_NAME}"
+  exit 1
+fi
+
+if [ "${USER_EMAIL}" == "" ];
+then
+  echo "Git user email is required"
+  echo "${USER_EMAIL}"
   exit 1
 fi
 
@@ -72,14 +82,14 @@ pwd
 
 git clone $GIT_REPO . && \
   cp .git/config .git/config_backup && \
-  git config user.email "${USERNAME}@kindredgroup.com" && \
-  git config user.name "${USERNAME}" && \
+  git config user.email "${USER_EMAIL}" && \
+  git config user.name "${USER_NAME}" && \
   git checkout -b $BRANCH_NAME "origin/${BRANCH_NAME}" && \
   mkdir $PUBLISH_DIR && \
   cp -R $CONTENT_DIR_PATH/* $PUBLISH_DIR && \
   git add --all && \
   git status && \
-  git commit --author "${AUTHOR_ARG}" -a -m "${COMMIT_MESSAGE}" && \
+  git commit -a -m "${COMMIT_MESSAGE}" && \
   git push -u origin $BRANCH_NAME && \
   mv .git/config_backup .git/config
 
