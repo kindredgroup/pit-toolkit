@@ -17,6 +17,7 @@ import {
   PARAM_REPORT_REPOSITORY,
   PARAM_REPORT_USER_EMAIL,
   PARAM_REPORT_USER_NAME,
+  PARAM_ENABLE_CLEANUPS,
   readParams,
 } from "../src/bootstrap.js"
 import {
@@ -44,7 +45,8 @@ describe("bootstrap with correct configs", () => {
       PARAM_REPORT_BRANCH_NAME, "service-branch",
       PARAM_REPORT_REPOSITORY, "http://some-host.name/service.git",
       PARAM_REPORT_USER_EMAIL, "some-user@some-host.name",
-      PARAM_REPORT_USER_NAME, "some-user"
+      PARAM_REPORT_USER_NAME, "some-user",
+      PARAM_ENABLE_CLEANUPS, "false"
      ])
   })
 
@@ -63,6 +65,7 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.report.gitRepository).be.eq("http://some-host.name/service.git")
     chai.expect(config.report.gitUserEmail).be.eq("some-user@some-host.name")
     chai.expect(config.report.gitUserName).be.eq("some-user")
+    chai.expect(config.enableCleanups).be.false
   })
 
   afterEach(() => {
@@ -124,6 +127,11 @@ describe("bootstrap with invalid configs", () => {
     chai.expect(config.servicesAreExposedViaProxy).be.true
     chai.expect(config.useMockLockManager).be.false
     chai.expect(config.lockManagerApiRetries).be.eq(3)
+    chai.expect(config.report.gitRepository).be.undefined
+    chai.expect(config.report.branchName).be.undefined
+    chai.expect(config.report.gitUserName).be.undefined
+    chai.expect(config.report.gitUserEmail).be.undefined
+    chai.expect(config.enableCleanups).be.true
     sandbox.restore()
   })
 
