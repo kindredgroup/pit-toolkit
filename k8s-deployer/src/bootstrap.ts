@@ -1,8 +1,11 @@
 import { Config,
   DEFAULT_CLUSTER_URL,
+  DEFAULT_DEPLOY_CHECK_FREQUENCY,
   DEFAULT_NAMESPACE_TIMEOUT,
   DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE,
   DEFAULT_SUB_NAMESPACE_PREFIX,
+  DEFAULT_TEST_STATUS_POLL_FREQUENCY,
+  DEFAULT_TEST_TIMEOUT,
   SUB_NAMESPACE_GENERATOR_TYPE_COMMITSHA,
   SUB_NAMESPACE_GENERATOR_TYPE_DATE,
   TestReportConfig } from "./config.js"
@@ -25,6 +28,7 @@ export const PARAM_CLUSTER_URL = "--cluster-url"
 export const PARAM_LOCK_MANAGER_MOCK = "--lock-manager-mock"
 export const PARAM_USE_KUBE_PROXY = "--use-kube-proxy"
 export const PARAM_LOCK_MANAGER_API_RETRIES = "--lock-manager-api-retries"
+export const PARAM_ENABLE_CLEANUPS = "--enable-cleanups"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -82,6 +86,7 @@ const readParams = (): Config => {
   }
 
   const useKubeProxy = !params.has(PARAM_USE_KUBE_PROXY) ? true : params.get(PARAM_USE_KUBE_PROXY) === "true"
+  const enableCleanups = !params.has(PARAM_ENABLE_CLEANUPS) ? true : params.get(PARAM_ENABLE_CLEANUPS) === "true"
   return new Config(
     commitSha,
     workspace,
@@ -100,7 +105,11 @@ const readParams = (): Config => {
     params,
     useKubeProxy,
     useMockLockManager,
-    lockManagerApiRetries
+    lockManagerApiRetries,
+    DEFAULT_TEST_STATUS_POLL_FREQUENCY,
+    DEFAULT_DEPLOY_CHECK_FREQUENCY,
+    DEFAULT_TEST_TIMEOUT,
+    enableCleanups
   )
 }
 

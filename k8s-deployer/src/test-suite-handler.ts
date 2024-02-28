@@ -18,6 +18,7 @@ const deployGraph = async (config: Config, workspace: string, testSuiteId: strin
   const deployments: Array<DeployedComponent> = new Array()
   for (let i = 0; i < graph.components.length; i++) {
     const componentSpec = graph.components[i]
+    logger.info("")
     logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, componentSpec.name)
     logger.info("")
     const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
@@ -53,7 +54,9 @@ const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string)
 }
 
 const createWorkspace = async (path: string) => {
+  logger.info("")
   logger.info("Creating workspace '%s'", path)
+  logger.info("")
   let directoryCreated = false
   try {
     await fs.promises.access(path, fs.constants.W_OK)
@@ -112,6 +115,7 @@ const deployLocal = async (
   logger.info("NAMEPSACE IN USE=%s, process.env.MOCK_NS=%s", ns, process.env.MOCK_NS)
 
   await deployLockManager(config, workspace, pitfile.lockManager.enabled, ns)
+  logger.info("")
 
   const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, ns, testAppDirForRemoteTestSuite)
 
@@ -129,6 +133,7 @@ const deployRemote = async (
   const destination = `${ workspace }/remotesuite_${ testSuite.id }`
   fs.mkdirSync(destination, { recursive: true })
 
+  logger.info("Downloading remote pitfile for '%s'", testSuite.id)
   const remotePitFile = await downloadPitFile(testSuite, destination)
 
   // Extract test suites from remote file where IDs are matching definition of local ones
