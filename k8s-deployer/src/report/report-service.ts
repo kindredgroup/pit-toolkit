@@ -54,6 +54,8 @@ export const store = async (
   command = `${ command } reports`
   command = `${ command } "${ config.report.gitRepository }"`
   command = `${ command } "${ config.report.branchName }"`
+  command = `${ command } "${ config.report.gitUserName }"`
+  command = `${ command } "${ config.report.gitUserEmail }"`
   command = `${ command } ${ storageDir }`
   command = `${ command } "${ commitMessage }"`
 

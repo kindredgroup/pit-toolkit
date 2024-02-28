@@ -1,9 +1,12 @@
-import { Config, 
-  DEFAULT_CLUSTER_URL, 
-  DEFAULT_NAMESPACE_TIMEOUT, 
+import { Config,
+  DEFAULT_CLUSTER_URL,
+  DEFAULT_DEPLOY_CHECK_FREQUENCY,
+  DEFAULT_NAMESPACE_TIMEOUT,
   DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE,
-  DEFAULT_SUB_NAMESPACE_PREFIX, 
-  SUB_NAMESPACE_GENERATOR_TYPE_COMMITSHA,  
+  DEFAULT_SUB_NAMESPACE_PREFIX,
+  DEFAULT_TEST_STATUS_POLL_FREQUENCY,
+  DEFAULT_TEST_TIMEOUT,
+  SUB_NAMESPACE_GENERATOR_TYPE_COMMITSHA,
   SUB_NAMESPACE_GENERATOR_TYPE_DATE,
   TestReportConfig } from "./config.js"
 import { logger } from "./logger.js"
@@ -17,12 +20,15 @@ export const PARAM_SUBNS_PREFIX = "--subns-prefix"
 export const PARAM_SUBNS_NAME_GENERATOR_TYPE = "--subns-name-generator-type"
 export const PARAM_REPORT_REPOSITORY = "--report-repository"
 export const PARAM_REPORT_BRANCH_NAME = "--report-branch-name"
+export const PARAM_REPORT_USER_NAME = "--report-user-name"
+export const PARAM_REPORT_USER_EMAIL = "--report-user-email"
 // Optionals
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
 export const PARAM_LOCK_MANAGER_MOCK = "--lock-manager-mock"
 export const PARAM_USE_KUBE_PROXY = "--use-kube-proxy"
 export const PARAM_LOCK_MANAGER_API_RETRIES = "--lock-manager-api-retries"
+export const PARAM_ENABLE_CLEANUPS = "--enable-cleanups"
 
 const readParams = (): Config => {
   logger.debug("readParams()... \n%s", JSON.stringify(process.argv, null, 2))
@@ -64,14 +70,12 @@ const readParams = (): Config => {
 
   const clusterUrl = params.get(PARAM_CLUSTER_URL) || DEFAULT_CLUSTER_URL
 
-  const reportRepo = params.get(PARAM_REPORT_REPOSITORY)
-  const reportBranch = params.get(PARAM_REPORT_BRANCH_NAME)
   const useMockLockManager = params.get(PARAM_LOCK_MANAGER_MOCK) === "true"
   const lockManagerApiRetries = params.get(PARAM_LOCK_MANAGER_API_RETRIES) ? parseInt(params.get(PARAM_LOCK_MANAGER_API_RETRIES)) : 3
 
   let subNsPrefix = params.get(PARAM_SUBNS_PREFIX)
   if (!subNsPrefix) subNsPrefix = DEFAULT_SUB_NAMESPACE_PREFIX
-  
+
   let subNsGeneratorType = params.get(PARAM_SUBNS_NAME_GENERATOR_TYPE)
   if (subNsGeneratorType) {
     if (subNsGeneratorType !== SUB_NAMESPACE_GENERATOR_TYPE_DATE && subNsGeneratorType !== DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE) {
@@ -81,6 +85,8 @@ const readParams = (): Config => {
     subNsGeneratorType = DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE
   }
 
+  const useKubeProxy = !params.has(PARAM_USE_KUBE_PROXY) ? true : params.get(PARAM_USE_KUBE_PROXY) === "true"
+  const enableCleanups = !params.has(PARAM_ENABLE_CLEANUPS) ? true : params.get(PARAM_ENABLE_CLEANUPS) === "true"
   return new Config(
     commitSha,
     workspace,
@@ -90,11 +96,20 @@ const readParams = (): Config => {
     subNsGeneratorType,
     params.get(PARAM_PITFILE),
     namespaceTimeoutSeconds,
-    new TestReportConfig(reportRepo, reportBranch),
+    new TestReportConfig(
+      params.get(PARAM_REPORT_REPOSITORY),
+      params.get(PARAM_REPORT_BRANCH_NAME),
+      params.get(PARAM_REPORT_USER_NAME),
+      params.get(PARAM_REPORT_USER_EMAIL),
+    ),
     params,
+    useKubeProxy,
     useMockLockManager,
-    params.get(PARAM_USE_KUBE_PROXY) === "true",
-    lockManagerApiRetries
+    lockManagerApiRetries,
+    DEFAULT_TEST_STATUS_POLL_FREQUENCY,
+    DEFAULT_DEPLOY_CHECK_FREQUENCY,
+    DEFAULT_TEST_TIMEOUT,
+    enableCleanups
   )
 }
 

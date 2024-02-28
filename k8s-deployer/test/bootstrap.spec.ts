@@ -5,15 +5,20 @@ import * as chai from "chai"
 import {
   PARAM_CLUSTER_URL,
   PARAM_COMMIT_SHA,
+  PARAM_LOCK_MANAGER_API_RETRIES,
   PARAM_LOCK_MANAGER_MOCK,
   PARAM_NAMESPACE_TIMEOUT,
   PARAM_PARENT_NS,
+  PARAM_PITFILE,
   PARAM_SUBNS_PREFIX,
   PARAM_SUBNS_NAME_GENERATOR_TYPE,
-  PARAM_PITFILE,
   PARAM_WORKSPACE,
+  PARAM_REPORT_BRANCH_NAME,
+  PARAM_REPORT_REPOSITORY,
+  PARAM_REPORT_USER_EMAIL,
+  PARAM_REPORT_USER_NAME,
+  PARAM_ENABLE_CLEANUPS,
   readParams,
-  PARAM_LOCK_MANAGER_API_RETRIES
 } from "../src/bootstrap.js"
 import {
   DEFAULT_CLUSTER_URL,
@@ -36,7 +41,12 @@ describe("bootstrap with correct configs", () => {
       PARAM_PARENT_NS, "dev",
       PARAM_SUBNS_PREFIX, DEFAULT_SUB_NAMESPACE_PREFIX,
       PARAM_LOCK_MANAGER_MOCK, "false",
-      PARAM_LOCK_MANAGER_API_RETRIES, 3
+      PARAM_LOCK_MANAGER_API_RETRIES, 3,
+      PARAM_REPORT_BRANCH_NAME, "service-branch",
+      PARAM_REPORT_REPOSITORY, "http://some-host.name/service.git",
+      PARAM_REPORT_USER_EMAIL, "some-user@some-host.name",
+      PARAM_REPORT_USER_NAME, "some-user",
+      PARAM_ENABLE_CLEANUPS, "false"
      ])
   })
 
@@ -48,8 +58,14 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.clusterUrl).eq("http://some-host.name")
     chai.expect(config.subNamespacePrefix).eq(DEFAULT_SUB_NAMESPACE_PREFIX)
     chai.expect(config.subNamespaceGeneratorType).eq(DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE)
+    chai.expect(config.servicesAreExposedViaProxy).be.true
     chai.expect(config.useMockLockManager).be.false
     chai.expect(config.lockManagerApiRetries).be.eq(3)
+    chai.expect(config.report.branchName).be.eq("service-branch")
+    chai.expect(config.report.gitRepository).be.eq("http://some-host.name/service.git")
+    chai.expect(config.report.gitUserEmail).be.eq("some-user@some-host.name")
+    chai.expect(config.report.gitUserName).be.eq("some-user")
+    chai.expect(config.enableCleanups).be.false
   })
 
   afterEach(() => {
@@ -108,8 +124,14 @@ describe("bootstrap with invalid configs", () => {
     chai.expect(config.useMockLockManager).be.false
     chai.expect(config.subNamespacePrefix).eq(DEFAULT_SUB_NAMESPACE_PREFIX)
     chai.expect(config.subNamespaceGeneratorType).eq(DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE)
+    chai.expect(config.servicesAreExposedViaProxy).be.true
     chai.expect(config.useMockLockManager).be.false
     chai.expect(config.lockManagerApiRetries).be.eq(3)
+    chai.expect(config.report.gitRepository).be.undefined
+    chai.expect(config.report.branchName).be.undefined
+    chai.expect(config.report.gitUserName).be.undefined
+    chai.expect(config.report.gitUserEmail).be.undefined
+    chai.expect(config.enableCleanups).be.true
     sandbox.restore()
   })
 

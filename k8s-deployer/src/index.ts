@@ -44,10 +44,15 @@ const main = async () => {
   logger.info("")
   logger.info("--------------------- Cleaning up --------------------- ")
   logger.info("")
-  for (let deployments of artefacts) {
-    await SuiteHandler.undeployAll(config, file, deployments)
+  if (config.enableCleanups) {
+    for (let deployments of artefacts) {
+      await SuiteHandler.undeployAll(config, file, deployments)
+    }
+  } else {
+    logger.info("The cleanups are intentionally disabled.")
   }
 
+  logger.info("")
   logger.info("DONE")
 }
 
