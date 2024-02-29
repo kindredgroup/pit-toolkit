@@ -8,6 +8,7 @@ import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
 import * as Shell from "./shell-facade.js"
+import { PodLogTail } from "./pod-log-tail.js"
 
 /**
  * Deploying:
@@ -213,6 +214,49 @@ export const processTestSuite = async (
   logger.info("")
   const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
 
+  logger.info("")
+  logger.info("%s Deployment is done. Attaching to container logs. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+  logger.info("")
+
+  const logTailers = new Array()
+
+  const tailLog = (workspace: string, ns: Namespace, serviceName: string) => {
+    const logFile = `${ workspace }/logs/pod-${ serviceName }.log`
+    const tailer = new PodLogTail(ns, serviceName, logFile)
+    logTailers.push(tailer.start())
+  }
+
+  let tailLockManager = true
+
+  for (let suite of list) {
+    for (let service of suite.graphDeployment.components) {
+      const shouldTailLog = service.component.logTailing?.enabled === true
+      if (!shouldTailLog) continue
+
+      const serviceName = (service.component.logTailing.containerName != undefined) ? service.component.logTailing.containerName : service.component.id
+      tailLog(suite.workspace, suite.namespace, serviceName)
+    }
+
+    if (suite.graphDeployment.testApp.component.logTailing?.enabled) {
+      tailLog(suite.workspace, suite.namespace, suite.graphDeployment.testApp.component.id)
+    }
+
+    if (tailLockManager) {
+      if (pitfile.lockManager.enabled && pitfile.lockManager.logTailing?.enabled) {
+        let serviceName: string = undefined
+        if (pitfile.lockManager.logTailing?.containerName) {
+          serviceName = pitfile.lockManager.logTailing?.containerName
+        } else if (pitfile.lockManager.id) {
+          serviceName = pitfile.lockManager.id
+        } else {
+          serviceName = "lock-manager"
+        }
+        tailLog(suite.workspace, suite.namespace, serviceName)
+      }
+      tailLockManager = false
+    }
+  }
+
   if (config.servicesAreExposedViaProxy) {
     logger.info("")
     logger.info("%s Deployment is done. Sleeping before running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
@@ -226,6 +270,16 @@ export const processTestSuite = async (
   logger.info("")
 
   await TestRunner.runAll(prefix, config, list)
+
+  if (logTailers.length > 0) {
+    logger.info("")
+    logger.info("%s Detaching log tailers. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+    logger.info("")
+
+    for (let tailer of logTailers) {
+      tailer.stop()
+    }
+  }
 
   return list
 }
