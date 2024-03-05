@@ -29,7 +29,7 @@ export class PodLogTail {
       }
     )
 
-    logger.info("Log tailer started with PID: %s. The content is being written to: %s", this.tailer.pid, this.logFilePath)
+    logger.info("PodLogTail.start(): Log tailer started with PID: %s. The content is being written to: %s", this.tailer.pid, this.logFilePath)
     return this
   }
 
@@ -50,31 +50,3 @@ export class PodLogTail {
   }
 }
 
-const main = async () => {
-  const service = "talos-hermes"
-  const out = fs.openSync(`${service}.log`, 'a')
-  const err = fs.openSync(`${service}.log`, 'a')
-
-  const logProcess = NodeShell.spawn(
-    "scripts/tail-container-log.sh",
-    [ "pit-cecad19-b-1e1-1", service ],
-    {
-      detached: true,
-      stdio: [ 'ignore', out, err ]
-    }
-  )
-
-  logger.info("Logger started: pid=%s", logProcess.pid)
-
-  const timer = setInterval(() => {
-    logger.info("tick ...")
-  }, 1_000)
-
-  setTimeout(() => {
-    logger.info("killing...")
-    logProcess.kill("SIGKILL")
-    clearInterval(timer)
-  }, 10_000)
-
-  logger.info("done")
-}
