@@ -86,6 +86,15 @@ const applyDefaults = (file: SchemaV1.PitFile): SchemaV1.PitFile => {
     }
   }
 
+  if (file.lockManager.enabled) {
+    if (!file.lockManager.id) {
+      file.lockManager.id = "lock-manager"
+    }
+    if (file.lockManager.logTailing?.enabled && !file.lockManager.logTailing.containerName) {
+      file.lockManager.logTailing.containerName = file.lockManager.id
+    }
+  }
+
   return result
 }
 

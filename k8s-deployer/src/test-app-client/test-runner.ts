@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid"
 import { LockManager } from "../locks/lock-manager.js"
 import { LockManagerMock } from "../locks/lock-manager-mock.js"
 import { DeployedTestSuite, Prefix } from "../model.js"
-import { logger } from "../logger.js"
+import { LOG_SEPARATOR_LINE, logger } from "../logger.js"
 import * as webapi from "./web-api/schema-v1.js"
 import * as ReportSchema from "./report/schema-v1.js"
 import { Config } from "../config.js"
@@ -14,6 +14,10 @@ import * as K8s from "../k8s.js"
 
 export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<DeployedTestSuite>) => {
   for (let deployedSuite of testSuites) {
+
+    logger.info("")
+    logger.info("%s Running test suite '%s' %s", LOG_SEPARATOR_LINE, deployedSuite.testSuite.name, LOG_SEPARATOR_LINE)
+    logger.info("")
     try {
       const startTime = new Date()
       const reportEnvelope = await runSuite(config, deployedSuite)

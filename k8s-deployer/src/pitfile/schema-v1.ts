@@ -37,6 +37,7 @@ export class LockManager {
   id: string
   deploy: DeployInstructions
   undeploy: DeployInstructions
+  logTailing?: LogTailing
 }
 
 // Test suite
@@ -46,12 +47,19 @@ export class Lock {
   ids: Array<string>
 }
 
+export class LogTailing {
+  enabled: boolean
+  // by default equals to component id
+  containerName?: string
+}
+
 export class DeployableComponent {
   name: string
   id: string
   location: Location
   deploy: DeployInstructions
   undeploy: DeployInstructions
+  logTailing?: LogTailing
 }
 
 export class Graph {

@@ -21,6 +21,7 @@ export class DeployedComponent {
 }
 
 export class GraphDeploymentResult {
+
   constructor(
     readonly components: Array<DeployedComponent>,
     readonly testApp: DeployedComponent

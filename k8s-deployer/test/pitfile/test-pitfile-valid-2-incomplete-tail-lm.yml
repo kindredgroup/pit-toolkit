@@ -1,0 +1,20 @@
+version: "1.0"
+projectName: "Tests for node-1 app"
+
+lockManager:
+  enabled: true
+  logTailing:
+    enabled: true
+
+testSuites:
+  - name: Suite with non existent env variables
+    id: suite-1
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1:60100/example-project-${{ env.TEST_SUFFIX_NOT_FOUND }}.git
+      gitRef: refs/remotes/origin/${{ env.TEST_SUFFIX_NOT_FOUND }}
+  - name: Suite without gitRef section
+    id: suite-2
+    location:
+      type: REMOTE
+      gitRepository: git://127.0.0.1:60100/example-project-${{ env.TEST_SUFFIX_NOT_FOUND }}.git

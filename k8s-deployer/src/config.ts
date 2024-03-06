@@ -29,6 +29,7 @@ export class Config {
     readonly pitfile: string,
     readonly namespaceTimeoutSeconds: number,
     readonly report: TestReportConfig,
+    readonly targetEnv: string,
     readonly params: Map<string, string>,
     readonly servicesAreExposedViaProxy: boolean = true,
     readonly useMockLockManager: boolean = false,

@@ -14,11 +14,12 @@ export const store = async (
   testSuiteId: string,
   report: TestReport) => {
 
-  const homeDir = `${ workspace }/reports`
+  const contentId = `${ testSuiteId }_${ namespace }`
+  const homeDir = `${ workspace }/reports-${ contentId }`
   const timeoutMs = 60_000
-  const logFile = `${ workspace }/logs/publish-report-for-${ testSuiteId }_${ namespace }.log`
-  const reportFileJson = `${ homeDir }/${ testSuiteId }_${ namespace }_pit-report.json`
-  const reportFileHtml = `${ homeDir }/${ testSuiteId }_${ namespace }_pit-report.html`
+  const logFile = `${ workspace }/logs/publish-report-for-${ contentId }.log`
+  const reportFileJson = `${ homeDir }/pit-report.json`
+  const reportFileHtml = `${ homeDir }/pit-report.html`
   const reportJson = JSON.stringify(report, null, 2)
 
   try {
@@ -42,16 +43,15 @@ export const store = async (
     throw new Error(message, { cause: e })
   }
 
-  let storageDir = ""
-  storageDir = `${ storageDir }${ prefix }`            // this gives natural direcgtory order by date and time
+  let storageDir = prefix                               // this gives natural directory order by date and time
   storageDir = `${ storageDir }_${ testSuiteId }`       // this gives indication what has generated the report
-  storageDir = `${ storageDir }_${ config.commitSha }`  // the global commit sha which triggered build
+  storageDir = `${ storageDir }_${ namespace }`         // the unique suffix when multiple suites are usied in the same test session
 
-  const commitMessage = `pit-report: ${ testSuiteId }`
+  const commitMessage = `pit-report: ${ testSuiteId } for commit: ${config.commitSha }`
 
   let command = `k8s-deployer/scripts/publish-report.sh`
   command = `${ command } ${ workspace }`
-  command = `${ command } reports`
+  command = `${ command } reports-${ contentId }`
   command = `${ command } "${ config.report.gitRepository }"`
   command = `${ command } "${ config.report.branchName }"`
   command = `${ command } "${ config.report.gitUserName }"`

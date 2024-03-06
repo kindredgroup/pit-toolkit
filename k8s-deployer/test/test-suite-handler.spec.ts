@@ -1,15 +1,27 @@
 import esmock from "esmock"
 import * as sinon from "sinon"
 import * as chai from "chai"
+import { SpawnOptions } from "child_process"
+import { RequestInit } from "node-fetch"
+
+import { logger } from "../src/logger.js"
 
 import * as webapi from "../src/test-app-client/web-api/schema-v1.js"
 import { ShellOptions } from "../src/shell-facade.js"
-import { logger } from "../src/logger.js"
 import { LocationType } from "../src/pitfile/schema-v1.js"
 import { SchemaVersion } from "../src/pitfile/version.js"
-import { RequestInit } from "node-fetch"
 import { Config, DEFAULT_SUB_NAMESPACE_PREFIX, SUB_NAMESPACE_GENERATOR_TYPE_DATE } from "../src/config.js"
 import { ScalarMetric, TestOutcomeType, TestStream } from "../src/test-app-client/report/schema-v1.js"
+import { generatePrefixByDate } from "../src/test-suite-handler.js"
+
+describe("Helper functions", () => {
+  it ("should generate readable date prefix", () => {
+    const date = new Date('March 1, 2024 00:00:00.123 UTC')
+    const prefix = generatePrefixByDate(date, "desktop")
+
+    chai.expect(prefix).eq("pit2024-03-01_000000123_desktop")
+  })
+})
 
 describe("Deployment happy path", async () => {
   const prefix = "12345"
@@ -26,6 +38,7 @@ describe("Deployment happy path", async () => {
     pitfile: "not-used",
     namespaceTimeoutSeconds: 2,
     report: {},
+    targetEnv: "desktop",
     testStatusPollFrequencyMs: 500,
     testTimeoutMs: 2_000,
     deployCheckFrequencyMs: 500,
@@ -50,6 +63,9 @@ describe("Deployment happy path", async () => {
           deploy: {
             command: "deployment/pit/deploy.sh",
             statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" }
+          },
+          logTailing: {
+            enabled: true
           }
         },
         components: [
@@ -134,16 +150,46 @@ describe("Deployment happy path", async () => {
     }
 
     const K8s = await esmock("../src/k8s.js", { "../src/shell-facade.js": shellImportMock })
+
+    // mock log tailing logic
+
+    const killChilldStub = sinon.stub()
+    killChilldStub.returns(true)
+
+    const tailerInstanceStub = {
+      pid: 1111,
+      kill: (signal: string) => killChilldStub(signal)
+    }
+
+    const nodeShellSpawnStub = sinon.stub()
+    nodeShellSpawnStub.returns(tailerInstanceStub)
+
+    const PodLogTail = await esmock(
+      "../src/pod-log-tail.js",
+      {
+        "fs": { openSync: (a: string, b: string): number => { return 0 } },
+        "child_process": {
+          spawn: (script: string, args: string[], opts: SpawnOptions[]) => {
+            // delegate spawining calls to stub and record them for later assertion
+            return nodeShellSpawnStub(script, args, opts) }
+        }
+      }
+    )
+
     const SuiteHandler = await esmock(
       "../src/test-suite-handler.js",
-      { "../src/k8s.js": { ...K8s, generateNamespaceName:() => namespace  } },
+      {
+        "../src/k8s.js": { ...K8s, generateNamespaceName:() => namespace  } ,
+        "../src/pod-log-tail.js": { ...PodLogTail  }
+      },
       {
         "../src/logger.js": { logger: { debug: () => {}, info: () => {}, warn: (s: string, a: any) => { logger.warn(s, a) }, error: (s: string, a: any) => { logger.error(s, a) } } },
         "node-fetch": httpImportMock,
         "../src/shell-facade.js": shellImportMock,
         "fs": { promises: { access: async (path: string, mode: number) => await fsAccessStubs(path, mode) }}
-      }
+      },
     )
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // End of mocking
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -162,7 +208,6 @@ describe("Deployment happy path", async () => {
 
     // check verification for expected directories and shell executables
 
-    // restore line below once lock manager is stable
     chai.expect(fsAccessStubs.callCount).eq(7)
 
     // check for presense of workspace direectory on the disk
@@ -225,5 +270,12 @@ describe("Deployment happy path", async () => {
       `deployment/pit/is-deployment-ready.sh nsChild`,
       { homeDir: "comp-1-test-app" })
     ).be.true
+
+    // assert that log tailing was invoked
+    chai.expect(nodeShellSpawnStub.callCount).eq(1)
+    chai.expect(nodeShellSpawnStub.getCall(0).calledWith(
+      "k8s-deployer/scripts/tail-container-log.sh",
+      [ namespace, "comp-1-test-app" ]
+    )).be.true
   })
 })

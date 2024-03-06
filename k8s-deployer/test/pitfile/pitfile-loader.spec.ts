@@ -26,10 +26,20 @@ describe("Loads pitfile from disk", () => {
   })
 
   it("should load pitfile with incomplete sections", async () => {
-    const file = await PifFileLoader.loadFromFile("dist/test/pitfile/test-pitfile-valid-2-incomplete.yml")
+    let file = await PifFileLoader.loadFromFile("dist/test/pitfile/test-pitfile-valid-2-incomplete.yml")
     chai.expect(file.testSuites).lengthOf(2)
     chai.expect(file.testSuites[0].location.gitRef).eq(`refs/remotes/origin/TEST_SUFFIX_NOT_FOUND`)
     chai.expect(file.testSuites[1].location.gitRef).eq(`refs/remotes/origin/master`)
+    chai.expect(file.lockManager.id).eq("lock-manager")
+
+    file = await PifFileLoader.loadFromFile("dist/test/pitfile/test-pitfile-valid-2-incomplete-tail-lm.yml")
+    chai.expect(file.testSuites).lengthOf(2)
+    chai.expect(file.testSuites[0].location.gitRef).eq(`refs/remotes/origin/TEST_SUFFIX_NOT_FOUND`)
+    chai.expect(file.testSuites[1].location.gitRef).eq(`refs/remotes/origin/master`)
+    chai.expect(file.lockManager.id).eq("lock-manager")
+    chai.expect(file.lockManager.logTailing).not.undefined
+    chai.expect(file.lockManager.logTailing.enabled).be.true
+    chai.expect(file.lockManager.logTailing.containerName).eq(file.lockManager.id)
   })
 
   it("should throw if pitfile not found", async () => {

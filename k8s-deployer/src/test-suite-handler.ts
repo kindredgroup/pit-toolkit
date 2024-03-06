@@ -8,6 +8,31 @@ import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as K8s from "./k8s.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
 import * as Shell from "./shell-facade.js"
+import { PodLogTail } from "./pod-log-tail.js"
+
+export const generatePrefix = (env: string): Prefix => {
+  return generatePrefixByDate(new Date(), env)
+}
+
+// Visible for testing
+export const generatePrefixByDate = (date: Date, env: string): Prefix => {
+  const pad = (v: string | number, len: number = 2): string => {
+    let result = `${ v }`
+    while (result.length < len) result = `0${ result }`
+    return result
+  }
+  let prefix = "pit"
+  prefix = `${ prefix }${ pad(date.getUTCFullYear()) }`
+  prefix = `${ prefix }-${ pad(date.getUTCMonth()+1) }`
+  prefix = `${ prefix }-${ pad(date.getUTCDate()) }`
+  prefix = `${ prefix }_${ pad(date.getUTCHours()) }`
+  prefix = `${ prefix }${ pad(date.getUTCMinutes()) }`
+  prefix = `${ prefix }${ pad(date.getUTCSeconds()) }`
+  prefix = `${ prefix }${ pad(date.getUTCMilliseconds(), 3) }`
+  prefix = `${ prefix }_${ env.toLowerCase() }`
+
+  return prefix
+}
 
 /**
  * Deploying:
@@ -19,14 +44,14 @@ const deployGraph = async (config: Config, workspace: string, testSuiteId: strin
   for (let i = 0; i < graph.components.length; i++) {
     const componentSpec = graph.components[i]
     logger.info("")
-    logger.info("Deploying graph component (%s of %s) \"%s\"...", i + 1, graph.components.length, componentSpec.name)
+    logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", i + 1, graph.components.length, componentSpec.name, testSuiteId)
     logger.info("")
     const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
     deployments.push(new DeployedComponent(commitSha, componentSpec))
   }
   logger.info("")
 
-  logger.info("%s Deploying test app \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, LOG_SEPARATOR_LINE)
+  logger.info("%s Deploying test app \"%s\" for suite \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
   logger.info("")
 
   if (testAppDirForRemoteTestSuite) {
@@ -76,14 +101,14 @@ const createWorkspace = async (path: string) => {
   // fs.mkdirSync(`${ path }/reports`)
 }
 
-const deployLockManager = async (config: Config, workspace: string, isEnabled: boolean, namespace: Namespace) => {
+const deployLockManager = async (config: Config, workspace: string, namespace: Namespace, isEnabled: boolean, testSuiteId: string) => {
   if (!isEnabled) {
     logger.info("%s The 'Lock Manager' will not be deployed %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
     logger.info("")
     return
   }
 
-  logger.info("%s Deploying 'Lock Manager' %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+  logger.info("%s Deploying 'Lock Manager' for suite \"%s\" %s", LOG_SEPARATOR_LINE, testSuiteId, LOG_SEPARATOR_LINE)
   logger.info("")
   await Deployer.deployLockManager(config, workspace, namespace)
   logger.info("")
@@ -114,7 +139,7 @@ const deployLocal = async (
 
   logger.info("NAMEPSACE IN USE=%s, process.env.MOCK_NS=%s", ns, process.env.MOCK_NS)
 
-  await deployLockManager(config, workspace, pitfile.lockManager.enabled, ns)
+  await deployLockManager(config, workspace, ns, pitfile.lockManager.enabled, testSuite.id)
   logger.info("")
 
   const deployedGraph = await deployGraph(config, workspace, testSuite.id, testSuite.deployment.graph, ns, testAppDirForRemoteTestSuite)
@@ -213,6 +238,8 @@ export const processTestSuite = async (
   logger.info("")
   const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
 
+  const logTailers = tailLogs(list, pitfile)
+
   if (config.servicesAreExposedViaProxy) {
     logger.info("")
     logger.info("%s Deployment is done. Sleeping before running tests. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
@@ -227,5 +254,57 @@ export const processTestSuite = async (
 
   await TestRunner.runAll(prefix, config, list)
 
+  if (logTailers.length > 0) {
+    logger.info("")
+    logger.info("%s Detaching log tailers. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+    logger.info("")
+
+    for (let tailer of logTailers) {
+      tailer.stop()
+    }
+  }
+
   return list
+}
+
+export const tailLogs = (suites: Array<DeployedTestSuite>, pitfile: Schema.PitFile): Array<PodLogTail> => {
+  logger.info("")
+  logger.info("%s Attaching to container logs. %s", LOG_SEPARATOR_LINE, LOG_SEPARATOR_LINE)
+  logger.info("")
+
+  const logTailers = new Array()
+
+  const tailLog = (workspace: string, ns: Namespace, serviceName: string) => {
+    const logFile = `${ workspace }/logs/pod-${ serviceName }-${ ns }.log`
+    const tailer = new PodLogTail(ns, serviceName, logFile)
+    logTailers.push(tailer.start())
+  }
+
+  for (let suite of suites) {
+    for (let service of suite.graphDeployment.components) {
+      const shouldTailLog = service.component.logTailing?.enabled === true
+      if (!shouldTailLog) continue
+
+      const serviceName = (service.component.logTailing.containerName != undefined) ? service.component.logTailing.containerName : service.component.id
+      tailLog(suite.workspace, suite.namespace, serviceName)
+    }
+
+    if (suite.graphDeployment.testApp.component.logTailing?.enabled) {
+      tailLog(suite.workspace, suite.namespace, suite.graphDeployment.testApp.component.id)
+    }
+
+    if (!pitfile.lockManager.enabled) continue
+    if (!pitfile.lockManager.logTailing?.enabled) continue
+
+    let serviceName: string = "lock-manager"
+    if (pitfile.lockManager.logTailing?.containerName) {
+      serviceName = pitfile.lockManager.logTailing?.containerName
+    } else if (pitfile.lockManager.id) {
+      serviceName = pitfile.lockManager.id
+    }
+    tailLog(suite.workspace, suite.namespace, serviceName)
+
+  }
+
+  return logTailers
 }

@@ -22,6 +22,8 @@ export const PARAM_REPORT_REPOSITORY = "--report-repository"
 export const PARAM_REPORT_BRANCH_NAME = "--report-branch-name"
 export const PARAM_REPORT_USER_NAME = "--report-user-name"
 export const PARAM_REPORT_USER_EMAIL = "--report-user-email"
+export const PARAM_TARGET_ENV = "--target-environment"
+
 // Optionals
 export const PARAM_NAMESPACE_TIMEOUT = "--namespace-timeout"
 export const PARAM_CLUSTER_URL = "--cluster-url"
@@ -59,6 +61,11 @@ const readParams = (): Config => {
       throw new Error(`Missing required parameter: "${ PARAM_PARENT_NS }"`)
   }
 
+  const targetEnv = params.get(PARAM_TARGET_ENV)
+  if (!(targetEnv?.trim().length > 0)) {
+      throw new Error(`Missing required parameter: "${ PARAM_TARGET_ENV }"`)
+  }
+
   const nsTimeout = params.get(PARAM_NAMESPACE_TIMEOUT)
   let namespaceTimeoutSeconds = DEFAULT_NAMESPACE_TIMEOUT
   if (nsTimeout?.trim().length > 0) {
@@ -87,6 +94,7 @@ const readParams = (): Config => {
 
   const useKubeProxy = !params.has(PARAM_USE_KUBE_PROXY) ? true : params.get(PARAM_USE_KUBE_PROXY) === "true"
   const enableCleanups = !params.has(PARAM_ENABLE_CLEANUPS) ? true : params.get(PARAM_ENABLE_CLEANUPS) === "true"
+
   return new Config(
     commitSha,
     workspace,
@@ -102,6 +110,7 @@ const readParams = (): Config => {
       params.get(PARAM_REPORT_USER_NAME),
       params.get(PARAM_REPORT_USER_EMAIL),
     ),
+    targetEnv,
     params,
     useKubeProxy,
     useMockLockManager,
