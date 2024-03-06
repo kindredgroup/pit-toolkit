@@ -144,8 +144,9 @@ LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --lock-manager-mock $LOCK_MANAGER_MOCK \
   --use-kube-proxy $USE_KUBE_PROXY \
   --cluster-url $CLUSTER_URL \
-  --enable-cleanups false \
-  --lock-manager-api-retries $LOCK_MANAGER_API_RETRIES"
+  --enable-cleanups true \
+  --lock-manager-api-retries $LOCK_MANAGER_API_RETRIES \
+  --target-environment local"
 
 if [ "${USER_NAME}" != "" ];
 then

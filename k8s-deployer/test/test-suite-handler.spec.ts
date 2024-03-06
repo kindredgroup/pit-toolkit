@@ -1,16 +1,27 @@
 import esmock from "esmock"
 import * as sinon from "sinon"
 import * as chai from "chai"
+import { SpawnOptions } from "child_process"
+import { RequestInit } from "node-fetch"
+
+import { logger } from "../src/logger.js"
 
 import * as webapi from "../src/test-app-client/web-api/schema-v1.js"
 import { ShellOptions } from "../src/shell-facade.js"
-import { logger } from "../src/logger.js"
 import { LocationType } from "../src/pitfile/schema-v1.js"
 import { SchemaVersion } from "../src/pitfile/version.js"
-import { RequestInit } from "node-fetch"
 import { Config, DEFAULT_SUB_NAMESPACE_PREFIX, SUB_NAMESPACE_GENERATOR_TYPE_DATE } from "../src/config.js"
 import { ScalarMetric, TestOutcomeType, TestStream } from "../src/test-app-client/report/schema-v1.js"
-import { SpawnOptions } from "child_process"
+import { generatePrefixByDate } from "../src/test-suite-handler.js"
+
+describe("Helper functions", () => {
+  it ("should generate readable date prefix", () => {
+    const date = new Date('March 1, 2024 00:00:00.123 UTC')
+    const prefix = generatePrefixByDate(date, "desktop")
+
+    chai.expect(prefix).eq("pit2024-03-01_000000123_desktop")
+  })
+})
 
 describe("Deployment happy path", async () => {
   const prefix = "12345"
@@ -27,6 +38,7 @@ describe("Deployment happy path", async () => {
     pitfile: "not-used",
     namespaceTimeoutSeconds: 2,
     report: {},
+    targetEnv: "desktop",
     testStatusPollFrequencyMs: 500,
     testTimeoutMs: 2_000,
     deployCheckFrequencyMs: 500,
@@ -153,7 +165,7 @@ describe("Deployment happy path", async () => {
     nodeShellSpawnStub.returns(tailerInstanceStub)
 
     const PodLogTail = await esmock(
-      "../src/tail-proxy-log.js",
+      "../src/pod-log-tail.js",
       {
         "fs": { openSync: (a: string, b: string): number => { return 0 } },
         "child_process": {

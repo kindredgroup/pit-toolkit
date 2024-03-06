@@ -19,6 +19,7 @@ import {
   PARAM_REPORT_USER_NAME,
   PARAM_ENABLE_CLEANUPS,
   readParams,
+  PARAM_TARGET_ENV,
 } from "../src/bootstrap.js"
 import {
   DEFAULT_CLUSTER_URL,
@@ -46,7 +47,8 @@ describe("bootstrap with correct configs", () => {
       PARAM_REPORT_REPOSITORY, "http://some-host.name/service.git",
       PARAM_REPORT_USER_EMAIL, "some-user@some-host.name",
       PARAM_REPORT_USER_NAME, "some-user",
-      PARAM_ENABLE_CLEANUPS, "false"
+      PARAM_ENABLE_CLEANUPS, "false",
+      PARAM_TARGET_ENV, "desktop"
      ])
   })
 
@@ -66,6 +68,7 @@ describe("bootstrap with correct configs", () => {
     chai.expect(config.report.gitUserEmail).be.eq("some-user@some-host.name")
     chai.expect(config.report.gitUserName).be.eq("some-user")
     chai.expect(config.enableCleanups).be.false
+    chai.expect(config.targetEnv).be.eq("desktop")
   })
 
   afterEach(() => {
@@ -101,11 +104,18 @@ describe("bootstrap with invalid configs", () => {
     sandbox.restore()
   })
 
+  it(`readParams() should expect param ${ PARAM_TARGET_ENV }`, () => {
+    sandbox.stub(process, 'argv').value([ "skip-first", "", PARAM_WORKSPACE, "./some-dir", PARAM_PARENT_NS, "dev", PARAM_COMMIT_SHA, "abcdef1" ])
+    chai.expect(readParams).to.throw(`Missing required parameter: "${ PARAM_TARGET_ENV }"`)
+    sandbox.restore()
+  })
+
   it("readParams() should expect predefined namespace name generators", () => {
     sandbox.stub(process, 'argv').value([ "skip-first", "",
       PARAM_WORKSPACE, "./some-dir",
       PARAM_PARENT_NS, "dev",
       PARAM_COMMIT_SHA, "abcdef1",
+      PARAM_TARGET_ENV, "desktop",
       PARAM_SUBNS_NAME_GENERATOR_TYPE, "unknown",
     ])
     chai.expect(readParams).to.throw(`${PARAM_SUBNS_NAME_GENERATOR_TYPE} can be "DATE" or "COMMITSHA"`)
@@ -116,7 +126,8 @@ describe("bootstrap with invalid configs", () => {
     sandbox.stub(process, 'argv').value([ "skip-first", "",
       PARAM_COMMIT_SHA, "abcdef1",
       PARAM_WORKSPACE, "/dir",
-      PARAM_PARENT_NS, "dev"
+      PARAM_PARENT_NS, "dev",
+      PARAM_TARGET_ENV, "desktop",
     ])
     const config = readParams()
     chai.expect(config.namespaceTimeoutSeconds).eq(DEFAULT_NAMESPACE_TIMEOUT)
@@ -141,6 +152,7 @@ describe("bootstrap with invalid configs", () => {
       PARAM_COMMIT_SHA, "abcdef1",
       PARAM_WORKSPACE, "/dir",
       PARAM_PARENT_NS, "dev",
+      PARAM_TARGET_ENV, "desktop",
       PARAM_NAMESPACE_TIMEOUT, "not-number"
     ])
     chai.expect(readParams).to.throw(`Invalid value "not-number" for parameter "${ PARAM_NAMESPACE_TIMEOUT }"`)

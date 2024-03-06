@@ -74,6 +74,7 @@ then
   exit 1
 fi
 
+rm -rf "${HOME_DIR}/report_repo_tmp" || true
 mkdir -p "${HOME_DIR}/report_repo_tmp"
 echo "navigting to ${HOME_DIR}/report_repo_tmp"
 cd "${HOME_DIR}/report_repo_tmp"

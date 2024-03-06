@@ -3,26 +3,7 @@ import { readParams } from "./bootstrap.js"
 import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import * as SuiteHandler from "./test-suite-handler.js"
-import { DeployedTestSuite, Prefix } from "./model.js"
-
-const generatePrefix = (): Prefix => {
-  const date = new Date()
-  const pad = (v: string | number, len: number = 2): string => {
-    let result = `${ v }`
-    while (result.length < len) result = `0${ result }`
-    return result
-  }
-  let prefix = "pit"
-  prefix = `${ prefix }${ pad(date.getUTCFullYear()) }`
-  prefix = `${ prefix }${ pad(date.getUTCMonth()+1) }`
-  prefix = `${ prefix }${ pad(date.getUTCDay()) }`
-  prefix = `${ prefix }${ pad(date.getUTCHours()) }`
-  prefix = `${ prefix }${ pad(date.getUTCMinutes()) }`
-  prefix = `${ prefix }${ pad(date.getUTCSeconds()) }`
-  prefix = `${ prefix }${ pad(date.getUTCMilliseconds(), 3) }`
-
-  return prefix
-}
+import { DeployedTestSuite } from "./model.js"
 
 const main = async () => {
   logger.info("main()...")
@@ -36,7 +17,7 @@ const main = async () => {
   for (let i = 0; i < file.testSuites.length; i++) {
     const testSuite = file.testSuites[i]
 
-    const prefix = `${ generatePrefix() }_${ (i+1) }`
+    const prefix = `${ SuiteHandler.generatePrefix(config.targetEnv) }_${ (i+1) }`
     const deployments = await SuiteHandler.processTestSuite(prefix, config, file, `${i + 1}`, testSuite)
     artefacts.push(deployments)
   }

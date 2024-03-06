@@ -37,7 +37,7 @@ export const createNamespace = async (workspace: string, rootNamespace: Namespac
 }
 
 export const deleteNamespace = async (rootNamespace: Namespace, namespace: Namespace, timeoutSeconds: number, workspace: string) => {
-  const logFile = `${ workspace }/delete-ns-${ namespace }.log`
+  const logFile = `${ workspace }/logs/delete-ns-${ namespace }.log`
 
   logger.info("Deleting namespace: '%s'", namespace)
   const timeoutMs = timeoutSeconds * 1_000
