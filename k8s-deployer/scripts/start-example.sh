@@ -110,7 +110,7 @@ echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 echo "simulating CI activity: checkout of k8s-deployer app"
 echo -e "${grey}"
-rsync -avhq --delete --executability $PROJECT_ROOT/../k8s-deployer $CI_HOME_DIR/
+rsync -avhq --delete --executability --exclude 'tmp*' $PROJECT_ROOT/../k8s-deployer $CI_HOME_DIR/
 ls -lah $CI_HOME_DIR
 
 echo -e "${green}"
