@@ -104,7 +104,7 @@ fi
 major_minor_version="${array[0]}.${array[1]}"
 echo "Computed major_minor_version=${major_minor_version}"
 
-push_tag "${package_name}" "${major_minor_version}"
+push_tag "${package_name}" "${version}" "${major_minor_version}"
 
 cd $home
 
