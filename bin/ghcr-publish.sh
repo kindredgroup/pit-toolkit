@@ -26,7 +26,6 @@ push_tag() {
   echo "all args = $@"
   package_name=$1
   version=$2
-  tag=$3
 
   tag_with_version=$package_name:$version
   echo "tag_with_version=${tag_with_version}"
@@ -40,22 +39,11 @@ push_tag() {
   ls -lah
   echo ""
 
-  if [ "${tag}" == "" ];
-  then
-    echo "docker build --tag $tag_ref ."
-    docker build --tag "${tag_ref}" .
-    echo "docker push ${tag_ref}"
-    docker push "${tag_ref}"
-    echo ""
-  else
-    new_tag_ref=ghcr.io/kindredgroup/pit-toolkit/$tag
-    echo "docker tag ${tag_ref} ${new_tag_ref}"
-    docker tag "${tag_ref}" "${new_tag_ref}"
-
-    echo "docker push ${new_tag_ref}"
-    docker push "${new_tag_ref}"
-    echo ""
-  fi
+  echo "docker build --tag $tag_ref ."
+  docker build --tag "${tag_ref}" .
+  echo "docker push ${tag_ref}"
+  docker push "${tag_ref}"
+  echo ""
 }
 
 home=$(pwd)
@@ -104,7 +92,7 @@ fi
 major_minor_version="${array[0]}.${array[1]}"
 echo "Computed major_minor_version=${major_minor_version}"
 
-push_tag "${package_name}" "${version}" "${major_minor_version}"
+push_tag "${package_name}" "${major_minor_version}"
 
 cd $home
 
