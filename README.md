@@ -215,7 +215,7 @@ testSuites:
 
 # Local development
 
-## Preprequisites:
+## Prerequisites:
 
 - Docker is installed and available globally as `docker`
 - Helm is installed and available globally as `helm`
@@ -268,7 +268,7 @@ Prepare `lock-manager/.env`, use `.env.example` as starting point.
 # Make sure there is lock-manager/.env with the following variables:
 # - REGISTRY_URL=ksp
 # - IMAGE_TAG= # can be any value or script reading current commit-sha: IMAGE_TAG=$(git rev-parse --short HEAD)
-npm run dev-build-image
+npm run dev.build-image
 ```
 
 ### Image for Node-1 sample component
@@ -357,7 +357,7 @@ This is main approach intented to be used on CIs. For example, when we need to t
 It is expected that CI will check out project into some temporary directory and launch k8s-deployer app. Below are instructions how to simluate this scenario locally.
 
 ```bash
-cd pit-toolkit/k8s-deploy
+cd pit-toolkit/k8s-deployer
 
 # Make sure there are docker images in your local registry:
 # - ksp/lock-manager:<tag>
