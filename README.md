@@ -285,7 +285,8 @@ cd examples/node-1/
 # - SERVICE_NAME=node-1
 # - SERVICE_PORT=62001
 # - TEST_APP_SERVICE_NAME=node-1-test-app
-# - TEST_APP_SERVICE_PORT=62002
+# - TEST_APP_SERVICE_PORT=80
+# - TEST_APP_CONTAINER_PORT=62002
 npm run dev.build-image
 ```
 
@@ -376,6 +377,7 @@ mkdir ./tmp
 npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1
 
 # if for local development the mock-lock-manager implementation is enough
+# make sure to override examples/node-1/pitfile.yml with pitfile-local.yml
 npm run dev.start-example $(pwd)/tmp $(pwd)/../examples/node-1 mock-lock-manager
 
 ```
