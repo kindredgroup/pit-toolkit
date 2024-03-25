@@ -63,6 +63,7 @@ deploy.node-1-test-app:
 			--set image.tag=$$IMAGE_TAG \
 			--set pod.repository=$$REGISTRY_URL/$$TEST_APP_SERVICE_NAME \
 			--set service.port=$$TEST_APP_SERVICE_PORT \
+			--set container.port=$$TEST_APP_CONTAINER_PORT \
 			--set environment.TARGET_SERVICE_URL="http://$$SERVICE_NAME:$$SERVICE_PORT" \
 			--set webApp.contextRoot="$$K8S_NAMESPACE.$$TEST_APP_SERVICE_NAME" \
 			$$TEST_APP_SERVICE_NAME ./$$CHART_PACKAGE; \
