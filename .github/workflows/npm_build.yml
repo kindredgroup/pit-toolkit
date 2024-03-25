@@ -1,5 +1,5 @@
 # workflow_call to build the rust app
-name: npm_build_and_test
+name: NPM Build
 
 on: workflow_call
 
@@ -15,4 +15,7 @@ jobs:
             node-version: 18
             check-latest: true
         - name: npm install, build and test lock-manager
-          run: sh bin/npm-build.sh lock-manager
+          run: bash bin/npm-build.sh lock-manager
+
+        - name: npm install, build and test brownie
+          run: bash bin/npm-build.sh brownie      

@@ -2,11 +2,14 @@
 
 set -e
 
-package_name=$1
+application=$1
+home=$(pwd)
 
-echo "Building $package_name"
-cd $(pwd)/$package_name
+echo "Building $application"
+cd $(pwd)/$application
+
 npm ci
 npm run build
 npm run test
-cd ../
+
+cd $home
