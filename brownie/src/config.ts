@@ -1,3 +1,5 @@
+import { logger } from "./logger.js"
+
 export class PgConfig {
   static PARAM_PGHOST: string = "--pghost"
   static PARAM_PGPORT: string = "--pgport"
@@ -6,7 +8,6 @@ export class PgConfig {
   static PARAM_PGPASSWORD: string = "--pgpassword"
 
   readonly port: number
-  readonly minPoolSize: number
 
   constructor(
     readonly host: string,
@@ -45,7 +46,7 @@ export class KafkaConfig {
     const parsed = new Array<string>()
     for (let host of hosts) {
       if (host.indexOf(":") === -1) {
-        if (!portAsText || portAsText.trim().length === 0 || isNaN(parseInt(portAsText))) {
+        if (!portAsText || (typeof(portAsText) === 'string' && (portAsText.trim().length === 0 || isNaN(parseInt(portAsText))))) {
           throw Error(`The broker host should be given with port or default port should be provided. Cannot use: "${ host }" without port`)
         }
         host = `${ host }:${ portAsText }`
@@ -59,6 +60,8 @@ export class KafkaConfig {
 export class Config {
   static PARAM_TIMESTAMP_PATTERN: string = "--timestamp-pattern"
   static PARAM_RETENTION_PERIOD: string = "--retention-period"
+  static DEFAULT_TIMESTAMP_PATTERN: RegExp = /^pit_.*_(ts\d{14,14}).*$/
+  static DEFAULT_RETENTION_PERIOD: string = "3days"
 
   constructor(
     readonly pg: PgConfig,
