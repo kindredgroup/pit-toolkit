@@ -63,12 +63,16 @@ const cleanOldDatabases = async (config: Config): Promise<number> => {
       try {
         logger.info("cleanOldDatabases(): Deleteing the expired database: %s", dbname)
 
-        await pgClient.query({
-          name: `drop-db-${ dbname }`,
-          text: `DROP DATABASE ${ dbname }`
-        })
+        if (config.dryRun) {
+          logger.info("cleanOldDatabases(): Database has NOT been dropped (dry run mode): %s", dbname)
+        } else {
+          await pgClient.query({
+            name: `drop-db-${ dbname }`,
+            text: `DROP DATABASE ${ dbname }`
+          })
 
-        logger.info("cleanOldDatabases(): Database has been dropped: %s", dbname)
+          logger.info("cleanOldDatabases(): Database has been dropped: %s", dbname)
+        }
         cleanedCount++
 
         const sleep = new Promise(resolve => setTimeout(resolve, 2_000))
@@ -125,10 +129,13 @@ const cleanTopics = async (config: Config): Promise<number> => {
 
       try {
         logger.info("cleanTopics(): Deleteing the expired topic: %s", topicName)
+        if (config.dryRun) {
+          logger.info("cleanTopics(): Topic has NOT been deleted (dry run mode): %s", topicName)
+        } else {
+          await kafkaAdmin.deleteTopics({ topics: [ topicName ] })
 
-        await kafkaAdmin.deleteTopics({ topics: [ topicName ] })
-
-        logger.info("cleanTopics(): Topic has been deleted: %s", topicName)
+          logger.info("cleanTopics(): Topic has been deleted: %s", topicName)
+        }
         cleanedCount++
 
         const sleep = new Promise(resolve => setTimeout(resolve, 2_000))

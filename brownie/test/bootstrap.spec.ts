@@ -26,7 +26,8 @@ describe("bootstrap with correct configs", () => {
     KafkaConfig.PARAM_PASSWORD, "no-password",
 
     Config.PARAM_RETENTION_PERIOD, "2minutes",
-    Config.PARAM_TIMESTAMP_PATTERN, "^.*$"
+    Config.PARAM_TIMESTAMP_PATTERN, "^.*$",
+    Config.PARAM_DRY_RUN, "false"
   ]
 
   const mockParams = (stanbox: sinon.SinonSandbox, process: any, property: string, values: Array<string | number>) => {
@@ -47,7 +48,7 @@ describe("bootstrap with correct configs", () => {
     }
   }
 
-  const evaluatePopulated = (config: Config, optionals?: Map<string, string | Map<string, string | number>>) => {
+  const evaluatePopulated = (config: Config, overwrites?: Map<string, string | Map<string, string | number>>) => {
     chai.expect(config.pg.host).eq("127.0.0.1")
     chai.expect(config.pg.port).eq(1000)
     chai.expect(config.pg.username).eq("user")
@@ -56,11 +57,18 @@ describe("bootstrap with correct configs", () => {
 
     chai.expect(config.kafka.brokers).deep.eq([ "127.0.0.2:1001", "127.0.0.3:1001"] )
     chai.expect(config.kafka.clientId).eq("test-client-id")
-    if (!optionals) return
+
+    if (!overwrites) {
+      chai.expect(config.dryRun).eq(false)
+      chai.expect(config.retentionMinutes).eq(2)
+      chai.expect(config.timestampPattern).deep.eq(/^.*$/)
+      return
+    }
+
+    logger.info("evaluatePopulated(): %s", config.timestampPattern)
 
     const evalObjects = (expected: Map<string, any>, actual: any) => {
       for (const key of expected.keys()) {
-        logger.info("evalObjects(), key=%s", key)
         let value = undefined
         for (const [p, v] of Object.entries(actual)) {
           if (p !== key) continue
@@ -71,11 +79,11 @@ describe("bootstrap with correct configs", () => {
       }
     }
 
-    const optKafka = optionals.get("kafka") as Map<string, string | number>
+    const optKafka = overwrites.get("kafka") as Map<string, string | number>
     if (optKafka) evalObjects(optKafka, config.kafka)
 
-    optionals.delete("kafka")
-    evalObjects(optionals, config)
+    overwrites.delete("kafka")
+    evalObjects(overwrites, config)
   }
 
   it("readParams() should return populated config", () => {
@@ -107,7 +115,8 @@ describe("bootstrap with correct configs", () => {
       config,
       new Map<string, any>([
         [ "retentionMinutes", 3 * 24 * 60 ],
-        [ "timestampPattern", Config.DEFAULT_TIMESTAMP_PATTERN ]
+        [ "timestampPattern", Config.DEFAULT_TIMESTAMP_PATTERN ],
+        [ "dryRun", false ]
       ])
     )
   })

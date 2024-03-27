@@ -9,4 +9,4 @@ Brownie scans for old resources and removes them. Currently only PostgresSQL dat
 Application need to be configured with: 
 - The access to Postgres Database and Kafka using elevated priviledges;
 - The regexp pattern. Browny will use pattarn for determining which resources are old.
-- The retention period or old resources
+- The retention period of old resources

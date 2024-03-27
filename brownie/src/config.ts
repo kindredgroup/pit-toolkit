@@ -58,8 +58,9 @@ export class KafkaConfig {
 }
 
 export class Config {
-  static PARAM_TIMESTAMP_PATTERN: string = "--timestamp-pattern"
+  static PARAM_DRY_RUN: string = "--dry-run"
   static PARAM_RETENTION_PERIOD: string = "--retention-period"
+  static PARAM_TIMESTAMP_PATTERN: string = "--timestamp-pattern"
   static DEFAULT_TIMESTAMP_PATTERN: RegExp = /^pit_.*_(ts\d{14,14}).*$/
   static DEFAULT_RETENTION_PERIOD: string = "3days"
 
@@ -67,7 +68,8 @@ export class Config {
     readonly pg: PgConfig,
     readonly kafka: KafkaConfig,
     readonly timestampPattern: RegExp,
-    readonly retentionMinutes: number
+    readonly retentionMinutes: number,
+    readonly dryRun: boolean
   ) {}
 
   static parseRetention = (value: string): number => {

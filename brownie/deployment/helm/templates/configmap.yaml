@@ -5,5 +5,6 @@ metadata:
 data:
   SERVICE_NAME: {{ .Values.SERVICE_NAME | quote }}
   BROWNIE_NODE_OPTIONS: {{ .Values.BROWNIE_NODE_OPTIONS | quote }}
-  TIMESTAMP_PATTERN: {{ .Values.TIMESTAMP_PATTERN | quote }}
+  DRY_RUN: {{ .Values.DRY_RUN | quote }}
   RETENTION_PERIOD: {{ .Values.RETENTION_PERIOD | quote }}
+  TIMESTAMP_PATTERN: {{ .Values.TIMESTAMP_PATTERN | quote }}
