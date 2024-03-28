@@ -1,0 +1,17 @@
+ENVIRONMENT: dev
+EXTERNAL_SECRET_DB_PATH: not-set
+EXTERNAL_SECRET_REFRESH: 10m
+SECRET_STORE_NAME: brownie
+
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+resources:
+  limits:
+    cpu: "1"
+    memory: "256Mi"
+  requests:
+    cpu: "1"
+    memory: "256Mi"

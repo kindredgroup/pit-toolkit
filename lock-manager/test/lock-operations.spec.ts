@@ -1,7 +1,7 @@
 import { mock} from "node:test"
-import LockFactory, {Storage} from "../lock-operations.js"
-import {PostgresDb} from "../db/pg.js"
-import {LockAcquireObject, ReleaseLocks} from "../db/db.js"
+import LockFactory, {Storage} from "../src/lock-operations.js"
+import {PostgresDb} from "../src/db/pg.js"
+import {LockAcquireObject, ReleaseLocks} from "../src/db/db.js"
 import { describe, it, beforeEach } from "mocha"
 import { assert, expect } from "chai"
 

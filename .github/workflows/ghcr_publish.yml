@@ -12,29 +12,28 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z]+)+.[0-9]?'
 
 jobs:
-    build:
-        uses: ./.github/workflows/npm_build.yml
-    publish:
-        runs-on: ubuntu-latest
-        needs: build
-        if: needs.build.result == 'success'
-        steps:
-            - name: Checkout the repo
-              uses: actions/checkout@v3
-            - name: Login to GitHub Container Registry
-              uses: docker/login-action@v1
-              with:
-                registry: ghcr.io
-                username: ${{ github.actor }}
-                password: ${{ secrets.GITHUB_TOKEN }}
-            - run: PATH=$PATH:$(pwd) bin/ubuntu-setup.sh
-            - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-            - run: |
-                echo $RELEASE_VERSION
-                echo ${{ env.RELEASE_VERSION }}
-            - name: Build and publish lock manager image with ver and latest tag
-              run: bash bin/ghcr-publish.sh lock-manager $RELEASE_VERSION "y"
+  build:
+    uses: ./.github/workflows/npm_build.yml
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.result == 'success'
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: PATH=$PATH:$(pwd) bin/ubuntu-setup.sh
+      - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
+      - name: Build and publish "Lock Manager" image
+        run: bash bin/ghcr-publish.sh lock-manager $RELEASE_VERSION "y"
 
-
-
-
+      - name: Build and publish "Brownie" image
+        run: bash bin/ghcr-publish.sh brownie $RELEASE_VERSION "y"

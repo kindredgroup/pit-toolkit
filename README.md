@@ -247,12 +247,14 @@ testSuites:
 | Port Number | Application |
 |------------ | ------------|
 | 60001 | 'lock-manager' |
+| 60002 | 'brownie' the resource cleanup application |
 | 60100 | Local GIT server hosting 'graph-perf-test-app' sources |
 | 60101 | Local GIT server hosting node-1 sources |
 | 60102 | Local GIT server hosting reports repository |
 | 62001 | 'node-1' the example component |
 | 62002 | 'pit-test-app' the example test app for node-1 |
 | 62003 | 'graph-perf-test-app' the K6 example test app for node-1 |
+
 
 
 
