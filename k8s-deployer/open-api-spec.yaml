@@ -1,0 +1,254 @@
+openapi: "3.0.0"
+info:
+  title: Sample API Spec
+  version: "1.0"
+
+components:
+  schemas:
+    TestSuiteId:
+      type: string
+    SessionId:
+      type: string
+
+    StartRequest:
+      additionalProperties: false
+      properties:
+        testSuiteId:
+          $ref: "#/components/schemas/TestSuiteId"
+      required:
+        - testSuiteId
+      type: object
+
+    StartResponse:
+      additionalProperties: false
+      properties:
+        testSuiteId:
+          $ref: "#/components/schemas/TestSuiteId"
+        sessionId:
+          $ref: "#/components/schemas/SessionId"
+      required:
+        - testSuiteId
+        - sessionId
+      type: object
+
+    StatusParams:
+      additionalProperties: false
+      properties:
+        testSuiteId:
+          $ref: "#/components/schemas/TestSuiteId"
+      required:
+        - testSuiteId
+      type: object
+
+    StatusResponse:
+      additionalProperties: false
+      properties:
+        testSuiteId:
+          $ref: "#/components/schemas/TestSuiteId"
+        sessionId:
+          $ref: "#/components/schemas/SessionId"
+        status:
+          $ref: "#/components/schemas/TestStatus"
+        error:
+          type: string
+      required:
+        - testSuiteId
+        - sessionId
+        - status
+      type: object
+
+    ScalarMetric:
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        type:
+          enum:
+            - SCALAR
+          type: string
+        value:
+          type: number
+      required:
+        - type
+        - name
+        - value
+      type: object
+
+    DistributedMetric:
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        type:
+          enum:
+            - DISTRIBUTION
+          type: string
+        value:
+          type: object
+          additionalProperties:
+            type: number
+      required:
+        - type
+        - name
+        - value
+      type: object
+
+    TestScenarioStream:
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        observations:
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/ScalarMetric"
+              - $ref: "#/components/schemas/DistributedMetric"
+          type: array
+        outcome:
+          enum:
+            - PASS
+            - FAIL
+          type: string
+        requirements:
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/ScalarMetric"
+              - $ref: "#/components/schemas/DistributedMetric"
+          type: array
+      required:
+        - name
+        - requirements
+        - observations
+        - outcome
+      type: object
+
+    ExecutedTestScenario:
+      additionalProperties: false
+      properties:
+        componentIds:
+          items:
+            type: string
+          type: array
+        endTime:
+          format: date-time
+          type: string
+        metadata:
+          additionalProperties: true
+          type: object
+        name:
+          type: string
+        startTime:
+          format: date-time
+          type: string
+        streams:
+          items:
+            $ref: "#/components/schemas/TestScenarioStream"
+          type: array
+      required:
+        - name
+        - startTime
+        - endTime
+        - streams
+        - componentIds
+      type: object
+
+    TestStatus:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - COMPLETED
+        - ERROR
+
+    NativeReport:
+      type: object
+      properties:
+        data:
+          type: string
+        file:
+          type: string
+
+    ReportEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        executedScenarios:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExecutedTestScenario"
+        nativeReport:
+          $ref: "#/components/schemas/NativeReport"
+      required:
+        - executedScenarios
+
+    ReportResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        sessionId:
+          $ref: "#/components/schemas/SessionId"
+        testSuiteId:
+          $ref: "#/components/schemas/TestSuiteId"
+        status:
+          $ref: "#/components/schemas/TestStatus"
+        data:
+          $ref: "#/components/schemas/ReportEnvelope"
+        error:
+          type: string
+      required:
+        - sessionId
+        - testSuiteId
+        - status
+
+paths:
+  "/start":
+    post:
+      summary: Start PIT Test
+      requestBody:
+        # required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartRequest"
+
+      responses:
+        default:
+          description: Start Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartResponse"
+  "/status":
+    get:
+      summary: Status of PIT Test by testSuiteId
+      parameters:
+        - in: query
+          name: testSuiteId
+          required: true
+          schema:
+            type: string
+
+      responses:
+        default:
+          description: Status Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+  "/report":
+    get:
+      summary: Report for PIT Test by sessionId
+      parameters:
+        - in: query
+          name: sessionId
+          required: true
+          schema:
+            type: string
+
+      responses:
+        default:
+          description: Report Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportResponse"
