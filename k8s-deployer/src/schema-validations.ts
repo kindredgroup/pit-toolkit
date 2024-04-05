@@ -2,46 +2,38 @@ import Ajv from 'ajv'
 import fs from 'fs'
 import YAML from "yaml"
 
-function parsePitYamlSchemaToJs(path: string) {
+function parseApiSchemaYaml(path: string) {
   const openApiYamlFile = fs.readFileSync(path, 'utf8')
   const parsedYaml = YAML.parse(openApiYamlFile)
 
-  return () => parsedYaml
+  return parsedYaml
 }
 
-console.log('Current directory: ' + process.cwd());
-
-export const getPitSchema = parsePitYamlSchemaToJs("./k8s-deployer/open-api-spec.yaml")
-
-// const getSchemaPath = (schemaPath) => {
-
-// }
-
-// export const validateReportPayload = () => {
-
-
-// }
-
-export enum ApiSchemaValidatorVariants {
-  startRequest = "startRequest",
-  startResponse = "startResponse",
-  statusRequestQueryParams = "statusRequestQueryParams",
-  statusResponse = "statusResponse",
-  reportRequestQueryParams = "reportRequestQueryParams",
-  reportResponse = "reportResponse"
-
+export enum ApiValidationTypes {
+  RequestQueryParams = "RequestQueryParams",
+  RequestPathParams = "RequestPathParams",
+  RequestBody = "RequestBody",
+  Response = "Response"
 }
 
-export const schemaValidator = new Ajv.default({strict: false})
+export interface ApiValidators {
+  schemaPath: {
+    [K in ApiValidationTypes]?: string
+  }
+  schemaValidator: Ajv.default
+}
 
 const SCHEMA_NAME = "apiSpec"
 
 export const getSchemaRef = (schema: string) => {
-  // return { "$ref": `${SCHEMA_NAME}#/components/schemas/${schema}`}
-  return `${SCHEMA_NAME}#/components/schemas/${schema}`
+  return `${SCHEMA_NAME}#${schema}`
 }
 
-export const setupSchemaValidators = () => {
-  const parsedSchema = getPitSchema()
+export const setupSchemaValidator = (path = new URL("./open-api-spec-v1.yaml", import.meta.url).pathname) => {
+  const parsedSchema = parseApiSchemaYaml(path)
+
+  const schemaValidator = new Ajv.default({ strict: false })
   schemaValidator.addSchema(parsedSchema, SCHEMA_NAME)
+
+  return schemaValidator
 }

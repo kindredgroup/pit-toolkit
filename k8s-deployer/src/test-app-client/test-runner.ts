@@ -1,4 +1,4 @@
-import fetch, { Response } from "node-fetch"
+import fetch, { HeadersInit, Response } from "node-fetch"
 import * as fs from "fs"
 import { v4 as uuidv4 } from "uuid"
 
@@ -11,13 +11,26 @@ import * as ReportSchema from "./report/schema-v1.js"
 import { Config } from "../config.js"
 import * as Report from "../report/report-service.js"
 import * as K8s from "../k8s.js"
-import { schemaValidator, setupSchemaValidators, getSchemaRef } from "../schema-validations.js"
+import { setupSchemaValidator, getSchemaRef, ApiValidators } from "../schema-validations.js"
 import { URLSearchParams } from "url"
 import { ApiSchemaValidationError } from "../errors.js"
+import Ajv from "ajv"
 
-setupSchemaValidators()
+interface PitApi {
+  [K: string]: {
+    endpoint: string,
+    options: {
+      method: "POST" | "GET"
+      headers: HeadersInit
+    },
+    validator?: ApiValidators
+  }
+}
+
 
 export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<DeployedTestSuite>) => {
+  const schemaValidator = setupSchemaValidator()
+
   for (let deployedSuite of testSuites) {
 
     logger.info("")
@@ -25,7 +38,7 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
     logger.info("")
     try {
       const startTime = new Date()
-      const reportEnvelope = await runSuite(config, deployedSuite)
+      const reportEnvelope = await runSuite(config, deployedSuite, schemaValidator)
       const endTime = new Date()
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
@@ -59,11 +72,12 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
       }
       //  Finally print the stack
       if (e.stack) logger.error("Stack:\n%s", e.stack)
-  }
+    }
   }
 }
 
-const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
+const runSuite = async (config: Config, spec: DeployedTestSuite, schemaValidator: Ajv.default): Promise<webapi.ReportEnvelope> => {
+
   const testSuiteId = spec.testSuite.id
 
   // const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`
@@ -107,10 +121,38 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 
     logger.info("API will be accessible at: '%s'", baseUrl)
 
-    const api = {
-      start: { endpoint: `${baseUrl}/start`, options: { method: "POST", headers: { "Content-Type": "application/json" } } },
-      status: { endpoint: `${baseUrl}/status`, options: { method: "GET", headers: { "Accept": "application/json" } } },
-      reports: { endpoint: `${baseUrl}/reports`, options: { method: "GET", headers: { "Accept": "application/json" } } },
+    const api: PitApi = {
+      start: {
+        endpoint: `${baseUrl}/start`,
+        options: { method: "POST", headers: { "Content-Type": "application/json" } },
+        validator: {
+          schemaPath: {
+            Response: "/components/schemas/StartResponse"
+          },
+          schemaValidator
+        }
+      },
+      status: {
+        endpoint: `${baseUrl}/status`,
+        options: { method: "GET", headers: { "Accept": "application/json" } },
+        validator: {
+          schemaPath: {
+            Response: "/components/schemas/StatusResponse"
+          },
+          schemaValidator
+        }
+      },
+      reports: {
+        endpoint: `${baseUrl}/reports`,
+        options: { method: "GET", headers: { "Accept": "application/json" } },
+        validator: {
+          schemaPath: {
+            Response: "/components/schemas/ReportResponse"
+          },
+          schemaValidator
+        }
+
+      },
       reportsNative: { endpoint: `${baseUrl}/reports/native`, options: { method: "GET", headers: { "Accept": "application/zip, application/json" } } }
     }
 
@@ -126,7 +168,8 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 
     const startResult = await httpResponse.json() as webapi.StartResponse
 
-    const isResponseValid = schemaValidator.validate(getSchemaRef("StartResponse"), startResult)
+    const { schemaPath } = api.start.validator
+    const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), startResult)
 
     if (!isResponseValid) {
       throw new ApiSchemaValidationError(schemaValidator.errorsText(), api.start.endpoint, JSON.stringify(startResult))
@@ -183,7 +226,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 }
 
 const waitUntilFinish = async (
-  api: any,
+  api: PitApi,
   testSuiteId: string,
   sessionId: string,
   pollFrequencyMs: number,
@@ -228,7 +271,8 @@ const waitUntilFinish = async (
 
     const reponse = await httpResponse.json()
 
-    const isResponseValid = schemaValidator.validate(getSchemaRef("StatusResponse"), reponse)
+    const { schemaValidator, schemaPath } = api.status.validator
+    const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), reponse)
 
     if (!isResponseValid) {
       throw new ApiSchemaValidationError(schemaValidator.errorsText(), statusUrl, JSON.stringify(reponse))
@@ -246,7 +290,7 @@ const waitUntilFinish = async (
   } // end of poll loop
 }
 
-const getReport = async (api: any, sessionId: string): Promise<webapi.ReportResponse> => {
+const getReport = async (api: PitApi, sessionId: string): Promise<webapi.ReportResponse> => {
 
   const queryParams = new URLSearchParams({
     sessionId
@@ -262,7 +306,8 @@ const getReport = async (api: any, sessionId: string): Promise<webapi.ReportResp
 
   const reponse = await httpResponse.json()
 
-  const isResponseValid = schemaValidator.validate(getSchemaRef("ReportResponse"), reponse)
+  const { schemaValidator, schemaPath } = api.reports.validator
+  const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), reponse)
 
   if (!isResponseValid) {
     throw new ApiSchemaValidationError(schemaValidator.errorsText(), reportUrl, JSON.stringify(reponse))

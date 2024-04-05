@@ -30,11 +30,9 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "build": "npx tsc",
-    "build.copy-resources": "copyfiles -u 1 src/**/*.yaml dist/",
-    "copy.openapi": "copyfiles  *.yaml dist/src ",
+    "build": "npx tsc && npm run copy.openapi.spec",
+    "copy.openapi.spec": "copyfiles  open-api-spec*.yaml dist/src ",
     "dev.start-example": "npm run build && scripts/start-example.sh $@",
-    "poc.typebox": "npm run copy.openapi && npm run build && node dist/src/typebox/poc",
     "test.copy-resources": "copyfiles -u 1 test/**/*.yml dist/test/",
     "test": "npm run test.copy-resources && npm run build && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
     "build-report-template": "scripts/build-report-html-template.sh"
