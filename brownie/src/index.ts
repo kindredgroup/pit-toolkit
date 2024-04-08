@@ -45,7 +45,7 @@ const cleanOldDatabases = async (config: Config): Promise<number> => {
     const result = await pgClient.query({
       name: "select-databases",
       text: "SELECT d.datname as database FROM pg_catalog.pg_database d WHERE d.datname like $1 ORDER BY d.datname",
-      values: ["pit%"]
+      values: ["%pit%"]
     })
     for (let row of result?.rows) {
       const dbname = row.database
@@ -68,7 +68,7 @@ const cleanOldDatabases = async (config: Config): Promise<number> => {
         } else {
           await pgClient.query({
             name: `drop-db-${ dbname }`,
-            text: `DROP DATABASE ${ dbname }`
+            text: `DROP DATABASE "${ dbname }"`
           })
 
           logger.info("cleanOldDatabases(): Database has been dropped: %s", dbname)
@@ -115,7 +115,7 @@ const cleanTopics = async (config: Config): Promise<number> => {
   logger.info("cleanTopics(): Connected")
 
   try {
-    const topics = await kafkaAdmin.listTopics()
+    const topics = (await kafkaAdmin.listTopics()).filter(name => !name.startsWith("_"))
     for (let topicName of topics) {
       try {
         const status = evaluateResource(topicName, config.timestampPattern, new Date(), config.retentionMinutes)

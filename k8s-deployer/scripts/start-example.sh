@@ -43,6 +43,7 @@ APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
 SUB_NS_PREFIX=pit
 CLUSTER_URL="http://127.0.0.1"
+export TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
 if [ "${USE_KUBE_PROXY}" == "true" ];
 then
@@ -65,6 +66,7 @@ echo "Subnamespace name generator type is \"${SUB_NS_NAME_GENERATOR_TYPE}\""
 echo "Simulated CI commit \"$COMMIT_SHA\""
 echo "Git username \"$USER_NAME\""
 echo "Git user email \"$USER_EMAIL\""
+echo "Timestamp for cleanup is \"$TIMESTAMP\""
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then

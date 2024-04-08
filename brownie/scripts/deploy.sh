@@ -18,12 +18,14 @@ then
 fi
 set +o allexport
 
-env | sort | grep "TIMESTAMP_PATTERN"
+KAFKA_BROKERS=$(echo "${KAFKA_BROKERS}" | sed 's/,/\\,/g')
+TIMESTAMP_PATTERN=$(echo "${TIMESTAMP_PATTERN}" | sed 's/,/\\,/g')
 
 echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
 CHART_PACKAGE="${SERVICE_NAME}-0.1.0.tgz"
 
 HELM_OVERWRITES="\
+  --set DRY_RUN=${DRY_RUN} \
   --set EXTERNAL_SECRET_DB_PATH=${EXTERNAL_SECRET_DB_PATH} \
   --set EXTERNAL_SECRET_KAFKA_PATH=${EXTERNAL_SECRET_KAFKA_PATH} \
   --set SECRET_STORE_NAME=${SECRET_STORE_NAME} \
@@ -41,7 +43,7 @@ HELM_OVERWRITES="\
   --set BROWNIE_DEPLOY_DEV_SECRET_STORE=${BROWNIE_DEPLOY_DEV_SECRET_STORE} \
   --set BROWNIE_NODE_OPTIONS=${BROWNIE_NODE_OPTIONS} \
   --set pod.repository=${REGISTRY_URL}/${SERVICE_NAME} \
-  --set TIMESTAMP_PATTERN=${TIMESTAMP_PATTERN_ESCAPED_FOR_HELM} \
+  --set TIMESTAMP_PATTERN=${TIMESTAMP_PATTERN} \
   --set RETENTION_PERIOD=${RETENTION_PERIOD}"
 
 HELM_ARGS="upgrade --install --atomic --timeout 120s --namespace ${K8S_NAMESPACE}"
@@ -58,6 +60,7 @@ HELM_TEMPLATE="${HELM_TEMPLATE} ${HELM_OVERWRITES} ${SERVICE_NAME} ./${CHART_PAC
 helm package ./deployment/helm --debug --app-version=$IMAGE_TAG
 if [ "${PIT_DEBUG_HELM}" == "true" ];
 then
+  echo "helm $HELM_TEMPLATE > \"./${SERVICE_NAME}-helm-debug.log\""
   helm $HELM_TEMPLATE > "./${SERVICE_NAME}-helm-debug.log"
 fi
 

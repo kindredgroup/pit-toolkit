@@ -61,7 +61,7 @@ export class Config {
   static PARAM_DRY_RUN: string = "--dry-run"
   static PARAM_RETENTION_PERIOD: string = "--retention-period"
   static PARAM_TIMESTAMP_PATTERN: string = "--timestamp-pattern"
-  static DEFAULT_TIMESTAMP_PATTERN: RegExp = /^pit_.*_(ts\d{14,14}).*$/
+  static DEFAULT_TIMESTAMP_PATTERN: RegExp = /^.*pit.*(ts[0-9]{14,14}).*$/
   static DEFAULT_RETENTION_PERIOD: string = "3days"
 
   constructor(
@@ -70,7 +70,7 @@ export class Config {
     readonly timestampPattern: RegExp,
     readonly retentionMinutes: number,
     readonly dryRun: boolean
-  ) {}
+  ) { }
 
   static parseRetention = (value: string): number => {
     if (new RegExp(/^1day$/).test(value)) return 24 * 60
