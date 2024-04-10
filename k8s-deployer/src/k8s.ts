@@ -53,7 +53,7 @@ export class ServiceUrlOptions {
 export const makeServiceUrl = (clusterUrl: string, namespace: Namespace, service: string, testId?: string, options?: ServiceUrlOptions) => {
   if (options?.exposedViaProxy) {
     const url = `${ clusterUrl }/api/v1/namespaces/${ namespace }/services/${ service }`
-    const servicePort = options.servicePort || 8080
+    const servicePort = options.servicePort || 80
     return `${ url }:${ servicePort }/proxy`
   }
 
