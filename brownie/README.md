@@ -9,7 +9,7 @@ Brownie app is deployed into k8s cluster as periodic CronJob. It scans for resou
 Application needs to be configured with:
 - The access to PostgreSQL and Kafka using elevated privileges.
 - The regexp pattern. Brownie will use it to extract the resource creation timestamp from resource name and then use that timestamp for determining whether the resources should be removed.
-- The retention period of old resources. Resources younger that the retention period will not be deleted.
+- The retention period of old resources. Resources younger than the retention period will not be deleted.
 
 ## Deployment Architecture
 
