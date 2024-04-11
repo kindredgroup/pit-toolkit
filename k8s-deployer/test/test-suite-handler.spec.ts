@@ -47,6 +47,7 @@ describe("Deployment happy path", async () => {
     servicesAreExposedViaProxy: false,
     lockManagerApiRetries: 3,
     enableCleanups: true,
+    testRunnerAppPort: 80
   }
 
   const testSuiteNumber = "1"

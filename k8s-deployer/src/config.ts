@@ -7,6 +7,7 @@ export const DEFAULT_SUB_NAMESPACE_GENERATOR_TYPE = SUB_NAMESPACE_GENERATOR_TYPE
 export const DEFAULT_TEST_STATUS_POLL_FREQUENCY = 15_000
 export const DEFAULT_DEPLOY_CHECK_FREQUENCY = 5_000
 export const DEFAULT_TEST_TIMEOUT = 60_000
+export const DEFAULT_TEST_RUNNER_APP_PORT = 80
 
 export class TestReportConfig {
   constructor(
@@ -38,5 +39,6 @@ export class Config {
     readonly deployCheckFrequencyMs: number = DEFAULT_DEPLOY_CHECK_FREQUENCY,
     readonly testTimeoutMs: number = DEFAULT_TEST_TIMEOUT,
     readonly enableCleanups: boolean = true,
+    readonly testRunnerAppPort = DEFAULT_TEST_RUNNER_APP_PORT
   ) {}
 }
