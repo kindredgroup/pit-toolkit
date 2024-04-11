@@ -90,7 +90,8 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
       spec.testSuite.deployment.graph.testApp.id,
       spec.testSuite.id,
       {
-        exposedViaProxy: config.servicesAreExposedViaProxy
+        exposedViaProxy: config.servicesAreExposedViaProxy,
+        servicePort: config.testRunnerAppPort
       }
     )
 
