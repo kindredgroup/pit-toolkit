@@ -1,0 +1,29 @@
+{
+  "name": "node-1",
+  "version": "0.0.1-dev",
+  "description": "The example of load generator application",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npx tsc",
+    "dev.start": "npm run build && node dist/index.js",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "hdr-histogram-js": "^3.0.0",
+    "winston": "^3.11.0"
+  }
+}
