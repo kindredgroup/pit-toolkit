@@ -1,4 +1,4 @@
-import fetch, { Response } from "node-fetch"
+import fetch, { HeadersInit, Response } from "node-fetch"
 import * as fs from "fs"
 import { v4 as uuidv4 } from "uuid"
 
@@ -11,8 +11,26 @@ import * as ReportSchema from "./report/schema-v1.js"
 import { Config } from "../config.js"
 import * as Report from "../report/report-service.js"
 import * as K8s from "../k8s.js"
+import { setupSchemaValidator, getSchemaRef, ApiValidators } from "../schema-validations.js"
+import { URLSearchParams } from "url"
+import { ApiSchemaValidationError } from "../errors.js"
+import Ajv from "ajv"
+
+interface PitApi {
+  [K: string]: {
+    endpoint: string,
+    options: {
+      method: "POST" | "GET"
+      headers: HeadersInit
+    },
+    validator?: ApiValidators
+  }
+}
+
 
 export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<DeployedTestSuite>) => {
+  const schemaValidator = setupSchemaValidator()
+
   for (let deployedSuite of testSuites) {
 
     logger.info("")
@@ -20,7 +38,7 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
     logger.info("")
     try {
       const startTime = new Date()
-      const reportEnvelope = await runSuite(config, deployedSuite)
+      const reportEnvelope = await runSuite(config, deployedSuite, schemaValidator)
       const endTime = new Date()
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
@@ -47,19 +65,26 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
       logger.error("Error executing test: '%s'", deployedSuite.testSuite.id)
       logger.error(e)
       if (e.cause) logger.error(e.cause)
+
+      if (e instanceof ApiSchemaValidationError) {
+        logger.error(`url: ${e.url}`)
+        if (e.data) logger.error(`data: ${e.data}`)
+      }
+      //  Finally print the stack
       if (e.stack) logger.error("Stack:\n%s", e.stack)
     }
   }
 }
 
-const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi.ReportEnvelope> => {
+const runSuite = async (config: Config, spec: DeployedTestSuite, schemaValidator: Ajv.default): Promise<webapi.ReportEnvelope> => {
+
   const testSuiteId = spec.testSuite.id
 
   // const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }`
   // const urlPrefix = `${ config.clusterUrl }/${ spec.namespace }/services/${ sepc.testSuite.deployment.graph.testApp.id }`
 
   let lockManager: LockManager | LockManagerMock
-  const lockOwner = `${ spec.testSuite.id }-${ uuidv4() }-${ spec.namespace }`
+  const lockOwner = `${spec.testSuite.id}-${uuidv4()}-${spec.namespace}`
   if (spec.testSuite.lock) {
 
     if (config.useMockLockManager) {
@@ -97,16 +122,44 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 
     logger.info("API will be accessible at: '%s'", baseUrl)
 
-    const api = {
-      start:         { endpoint: `${ baseUrl }/start`,          options: { method: "POST", headers: { "Content-Type": "application/json" }}},
-      status:        { endpoint: `${ baseUrl }/status`,         options: { method: "GET", headers: { "Accept": "application/json" }}},
-      reports:       { endpoint: `${ baseUrl }/reports`,        options: { method: "GET", headers: { "Accept": "application/json" }}},
-      reportsNative: { endpoint: `${ baseUrl }/reports/native`, options: { method: "GET", headers: { "Accept": "application/zip, application/json" }}}
+    const api: PitApi = {
+      start: {
+        endpoint: `${baseUrl}/start`,
+        options: { method: "POST", headers: { "Content-Type": "application/json" } },
+        validator: {
+          schemaPath: {
+            Response: "/components/schemas/StartResponse"
+          },
+          schemaValidator
+        }
+      },
+      status: {
+        endpoint: `${baseUrl}/status`,
+        options: { method: "GET", headers: { "Accept": "application/json" } },
+        validator: {
+          schemaPath: {
+            Response: "/components/schemas/StatusResponse"
+          },
+          schemaValidator
+        }
+      },
+      reports: {
+        endpoint: `${baseUrl}/reports`,
+        options: { method: "GET", headers: { "Accept": "application/json" } },
+        validator: {
+          schemaPath: {
+            Response: "/components/schemas/ReportResponse"
+          },
+          schemaValidator
+        }
+
+      },
+      reportsNative: { endpoint: `${baseUrl}/reports/native`, options: { method: "GET", headers: { "Accept": "application/zip, application/json" } } }
     }
 
     const httpResponse = await fetch(
       api.start.endpoint,
-      {...api.start.options, body: webapi.StartRequest.json(testSuiteId) }
+      { ...api.start.options, body: webapi.StartRequest.json(testSuiteId) }
     )
 
     if (!httpResponse.ok) {
@@ -115,6 +168,14 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
     }
 
     const startResult = await httpResponse.json() as webapi.StartResponse
+
+    const { schemaPath } = api.start.validator
+    const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), startResult)
+
+    if (!isResponseValid) {
+      throw new ApiSchemaValidationError(schemaValidator.errorsText(), api.start.endpoint, JSON.stringify(startResult))
+
+    }
     logger.info("Test suite: '%s' - started using session: %s", testSuiteId, startResult.sessionId)
 
     const testTimeoutMs = spec.testSuite.timeoutSeconds * 1_000 || config.testTimeoutMs
@@ -144,7 +205,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
           api,
           testSuiteId,
           startResult.sessionId,
-          `${ testSuiteId }_${ spec.namespace }_native_${ nativeReport.file }`
+          `${testSuiteId}_${spec.namespace}_native_${nativeReport.file}`
         )
       }
     }
@@ -166,7 +227,7 @@ const runSuite = async (config: Config, spec: DeployedTestSuite): Promise<webapi
 }
 
 const waitUntilFinish = async (
-  api: any,
+  api: PitApi,
   testSuiteId: string,
   sessionId: string,
   pollFrequencyMs: number,
@@ -180,13 +241,17 @@ const waitUntilFinish = async (
     const elapsed = new Date().getTime() - startedAt.getTime()
     logger.info("Test suite: '%s' - waiting for completion using session: '%s' with timeout of %sms. Elapsed: %sms", testSuiteId, sessionId, testTimeoutMs, elapsed)
     if (elapsed >= testTimeoutMs) {
-      throw new Error(`Timeout. Giving up after ${ elapsed / 1_000.0 }s while waiting for test to complete: '${ testSuiteId }'`)
+      throw new Error(`Timeout. Giving up after ${elapsed / 1_000.0}s while waiting for test to complete: '${testSuiteId}'`)
     }
 
     let httpResponse: Response
+    const queryParams = new URLSearchParams({
+      sessionId
+    })
+    const statusUrl = `${api.status.endpoint}?${queryParams}`
     try {
-      logger.info(`${api.status.endpoint}?sessionId=${sessionId}`)
-      httpResponse = await fetch(`${api.status.endpoint}?sessionId=${sessionId}`, api.status.options)
+      logger.info(statusUrl)
+      httpResponse = await fetch(statusUrl, api.status.options)
     } catch (e) {
       // allow x number of failed polls and then give up
       if (++failuresCount < MAX_TECH_FAILURES) {
@@ -205,7 +270,16 @@ const waitUntilFinish = async (
       throw new Error(`Unable to fetch status of previously started test: '${testSuiteId}'. Error: '${httpResponse.statusText}'`)
     }
 
-    const statusQueryResult = webapi.StatusResponse.create(await httpResponse.json())
+    const reponse = await httpResponse.json()
+
+    const { schemaValidator, schemaPath } = api.status.validator
+    const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), reponse)
+
+    if (!isResponseValid) {
+      throw new ApiSchemaValidationError(schemaValidator.errorsText(), statusUrl, JSON.stringify(reponse))
+
+    }
+    const statusQueryResult = webapi.StatusResponse.create(reponse)
     if (statusQueryResult.status === webapi.TestStatus.COMPLETED) break
 
     if (statusQueryResult.status === webapi.TestStatus.ERROR) {
@@ -217,28 +291,43 @@ const waitUntilFinish = async (
   } // end of poll loop
 }
 
-const getReport = async (api: any, sessionId: string): Promise<webapi.ReportResponse> => {
-  logger.info(`${api.reports.endpoint}?sessionId=${sessionId}`)
-  const httpResponse = await fetch(`${api.reports.endpoint}?sessionId=${sessionId}`, api.status.options)
+const getReport = async (api: PitApi, sessionId: string): Promise<webapi.ReportResponse> => {
+
+  const queryParams = new URLSearchParams({
+    sessionId
+  })
+  const reportUrl = `${api.reports.endpoint}?${queryParams}`
+  logger.info(reportUrl)
+  const httpResponse = await fetch(reportUrl, api.status.options)
 
   if (!httpResponse.ok) {
     // TODO: handle http statuses
     throw new Error(httpResponse.statusText)
   }
 
-  const result = webapi.ReportResponse.create(await httpResponse.json())
+  const reponse = await httpResponse.json()
+
+  const { schemaValidator, schemaPath } = api.reports.validator
+  const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), reponse)
+
+  if (!isResponseValid) {
+    throw new ApiSchemaValidationError(schemaValidator.errorsText(), reportUrl, JSON.stringify(reponse))
+
+  }
+
+  const result = webapi.ReportResponse.create(reponse)
   if (result.status !== webapi.TestStatus.COMPLETED) {
     const errorText = result.error || "Test did not finish successfully."
-    throw new Error(`Error fetching report: '${ errorText }'`)
+    throw new Error(`Error fetching report: '${errorText}'`)
   }
   return result
 }
 
 const downloadNativeReport = async (workspace: string, api: any, testSuiteId: string, sessionId: string, nativeReportFile: string) => {
-  const localPath = `${ workspace }/reports/${ nativeReportFile }`
+  const localPath = `${workspace}/reports/${nativeReportFile}`
   logger.info("Test suite: '%s' - downloading native report file '%s' into '%s'", testSuiteId, nativeReportFile, localPath)
 
-  const downloadResp = await fetch(`${ api.reportsNative.endpoint }?sessionId=${ sessionId }`, api.reportsNative.options)
+  const downloadResp = await fetch(`${api.reportsNative.endpoint}?sessionId=${sessionId}`, api.reportsNative.options)
   if (!downloadResp.ok) {
     logger.error("Error downloading native report for '%s'. Error: %s", testSuiteId, downloadResp.statusText)
     return
