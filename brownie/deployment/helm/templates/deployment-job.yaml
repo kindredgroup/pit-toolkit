@@ -15,7 +15,7 @@ spec:
   # │ │ │ │ ┌─ day of the week (0 - 6) (Sunday to Saturday)
   # │ │ │ │ │
   # * * * * *
-  schedule: "5 * * * *"
+  schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
