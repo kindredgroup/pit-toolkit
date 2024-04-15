@@ -61,7 +61,7 @@ const cleanOldDatabases = async (config: Config): Promise<number> => {
       }
 
       try {
-        logger.info("cleanOldDatabases(): Deleteing the expired database: %s", dbname)
+        logger.info("cleanOldDatabases(): Deleting the expired database: %s", dbname)
 
         if (config.dryRun) {
           logger.info("cleanOldDatabases(): Database has NOT been dropped (dry run mode): %s", dbname)
@@ -128,7 +128,7 @@ const cleanTopics = async (config: Config): Promise<number> => {
       }
 
       try {
-        logger.info("cleanTopics(): Deleteing the expired topic: %s", topicName)
+        logger.info("cleanTopics(): Deleting the expired topic: %s", topicName)
         if (config.dryRun) {
           logger.info("cleanTopics(): Topic has NOT been deleted (dry run mode): %s", topicName)
         } else {
