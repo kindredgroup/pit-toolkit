@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "application.name" . }}
+  labels:
+    {{- include "application.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "3"
+spec:
+  # ┌───────── minute (0 - 59)
+  # │ ┌─────── hour (0 - 23)
+  # │ │ ┌───── day of the month (1 - 31)
+  # │ │ │ ┌─── month (1 - 12)
+  # │ │ │ │ ┌─ day of the week (0 - 6) (Sunday to Saturday)
+  # │ │ │ │ │
+  # * * * * *
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: {{ include "application.name" . }}
+          annotations:
+            "sidecar.istio.io/inject": "false"
+          labels:
+            {{- include "application.selectorLabels" . | nindent 12 }}
+        spec:
+          containers:
+            - name: {{ include "application.name" . }}
+              image: {{ .Values.pod.repository }}:{{ .Values.IMAGE_TAG }}
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              envFrom:
+                - configMapRef:
+                    name: {{ include "application.name" . }}
+                - secretRef:
+                    name: {{ include "application.name" . }}
+          restartPolicy: OnFailure

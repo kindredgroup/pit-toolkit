@@ -1,10 +1,10 @@
 import {expect} from "chai"
 import {describe, it} from "mocha"
-import {ApiRoutes} from "../api-routes.js"
+import {ApiRoutes} from "../src/api-routes.js"
 import express from "express"
 import supertest from "supertest"
 import Sinon from "sinon"
-import { PostgresDb } from "../db/pg.js"
+import { PostgresDb } from "../src/db/pg.js"
 
 describe("API routes", () => {
 
