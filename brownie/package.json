@@ -29,7 +29,7 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && npx tsc",
     "test": "npm run build && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
-    "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && npm run start",
+    "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && node $BROWNIE_NODE_OPTIONS dist/src/index.js",
     "dev.build-image": "source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
     "dev.deploy": "./scripts/deploy.sh",
     "start": "node $BROWNIE_NODE_OPTIONS dist/index.js"

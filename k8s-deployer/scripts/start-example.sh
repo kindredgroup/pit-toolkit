@@ -43,7 +43,7 @@ APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
 SUB_NS_PREFIX=pit
 CLUSTER_URL="http://127.0.0.1"
-export TIMESTAMP=$(date +%Y%m%d%H%M%S)
+export BROWNIE_TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
 if [ "${USE_KUBE_PROXY}" == "true" ];
 then

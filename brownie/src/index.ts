@@ -2,14 +2,21 @@ import pg, { PoolConfig } from "pg"
 
 import { logger } from "./logger.js"
 import { readParams } from "./bootstrap.js"
-import { Config } from "./config.js"
+import * as cfg from "./config.js"
 import { ResourceStatus, evaluateResource } from "./utils.js"
 import Kafkajs from "kafkajs"
 import type { KafkaConfig as KafkaJsConfig, SASLOptions } from "kafkajs"
 
 const main = async () => {
-  const config: Config = readParams()
-  logger.info("main(), Parsed configuration: \n%s", JSON.stringify({ ...config, timestampPattern: config.timestampPattern.toString() }, null, 2))
+  const config: cfg.Config = readParams()
+
+  const cleanedConfig = {
+    ...config,
+    pg:    { ...config.pg, password: "*** hidden ***" } as cfg.PgConfig,
+    kafka: { ...config.kafka, password: "*** hidden ***" } as cfg.KafkaConfig
+  } as cfg.Config
+
+  logger.info("main(), Parsed configuration: \n%s", JSON.stringify({ ...cleanedConfig, timestampPattern: config.timestampPattern.toString() }, null, 2))
 
   logger.info("Cleaning old databases...")
   const cleanedDbsCount = await cleanOldDatabases(config)
@@ -29,7 +36,7 @@ const main = async () => {
   }
 }
 
-const cleanOldDatabases = async (config: Config): Promise<number> => {
+const cleanOldDatabases = async (config: cfg.Config): Promise<number> => {
   let cleanedCount = 0
   const pgClient = new pg.Client({
     user: config.pg.username,
@@ -91,7 +98,7 @@ const cleanOldDatabases = async (config: Config): Promise<number> => {
   return cleanedCount
 }
 
-const cleanTopics = async (config: Config): Promise<number> => {
+const cleanTopics = async (config: cfg.Config): Promise<number> => {
   let cleanedCount = 0
 
   const kafkaConfig: KafkaJsConfig = {

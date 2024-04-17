@@ -2,7 +2,7 @@
 
 ## Introduction
 
-[Brownie] (https://en.wikipedia.org/wiki/Brownie_(folklore)) is a housekeeping daemon whose responsibility is to find and remove stale resources created by PIT but could not be cleaned for technical reasons (PIT test has stopped by user, or process existed unexpectedly etc.)
+Brownie is a housekeeping daemon whose responsibility is to find and remove stale resources created by PIT but could not be cleaned for technical reasons (PIT test has stopped by user, or process existed unexpectedly etc.). About the name: https://en.wikipedia.org/wiki/Brownie_(folklore)
 
 Brownie app is deployed into k8s cluster as periodic CronJob. It scans for resources matching a pre-determined naming pattern and removes them when they get old. Currently we support *PostgresSQL databases* and *Kafka topics*. More resource types may be added in the future.
 
@@ -29,22 +29,22 @@ The list of resources:
 
 | Type          | Name                                     | Creation time
 |---------------|------------------------------------------|-----------------------
-| PostgreSQL DB | bank_accounts_pit_ns1_ts20240501220100   | 2024 May 1 at 22:01:00 
+| PostgreSQL DB | bank_accounts_pit_ns1_ts20240501220100   | 2024 May 1 at 22:01:00
 | Kafka topic   | new_sales_order_pit_ns1_ts20240607150201 | 2024 Jun 7 at 15:02:01
 
 With the resources named like in the example above Brownie will be able to extract their creation dates just by reading a resource name. The following regular expression can be used `^.*pit.*(ts[0-9]{14,14}).*`
 
-## Configuration 
+## Configuration
 
 Brownie does not enforce any specific naming strategy for your resources other than having 14 digits timestamp embedded in its name.
 
 | Parameter              | Env variable         | Description
 |------------------------|----------------------|-------------------
-| --dry-run              | DRY_RUN              | "true" or "false". When "false" resources will not be deleted
+| --dry-run              | DRY_RUN              | "true" or "false". When "true" resources will not be deleted
 | --retention-period     | RETENTION_PERIOD     | 1day, Ndays, 1hour, Nhours, 1minute, Nminutes and etc.
-| --timestamp-pattern    | TIMESTAMP_PATTERN    | The regexp pattern with the following group `(ts[0-9]{14,14})`    
-| --pghost               | PGHOST               | 
-| --pgport               | PGPORT               | 
+| --timestamp-pattern    | TIMESTAMP_PATTERN    | The regexp pattern with the following group `(ts[0-9]{14,14})`
+| --pghost               | PGHOST               |
+| --pgport               | PGPORT               |
 | --pgdatabase           | PGDATABASE           | The database is used for initial connection only.
 | --pguser               | PGUSER               |
 | --pgpassword           | PGPASSWORD           |
@@ -52,7 +52,7 @@ Brownie does not enforce any specific naming strategy for your resources other t
 | --kafka-port           | KAFKA_PORT           |
 | --kafka-client-id      | KAFKA_CLIENT_ID      |
 | --kafka-username       | KAFKA_USERNAME       | Optional
-| --kafka-password       | KAFKA_PASSWORD       | 
+| --kafka-password       | KAFKA_PASSWORD       |
 | --kafka-sasl-mechanism | KAFKA_SASL_MECHANISM | Optional
 
 
