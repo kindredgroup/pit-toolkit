@@ -1,10 +1,10 @@
 #!/bin/bash
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This script is invoked from the periodic CI pipeline. It will fetch the list of children
-# namespaces the kubernetes and pass that list into the node app. The node app will determine
+# namespaces from the kubernetes and pass that list into the node app. The node app will determine
 # whether the namespace is old and should be removed or it hasn't been aged yet and should be
 # kept in the cluster. If the "--dry-run" parameter is "false" then old namespaces will be removed.
-# The actual removeal of namespace is delegeated to
+# The actual removal of namespace is delegeated to
 # ../k8s-deployer/scripts/k8s-manage-namespace.sh
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 K8S_NAMESPACE=$1
