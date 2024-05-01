@@ -111,7 +111,7 @@ Scheduler will invoke a shell script which then query K8s cluster, generate a li
 
 The conceptual algorithm looks like this:
 
-1. CI job swakes and invokes `clean-ns.sh`;
+1. CI job awakes and invokes `clean-ns.sh`;
 2. The `clean-ns.sh` queries K8s and makes JSON file;
 3. The `clean-ns.sh` launches node app;
 4. The node app cleans old namespaces.
