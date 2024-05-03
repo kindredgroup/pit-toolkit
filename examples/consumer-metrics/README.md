@@ -12,7 +12,7 @@ This method makes the following assumptions:
 
 ## How to run
 
-- We need to terminal windows
+- We need two terminal windows
 - We need running kafka with (auto-create topics feature) or with pre-created topic named "local_pit_consumer_metrics"
 - Kafka is listening on 127.1.1:9092 and can take plaintext connection with `scram-sha-512` and credentials: `admin/admin`.
   See `pit-toolkit/examples/consumer-metrics/src/core.ts`
