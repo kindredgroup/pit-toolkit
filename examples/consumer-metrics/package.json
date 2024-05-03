@@ -1,0 +1,31 @@
+{
+  "name": "@kindredgroup/pit-k8s-deployer",
+  "version": "1.1.8-dev",
+  "description": "The deployment utility for apps designed to run in K8s clusters",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npx tsc",
+    "start.consumer": "npm run build && node dist/consumer/index.js",
+    "start.publisher": "npm run build && node dist/publisher/index.js"
+  },
+  "dependencies": {
+    "hdr-histogram-js": "^3.0.0",
+    "kafkajs": "^2.2.4",
+    "lz4": "0.6.5",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  }
+}
