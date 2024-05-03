@@ -38,7 +38,7 @@ It will start two activities concurrently:
 
 ## Test run results
 
-Below is the table of metrics comparing 9 test sessions. First 5 sessions each used 100k messages. The remaining 4 sessiones used 1mln messages each. All tests and kafka were running on Macbook.
+Below is the table of metrics comparing 9 test sessions. First 5 sessions each used 100k messages. The remaining 4 sessions used 1mln messages each. All tests and kafka were running on Macbook.
 
 ![](./docs/metrics.png)
 
