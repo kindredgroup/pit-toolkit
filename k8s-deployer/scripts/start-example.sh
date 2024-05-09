@@ -15,6 +15,11 @@
 # 7. Test session id
 # 8. Git username
 # 9. Git user email
+# 10. Parameter DO_NOT_CREATE_PROJECT_DIR: value either "true" or "false"
+#     - xyz: stands for any folder name which is going to run pit project after all files get copied from remote places by rsync command
+#     - xyz/ci-home: is a folder name which represents as pit project current workspace
+#     - "true": stands for creating project directory under xyz/ci-home folder is not required
+#     - "false": stands for creating project directory under xyz/ci-home folder is required
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 echo "Starting k8s-deployer application..."
@@ -38,6 +43,8 @@ TEST_SESSION=$7
 USER_NAME=$8
 USER_EMAIL=$9
 
+DO_NOT_CREATE_PROJECT_DIR=${10}
+
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
 PARENT_NS=dev
@@ -50,11 +57,16 @@ then
   CLUSTER_URL="http://127.0.0.1:8001"
 fi
 
+if [ "${DO_NOT_CREATE_PROJECT_DIR}" == "" ]; then DO_NOT_CREATE_PROJECT_DIR="false"; fi
+if [ "${DO_NOT_CREATE_PROJECT_DIR}" == "true" ];
+then
+  PROJECT_DIR="${PROJECT_DIR}/*"
+fi
+
 COMMIT_SHA=$(git rev-parse --short HEAD)
 COMMIT_SHA="${COMMIT_SHA}${TEST_SESSION}"
 
 echo "EXAMPLES_TEMP_DIR=${EXAMPLES_TEMP_DIR}"
-echo "PROJECT_DIR=${PROJECT_DIR}"
 echo "LOCK_MANAGER_MOCK=${LOCK_MANAGER_MOCK}"
 echo "LOCK_MANAGER_API_RETRIES=$LOCK_MANAGER_API_RETRIES"
 echo "CLUSTER_URL=${CLUSTER_URL}"
@@ -67,6 +79,8 @@ echo "Simulated CI commit \"$COMMIT_SHA\""
 echo "Git username \"$USER_NAME\""
 echo "Git user email \"$USER_EMAIL\""
 echo "Timestamp for cleanup is \"$TIMESTAMP\""
+echo "Relative path check ${DO_NOT_CREATE_PROJECT_DIR}"
+echo "PROJECT_DIR=${PROJECT_DIR}"
 
 if [ "${EXAMPLES_TEMP_DIR}" == "" ];
 then
