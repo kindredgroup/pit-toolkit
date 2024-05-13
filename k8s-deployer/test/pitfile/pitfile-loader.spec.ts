@@ -1,6 +1,6 @@
-import * as sinon from "sinon"
 import * as chai from "chai"
 import chaiAsPromised from 'chai-as-promised'
+import * as sinon from "sinon"
 chai.use(chaiAsPromised)
 
 import * as PifFileLoader from "../../src/pitfile/pitfile-loader.js"
@@ -47,7 +47,7 @@ describe("Loads pitfile from disk", () => {
   })
 
   it("should throw if location has no gitRemote", async () => {
-    const errorMessage = `Invalid configiuration for 'suite-1'. The 'location.gitRepository' is required when location.type is REMOTE`
+    const errorMessage = `Invalid configuration for 'suite-1'. The 'location.gitRepository' is required when location.type is REMOTE`
     await chai.expect(PifFileLoader.loadFromFile("dist/test/pitfile/test-pitfile-valid-3-invalid.yml")).eventually.rejectedWith(errorMessage)
   })
 

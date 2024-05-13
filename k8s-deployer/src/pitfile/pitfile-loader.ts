@@ -61,7 +61,7 @@ const applyDefaultsToLocation = (name: string, input: SchemaV1.Location): Schema
     location.type = SchemaV1.LocationType.Local
   } else if (location.type === SchemaV1.LocationType.Remote) {
     if (!location.gitRepository) {
-      throw new Error(`Invalid configiuration for '${name}'. The 'location.gitRepository' is required when location.type is ${SchemaV1.LocationType.Remote}`)
+      throw new Error(`Invalid configuration for '${name}'. The 'location.gitRepository' is required when location.type is ${SchemaV1.LocationType.Remote}`)
     }
     if (!location.gitRef) {
       location.gitRef = DEFAULT_GIT_REFERENCE
