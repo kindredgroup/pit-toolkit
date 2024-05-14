@@ -1,7 +1,7 @@
-import * as Shell from "./shell-facade.js"
+import * as cfg from "./config.js"
 import { logger } from "./logger.js"
 import { Namespace } from "./model.js"
-import * as cfg from "./config.js"
+import * as Shell from "./shell-facade.js"
 
 const pad = (v: string | number, len: number = 2): string => {
   let result = `${ v }`
@@ -29,8 +29,10 @@ export const createNamespace = async (workspace: string, rootNamespace: Namespac
   const logFile = `${ workspace }/logs/create-ns-${ namespace }.log`
 
   logger.info("Creating namespace: '%s'", namespace)
+
   const command = `k8s-deployer/scripts/k8s-manage-namespace.sh ${ rootNamespace } create "${ namespace }" ${ timeoutSeconds }`
   const timeoutMs = timeoutSeconds * 1_000
+
   await Shell.exec(command, { logFileName: logFile, tailTarget: logger.info, timeoutMs })
 
   logger.info("Namespace created: '%s'", namespace)
