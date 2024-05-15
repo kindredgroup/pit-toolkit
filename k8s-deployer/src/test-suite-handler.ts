@@ -1,14 +1,14 @@
 import * as fs from "fs"
 
+import { Config } from "./config.js"
+import * as Deployer from "./deployer.js"
+import * as K8s from "./k8s.js"
 import { LOG_SEPARATOR_LINE, logger } from "./logger.js"
 import { DeployedComponent, DeployedTestSuite, GraphDeploymentResult, Namespace, Prefix, Schema } from "./model.js"
-import * as Deployer from "./deployer.js"
-import { Config } from "./config.js"
 import * as PifFileLoader from "./pitfile/pitfile-loader.js"
-import * as K8s from "./k8s.js"
-import * as TestRunner from "./test-app-client/test-runner.js"
-import * as Shell from "./shell-facade.js"
 import { PodLogTail } from "./pod-log-tail.js"
+import * as Shell from "./shell-facade.js"
+import * as TestRunner from "./test-app-client/test-runner.js"
 
 export const generatePrefix = (env: string): Prefix => {
   return generatePrefixByDate(new Date(), env)
@@ -137,7 +137,7 @@ const deployLocal = async (
     logger.info("process.env.MOCK_NS=%s", process.env.MOCK_NS)
   }
 
-  logger.info("NAMEPSACE IN USE=%s, process.env.MOCK_NS=%s", ns, process.env.MOCK_NS)
+  logger.info("NAMESPACE IN USE=%s, process.env.MOCK_NS=%s", ns, process.env.MOCK_NS)
 
   await deployLockManager(config, workspace, ns, pitfile.lockManager.enabled, testSuite.id)
   logger.info("")
@@ -234,7 +234,7 @@ export const processTestSuite = async (
   // By default assume processing strategy to be "deploy all then run tests one by one"
 
   logger.info("")
-  logger.info("--------------- Processig %s ---------------", testSuite.id)
+  logger.info("--------------- Processing %s ---------------", testSuite.id)
   logger.info("")
   const list = await deployAll(prefix, config, pitfile, seqNumber, testSuite)
 

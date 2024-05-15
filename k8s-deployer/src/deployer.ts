@@ -1,11 +1,10 @@
 import * as fs from "fs"
 
-import { logger } from "./logger.js"
-import { CommitSha, Namespace, Schema, DeployedComponent } from "./model.js"
-import * as Shell from "./shell-facade.js"
-import { LocationType } from "./pitfile/schema-v1.js"
-import { config } from "process"
 import { Config } from "./config.js"
+import { logger } from "./logger.js"
+import { CommitSha, DeployedComponent, Namespace, Schema } from "./model.js"
+import { LocationType } from "./pitfile/schema-v1.js"
+import * as Shell from "./shell-facade.js"
 
 export class DeployOptions {
   namespace?: Namespace
@@ -34,6 +33,27 @@ const isExecutable = async (filePath: string) => {
     await fs.promises.access(filePath, fs.constants.X_OK)
   } catch (e) {
       throw new Error(`There is no ${filePath} or it is not executable.`, { cause: e })
+  }
+}
+
+/*
+  Description: function isDirectoryExists: the purpose of this function is for checking the application directory is whether exists or not
+
+  Usage example:
+    // Assuming we have a project root directory /workspace, and we have 1 sub directory under /workspace, which is /workspace/project-directory
+    // eg: /workspace
+    //  - project-directory
+
+    const isApplicationDirectoryExists = await isDirectoryExists('/workspace/project-directory') // return as true and it means application directory exists and accessible
+    const isApplicationDirectoryExists = await isDirectoryExists('/workspace/some-other-directory') // return as false because some-other-directory does not exist and it means application directory does not exist and not accessible
+*/
+const isDirectoryExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK)
+    return true
+  } catch (e) {
+    logger.error(`There is no ${filePath} or it is not accessible.`, { cause: e })
+    return false
   }
 }
 
@@ -165,6 +185,15 @@ const undeployApplication = async (
   }
 }
 
+// setAppDirectory is used to set app directory value based on the result of isDirectoryExists function
+const setAppDirectory = async (appDir: string, specId: string): Promise<string> => {
+  if (!appDir || !specId) throw new Error('appDir or specId value is missing')
+
+  const isApplicationDirectoryExists = await isDirectoryExists(appDir)
+
+  return isApplicationDirectoryExists ? specId : '.'
+}
+
 export const deployLockManager = async (config: Config, workspace: string, namespace: Namespace) => {
   const spec = getLockManagerConfig()
   const appName = spec.id
@@ -214,7 +243,8 @@ export const deployComponent = async (
       appDir = spec.location.path
       logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
     } else {
-      appDir = spec.id
+      appDir = await setAppDirectory(appDir, spec.id)
+
       logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
     }
     commitSha = await Shell.exec(`cd ${ appDir } && git log --pretty=format:"%h" -1`)
@@ -233,7 +263,8 @@ export const undeployComponent = async (workspace: string, namespace: Namespace,
       appDir = spec.location.path
       logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
     } else {
-      appDir = spec.id
+      appDir = await setAppDirectory(appDir, spec.id)
+
       logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
     }
   }
