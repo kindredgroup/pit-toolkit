@@ -214,10 +214,11 @@ describe("Deployment happy path", async () => {
     chai.expect(fsAccessStubs.getCall(0).calledWith(workspace)).be.true
     chai.expect(fsAccessStubs.getCall(1).calledWith("lock-manager/deployment/pit/deploy.sh")).be.true
     chai.expect(fsAccessStubs.getCall(2).calledWith("lock-manager/deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(3).calledWith("12345_t1/comp-1")).be.true
+    chai.expect(fsAccessStubs.getCall(3).calledWith("23456_t1/comp-1")).be.false
+    chai.expect(fsAccessStubs.getCall(3).calledWith("./comp-1")).be.true
     chai.expect(fsAccessStubs.getCall(4).calledWith("comp-1/deployment/pit/deploy.sh")).be.true
     chai.expect(fsAccessStubs.getCall(5).calledWith("comp-1/deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(6).calledWith("12345_t1/comp-1-test-app")).be.true
+    chai.expect(fsAccessStubs.getCall(6).calledWith("./comp-1-test-app")).be.true
     chai.expect(fsAccessStubs.getCall(7).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
     chai.expect(fsAccessStubs.getCall(8).calledWith("comp-1-test-app/deployment/pit/is-deployment-ready.sh")).be.true
 
@@ -325,7 +326,7 @@ describe("Deployment happy path", async () => {
 
     const fsAccessStubs = sinon.stub()
     // checking the presense of workspace
-    fsAccessStubs.withArgs(`${prefix}_${testSuiteId}/${testSuite2.deployment.graph.components[0].id}`).throws(new Error("path is not writable"))
+    fsAccessStubs.withArgs(`./${testSuite2.deployment.graph.components[0].id}`).throws(new Error("path is not writable"))
     // all other access checks
     fsAccessStubs.returns(true)
 
@@ -422,10 +423,11 @@ describe("Deployment happy path", async () => {
     chai.expect(fsAccessStubs.getCall(0).calledWith('23456_t2')).be.true
     chai.expect(fsAccessStubs.getCall(1).calledWith("lock-manager/deployment/pit/deploy.sh")).be.true
     chai.expect(fsAccessStubs.getCall(2).calledWith("lock-manager/deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(3).calledWith("23456_t2/comp-1")).be.true
+    chai.expect(fsAccessStubs.getCall(3).calledWith("23456_t2/comp-1")).be.false
+    chai.expect(fsAccessStubs.getCall(3).calledWith("./comp-1")).be.true
     chai.expect(fsAccessStubs.getCall(4).calledWith("./deployment/pit/deploy.sh")).be.true
     chai.expect(fsAccessStubs.getCall(5).calledWith("./deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(6).calledWith("23456_t2/comp-1-test-app")).be.true
+    chai.expect(fsAccessStubs.getCall(6).calledWith("./comp-1-test-app")).be.true
     chai.expect(fsAccessStubs.getCall(7).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
     chai.expect(fsAccessStubs.getCall(8).calledWith("comp-1-test-app/deployment/pit/is-deployment-ready.sh")).be.true
   })
