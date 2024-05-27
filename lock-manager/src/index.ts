@@ -21,7 +21,8 @@ const main = async () => {
   app.use(jsonParser)
 
   const _apiRoutes = new ApiRoutes(app, db)
-  const oasFilePath = new URL(" ", import.meta.url).pathname
+  // const oasFilePath = new URL(" ", import.meta.url).pathname
+  const oasFilePath = "dist/src/web-api/v1/open-api-schema-v1.yml"
   try {
     await fs.promises.access(oasFilePath, fs.constants.R_OK)
   } catch (e) {
