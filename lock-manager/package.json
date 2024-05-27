@@ -38,7 +38,7 @@
     "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && npm run start",
     "dev.build-image": "source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
     "dev.k8-deploy": "./deployment/pit/deploy.sh",
-    "start": "node $LOCK_MANAGER_NODE_OPTIONS dist/src/index.js",
+    "start": "node $LOCK_MANAGER_NODE_OPTIONS dist/index.js",
     "migrate": "npx node-pg-migrate",
     "migrate:up": "npm run migrate up",
     "migrate:down": "npm run migrate down",
