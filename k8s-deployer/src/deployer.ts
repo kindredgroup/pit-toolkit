@@ -49,10 +49,12 @@ const isExecutable = async (filePath: string) => {
 */
 const isDirectoryExists = async (filePath: string): Promise<boolean> => {
   try {
+    logger.info("isDirectoryExists(): checking if dir exists: %s", filePath)
     await fs.promises.access(filePath, fs.constants.F_OK)
+    logger.info("isDirectoryExists(): checking if dir exists: %s. Yes", filePath)
     return true
   } catch (e) {
-    logger.error(`There is no ${filePath} or it is not accessible.`, { cause: e })
+    logger.warn("isDirectoryExists(): There is no %s or it is not accessible.", filePath, { cause: e })
     return false
   }
 }
@@ -243,7 +245,7 @@ export const deployComponent = async (
       appDir = spec.location.path
       logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
     } else {
-      appDir = await setAppDirectory(appDir, spec.id)
+      appDir = await setAppDirectory(`./${ spec.id }`, spec.id)
 
       logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
     }
@@ -263,7 +265,7 @@ export const undeployComponent = async (workspace: string, namespace: Namespace,
       appDir = spec.location.path
       logger.info("The application directory will be taken from 'location.path' attribute: '%s' of '%s'", appDir, spec.name)
     } else {
-      appDir = await setAppDirectory(appDir, spec.id)
+      appDir = await setAppDirectory(`./${ spec.id }`, spec.id)
 
       logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
     }
