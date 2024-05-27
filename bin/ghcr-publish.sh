@@ -23,29 +23,41 @@ isNumber() {
   fi
 }
 
-push_tag() {
+dockerBuildTagPush() {
   echo "all args = $@"
   application=$1
   version=$2
-  isSlidingTag=$3
+  additionalTag=$3
 
-  tagWithVersion=$application:$version
+  echo "application=${application} version=${version} shouldBuild=${shouldBuild} additionalTag=${additionalTag}"
+
+  tagWithVersion="$application:$version"
   echo "tagWithVersion=${tagWithVersion}"
 
-  tagRef=ghcr.io/kindredgroup/pit-toolkit/$tagWithVersion
+  tagRef="ghcr.io/kindredgroup/pit-toolkit/$tagWithVersion"
+  shortTagRef="ghcr.io/kindredgroup/pit-toolkit/$application:$additionalTag"
+  appRef="ghcr.io/kindredgroup/pit-toolkit/$application"
+
   echo "tagRef=${tagRef}"
   echo ""
 
-  pwd
-  echo ""
-  ls -lah
-  echo ""
+  echo "Docker images before tagging...."
+  docker images
 
   echo "docker build --tag $tagRef ."
   docker build --tag "${tagRef}" .
 
-  echo "docker push ${tagRef}"
-  docker push "${tagRef}"
+  if [ "${additionalTag}" != "" ];
+  then
+    echo "shortTagRef=${shortTagRef}"
+    docker tag "${tagRef}" "${shortTagRef}"
+  fi
+
+  echo "Docker images after tagging...."
+  docker images
+
+  echo "docker push -a ${appRef}"
+  docker push -a "${appRef}"
   echo ""
 }
 
@@ -54,7 +66,7 @@ echo "cd $application"
 cd $application
 if [ "${makeAdditionalTag}" == "n" ];
 then
-  push_tag "${application}" "${version}"
+  dockerBuildTagPush "${application}" "${version}"
   exit 0
 fi
 
@@ -94,25 +106,9 @@ fi
 majorMinorVersion="${array[0]}.${array[1]}"
 echo "Computed majorMinorVersion=${majorMinorVersion}"
 
+dockerBuildTagPush "${application}" "${version}" "${majorMinorVersion}"
 
-
-tagWithVersion=$application:$version
-echo "tagWithVersion=${tagWithVersion}"
-tagRef=ghcr.io/kindredgroup/pit-toolkit/$tagWithVersion
-echo "tagRef=${tagRef}"
-echo ""
-
-echo "docker build --tag $tagRef ."
-docker build --tag "${tagRef}" .
-shortTagRef=ghcr.io/kindredgroup/pit-toolkit/$application:$majorMinorVersion
-docker tag "${tagRef}" "${shortTagRef}"
-docker images
-
-echo "push -a ghcr.io/kindredgroup/pit-toolkit/$application"
-echo "-- before pushing docker iamge --"
-docker push -q -a "ghcr.io/kindredgroup/pit-toolkit/$application"
-echo "-- after pushing docker iamge --"
 cd $home
 git tag -f "${majorMinorVersion}"
-git push origin tag "${majorMinorVersion}"
+git push -f origin tag "${majorMinorVersion}"
 echo ""
