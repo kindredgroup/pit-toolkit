@@ -32,8 +32,8 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && npx tsc && npm run copy.openapi.spec",
-    "copy.openapi.spec": "copyfiles src/web-api/**/open-api-schema*.yml dist/",
-    "test": "npm run build && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
+    "copy.openapi.spec": "copyfiles -f src/web-api/v1/open-api-schema*.yml dist/web-api/v1/",
+    "test": "npm run clean && npx tsc -p tsconfig-tests.json && copyfiles src/web-api/*/open-api-schema*.yml dist/ && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
     "watch": "npx tsc --watch",
     "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && npm run start",
     "dev.build-image": "source .env; docker build -t $REGISTRY_URL/$SERVICE_NAME:$IMAGE_TAG .",
