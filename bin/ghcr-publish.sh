@@ -44,25 +44,6 @@ push_tag() {
   echo "docker build --tag $tagRef ."
   docker build --tag "${tagRef}" .
 
-  # # after we successfully build the image we can push the tag
-  # if [ "${isSlidingTag}" == "true" ];
-  # then
-  #   echo "Fetching versions tag ${version}"
-  #   curl -v -L \
-  #     -X GET \
-  #     -H "Accept: application/vnd.github+json" \
-  #     -H "Authorization: Bearer ${gitHubToken}" \
-  #     -H "X-GitHub-Api-Version: 2022-11-28" \
-  #     "https://api.github.com/user/packages/container/kindredgroup/pit-toolkit/$application/versions"
-  #   echo "Removing previous sliding tag ${version}"
-  #   curl -L \
-  #     -X DELETE \
-  #     -H "Accept: application/vnd.github+json" \
-  #     -H "Authorization: Bearer ${gitHubToken}" \
-  #     -H "X-GitHub-Api-Version: 2022-11-28" \
-  #     "https://api.github.com/user/packages/container/kindredgroup/pit-toolkit/$application/$version"
-  # fi
-
   echo "docker push ${tagRef}"
   docker push "${tagRef}"
   echo ""
