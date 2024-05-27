@@ -18,7 +18,7 @@ export class ScalarMetric {
 export class DistributionMetric {
   type: MetricType = MetricType.DISTRIBUTION
   value: any
-  constructor(readonly name: string, value: Map<number, number>) {
+  constructor(readonly name: string, value: Map<string, number>) {
     this.value = Object.fromEntries(value.entries())
   }
 }
