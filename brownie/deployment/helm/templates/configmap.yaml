@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: {{ include "application.name" . }}
 data:
+  ENABLED_MODULES: {{ .Values.ENABLED_MODULES | quote }}
   SERVICE_NAME: {{ .Values.SERVICE_NAME | quote }}
   BROWNIE_NODE_OPTIONS: {{ .Values.BROWNIE_NODE_OPTIONS | quote }}
   DRY_RUN: {{ .Values.DRY_RUN | quote }}

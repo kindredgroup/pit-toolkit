@@ -42,26 +42,34 @@ export const readParams = (): Config => {
 
   logger.info("Application started with arguments: \n%s", JSON.stringify(Object.fromEntries(params), null, 2))
 
-  const db: PgConfig = new PgConfig(
-    fnReadValue(params, PgConfig.PARAM_PGHOST),
-    fnReadValue(params, PgConfig.PARAM_PGPORT),
-    fnReadValue(params, PgConfig.PARAM_PGDATABASE),
-    fnReadValue(params, PgConfig.PARAM_PGUSER),
-    fnReadValue(params, PgConfig.PARAM_PGPASSWORD)
-  )
+  const enabledModules = fnReadValue(params, Config.PARAM_ENABLED_MODULES)
+  let pgConfig: PgConfig | null = null
+  if (Config.isModuleEnabled(enabledModules, PgConfig.MODULE_NAME)) {
+    pgConfig = new PgConfig(
+      fnReadValue(params, PgConfig.PARAM_PGHOST),
+      fnReadValue(params, PgConfig.PARAM_PGPORT),
+      fnReadValue(params, PgConfig.PARAM_PGDATABASE),
+      fnReadValue(params, PgConfig.PARAM_PGUSER),
+      fnReadValue(params, PgConfig.PARAM_PGPASSWORD)
+    )
+  }
 
-  const kafka: KafkaConfig = new KafkaConfig(
-    fnReadValue(params, KafkaConfig.PARAM_BROKERS),
-    fnReadValue(params, KafkaConfig.PARAM_CLIENT_ID),
-    fnReadValue(params, KafkaConfig.PARAM_USERNAME, false),
-    fnReadValue(params, KafkaConfig.PARAM_PASSWORD, false),
-    fnReadValue(params, KafkaConfig.PARAM_PORT, false),
-    fnReadValue(params, KafkaConfig.PARAM_SASL_MECHANISM, false)
-  )
+  let kafkaConfig: KafkaConfig | null = null
+  if (Config.isModuleEnabled(enabledModules, KafkaConfig.MODULE_NAME)) {
+    kafkaConfig = new KafkaConfig(
+      fnReadValue(params, KafkaConfig.PARAM_BROKERS),
+      fnReadValue(params, KafkaConfig.PARAM_CLIENT_ID),
+      fnReadValue(params, KafkaConfig.PARAM_USERNAME, false),
+      fnReadValue(params, KafkaConfig.PARAM_PASSWORD, false),
+      fnReadValue(params, KafkaConfig.PARAM_PORT, false),
+      fnReadValue(params, KafkaConfig.PARAM_SASL_MECHANISM, false)
+    )
+  }
 
   return new Config(
-    db,
-    kafka,
+    enabledModules,
+    pgConfig,
+    kafkaConfig,
     new RegExp(fnReadValue(params, Config.PARAM_TIMESTAMP_PATTERN, true, Config.DEFAULT_TIMESTAMP_PATTERN)),
     Config.parseRetention(fnReadValue(params, Config.PARAM_RETENTION_PERIOD, true, Config.DEFAULT_RETENTION_PERIOD)),
     fnReadValue(params, Config.PARAM_DRY_RUN, false, false) === "true"

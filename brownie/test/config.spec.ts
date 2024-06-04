@@ -24,4 +24,10 @@ describe("Tests for Config", () => {
     chai.expect(() => Config.parseRetention("2")).to.throw("Invalid format for retention. Expected \"<digit><unit>\", got: 2")
   })
 
+  it("isModuleEnabled", () => {
+    chai.expect(Config.isModuleEnabled("abc, xyz", "abc")).be.true
+    chai.expect(Config.isModuleEnabled("abc, xyz", "xyz")).be.true
+    chai.expect(Config.isModuleEnabled("abc, xyz", "klm")).be.false
+  })
+
 })

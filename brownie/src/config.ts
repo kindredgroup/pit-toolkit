@@ -1,6 +1,8 @@
 import { logger } from "./logger.js"
 
 export class PgConfig {
+  static MODULE_NAME: string = "postgresql"
+
   static PARAM_PGHOST: string = "--pghost"
   static PARAM_PGPORT: string = "--pgport"
   static PARAM_PGDATABASE: string = "--pgdatabase"
@@ -22,6 +24,8 @@ export class PgConfig {
 }
 
 export class KafkaConfig {
+  static MODULE_NAME: string = "kafka"
+
   static PARAM_BROKERS: string = "--kafka-brokers"
   static PARAM_PORT: string = "--kafka-port"
   static PARAM_CLIENT_ID: string = "--kafka-client-id"
@@ -58,6 +62,7 @@ export class KafkaConfig {
 }
 
 export class Config {
+  static PARAM_ENABLED_MODULES: string = "--enabled-modules"
   static PARAM_DRY_RUN: string = "--dry-run"
   static PARAM_RETENTION_PERIOD: string = "--retention-period"
   static PARAM_TIMESTAMP_PATTERN: string = "--timestamp-pattern"
@@ -65,8 +70,9 @@ export class Config {
   static DEFAULT_RETENTION_PERIOD: string = "3days"
 
   constructor(
-    readonly pg: PgConfig,
-    readonly kafka: KafkaConfig,
+    readonly enabledModules: string,
+    readonly pg: PgConfig | null,
+    readonly kafka: KafkaConfig | null,
     readonly timestampPattern: RegExp,
     readonly retentionMinutes: number,
     readonly dryRun: boolean
@@ -84,4 +90,8 @@ export class Config {
 
     throw new Error(`Invalid format for retention. Expected "<digit><unit>", got: ${ value }`)
   }
+
+  static isModuleEnabled = (modules: string, module: string): boolean => {
+    return (modules.indexOf(module) !== -1)
+  }  
 }
