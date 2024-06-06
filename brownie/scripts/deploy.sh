@@ -20,7 +20,7 @@ set +o allexport
 
 KAFKA_BROKERS=$(echo "${KAFKA_BROKERS}" | sed 's/,/\\,/g')
 TIMESTAMP_PATTERN=$(echo "${TIMESTAMP_PATTERN}" | sed 's/,/\\,/g')
-ENABLED_MODULES==$(echo "${ENABLED_MODULES}" | sed 's/,/\\,/g')
+ENABLED_MODULES=$(echo "${ENABLED_MODULES}" | sed 's/,/\\,/g')
 
 echo "K8S_NAMESPACE=${K8S_NAMESPACE}"
 CHART_PACKAGE="${SERVICE_NAME}-0.1.0.tgz"
