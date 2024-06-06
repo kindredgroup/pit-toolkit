@@ -62,7 +62,8 @@ With the resources named like in the example above Brownie will be able to extra
 Brownie does not enforce any specific naming strategy for your resources other than having 14 digits timestamp embedded in its name.
 
 | Parameter              | Env variable         | Description
-|------------------------|----------------------|-------------------
+|------------------------|----------------------|----------------------------------------------------------
+| --enabled-modules      | ENABLED_MODULES      | The comma separated list of modules to be activated. See below.
 | --dry-run              | DRY_RUN              | "true" or "false". When "true" resources will not be deleted
 | --retention-period     | RETENTION_PERIOD     | 1day, Ndays, 1hour, Nhours, 1minute, Nminutes and etc.
 | --timestamp-pattern    | TIMESTAMP_PATTERN    | The regexp pattern with the following group `(ts[0-9]{14,14})`
@@ -77,6 +78,18 @@ Brownie does not enforce any specific naming strategy for your resources other t
 | --kafka-username       | KAFKA_USERNAME       | Optional
 | --kafka-password       | KAFKA_PASSWORD       |
 | --kafka-sasl-mechanism | KAFKA_SASL_MECHANISM | Optional
+
+### Supported modules
+
+Brownie supports several modules. `--enabled-modules` parameter can beused to selectively enable them. By default all modules are disabled. Example: `--enabled-modules mod1,mod2` enables both "mod1" and "mod2".
+
+*Postgresql*
+
+This module scans postgres server for old databases. To enabled this module pass: `--enabled-modules postgresql`
+
+*Kafka*
+
+This module scans kafka cluster for old topics. To enabled this module pass: `--enabled-modules kafka`
 
 # The external job module
 
