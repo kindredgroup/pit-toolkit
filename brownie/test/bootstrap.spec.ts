@@ -5,6 +5,7 @@ import { PgConfig, KafkaConfig, Config } from "../src/config.js"
 import { fnReadValue, readParams } from "../src/bootstrap.js"
 import { logger } from "../src/logger.js"
 
+const modulesParams = [ Config.PARAM_ENABLED_MODULES, `${KafkaConfig.MODULE_NAME}, ${PgConfig.MODULE_NAME}` ]
 const requiredParams = [
   PgConfig.PARAM_PGHOST, "127.0.0.1",
   PgConfig.PARAM_PGPORT, 1000,
@@ -88,7 +89,7 @@ describe("bootstrap with correct configs", () => {
 
   it("readParams() should return populated config", () => {
     const allParams: Array<string | number> = ["skip-first", ""]
-    mockParams(sandbox, process, 'argv', allParams.concat(requiredParams, optionalParams))
+    mockParams(sandbox, process, 'argv', allParams.concat(modulesParams, requiredParams, optionalParams))
     sandbox.stub(process, 'env').value({})
 
     const config = readParams()
@@ -99,7 +100,7 @@ describe("bootstrap with correct configs", () => {
     sandbox.stub(process, 'argv').value([ PgConfig.PARAM_PGDATABASE, "" ])
 
     const allParams: Array<string | number> = []
-    mockParams(sandbox, process, 'env', allParams.concat(requiredParams, optionalParams))
+    mockParams(sandbox, process, 'env', allParams.concat(modulesParams, requiredParams, optionalParams))
 
     const config = readParams()
     evaluatePopulated(config)
@@ -108,7 +109,7 @@ describe("bootstrap with correct configs", () => {
   it("readParams() should use default values for optional params", () => {
     sandbox.stub(process, 'env').value({})
     const params: Array<string | number> = ["skip-first", ""]
-    mockParams(sandbox, process, 'argv', params.concat(requiredParams))
+    mockParams(sandbox, process, 'argv', params.concat(modulesParams, requiredParams))
 
     const config = readParams()
     evaluatePopulated(
@@ -119,6 +120,31 @@ describe("bootstrap with correct configs", () => {
         [ "dryRun", false ]
       ])
     )
+  })
+
+  it("readParams() should not load configs for disabled kafka", () => {
+    sandbox.stub(process, 'env').value({})
+    const params: Array<string | number> = ["skip-first", ""]
+    mockParams(sandbox, process, 'argv', params.concat([ Config.PARAM_ENABLED_MODULES, PgConfig.MODULE_NAME ], requiredParams))
+
+    const config = readParams()
+    console.log(config)
+    chai.expect(config.enabledModules).eq(PgConfig.MODULE_NAME)
+    chai.expect(config.pg).be.not.null
+    chai.expect(config.kafka).be.null
+  })
+
+  it("readParams() should not load configs for disabled postgres", () => {
+    sandbox.stub(process, 'env').value({})
+    const params: Array<string | number> = ["skip-first", ""]
+    mockParams(sandbox, process, 'argv', params.concat([ Config.PARAM_ENABLED_MODULES, KafkaConfig.MODULE_NAME ], requiredParams))
+
+    const config = readParams()
+    console.log(config)
+    chai.expect(config.enabledModules).eq(KafkaConfig.MODULE_NAME)
+    chai.expect(config.kafka).be.not.null
+    chai.expect(config.pg).be.null
+
   })
 
   afterEach(() => {

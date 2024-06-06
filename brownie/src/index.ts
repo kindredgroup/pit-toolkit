@@ -18,25 +18,18 @@ const main = async () => {
 
   logger.info("main(), Parsed configuration: \n%s", JSON.stringify({ ...cleanedConfig, timestampPattern: config.timestampPattern.toString() }, null, 2))
 
-  logger.info("Cleaning old databases...")
-  const cleanedDbsCount = await cleanOldDatabases(config)
-  if (cleanedDbsCount > 0) {
-    logger.info("Dropped %s database%s", cleanedDbsCount, cleanedDbsCount > 1 ? "s" : "")
-  } else {
-    logger.info("There are no databases to clean")
+  if (cfg.Config.isModuleEnabled(config.enabledModules, cfg.PgConfig.MODULE_NAME)) {
+    await cleanPostgresDatabases(config)
   }
-  logger.info("\n\n")
 
-  logger.info("Cleaning kafka topics...")
-  const cleanedTopicsCount = await cleanTopics(config)
-  if (cleanedTopicsCount > 0) {
-    logger.info("Deleted %s topics%s", cleanedTopicsCount, cleanedTopicsCount > 1 ? "s" : "")
-  } else {
-    logger.info("There are no topics to delete")
+  if (cfg.Config.isModuleEnabled(config.enabledModules, cfg.KafkaConfig.MODULE_NAME)) {
+    await cleanTopics(config)
   }
 }
 
-const cleanOldDatabases = async (config: cfg.Config): Promise<number> => {
+const cleanPostgresDatabases = async (config: cfg.Config) => {
+  logger.info("Cleaning old databases...")
+
   let cleanedCount = 0
   const pgClient = new pg.Client({
     user: config.pg.username,
@@ -68,17 +61,17 @@ const cleanOldDatabases = async (config: cfg.Config): Promise<number> => {
       }
 
       try {
-        logger.info("cleanOldDatabases(): Deleting the expired database: %s", dbname)
+        logger.info("cleanPostgresDatabases(): Deleting the expired database: %s", dbname)
 
         if (config.dryRun) {
-          logger.info("cleanOldDatabases(): Database has NOT been dropped (dry run mode): %s", dbname)
+          logger.info("cleanPostgresDatabases(): Database has NOT been dropped (dry run mode): %s", dbname)
         } else {
           await pgClient.query({
             name: `drop-db-${ dbname }`,
             text: `DROP DATABASE "${ dbname }"`
           })
 
-          logger.info("cleanOldDatabases(): Database has been dropped: %s", dbname)
+          logger.info("cleanPostgresDatabases(): Database has been dropped: %s", dbname)
         }
         cleanedCount++
 
@@ -86,7 +79,7 @@ const cleanOldDatabases = async (config: cfg.Config): Promise<number> => {
         await sleep
 
       } catch (e) {
-        logger.error("cleanOldDatabases(): Unable to drop database '%s'. Error: %s", dbname, e.message)
+        logger.error("cleanPostgresDatabases(): Unable to drop database '%s'. Error: %s", dbname, e.message)
         if (e.cause) logger.error(e.cause)
         if (e.stack) logger.error("Stack:\n%s", e.stack)
       }
@@ -95,10 +88,17 @@ const cleanOldDatabases = async (config: cfg.Config): Promise<number> => {
     pgClient?.end()
   }
 
-  return cleanedCount
+  if (cleanedCount > 0) {
+    logger.info("Dropped %s database%s", cleanedCount, cleanedCount > 1 ? "s" : "")
+  } else {
+    logger.info("There are no databases to clean")
+  }
+  logger.info("\n\n")
 }
 
-const cleanTopics = async (config: cfg.Config): Promise<number> => {
+const cleanTopics = async (config: cfg.Config) => {
+  logger.info("Cleaning kafka topics...")
+
   let cleanedCount = 0
 
   const kafkaConfig: KafkaJsConfig = {
@@ -158,7 +158,11 @@ const cleanTopics = async (config: cfg.Config): Promise<number> => {
     await kafkaAdmin.disconnect()
   }
 
-  return cleanedCount
+  if (cleanedCount > 0) {
+    logger.info("Deleted %s topics%s", cleanedCount, cleanedCount > 1 ? "s" : "")
+  } else {
+    logger.info("There are no topics to delete")
+  }
 }
 
 main()
