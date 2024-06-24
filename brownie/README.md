@@ -81,7 +81,44 @@ Brownie does not enforce any specific naming strategy for your resources other t
 
 ### Supported modules
 
-Brownie supports several modules. `--enabled-modules` parameter can beused to selectively enable them. By default all modules are disabled. Example: `--enabled-modules mod1,mod2` enables both "mod1" and "mod2".
+Brownie supports several modules. `--enabled-modules` parameter can be used to selectively enable them. By default all modules are disabled. Example: `--enabled-modules mod1,mod2` enables both "mod1" and "mod2".
+
+The parameter `--enabled-modules` supports two formats - the simple and extended format. The simple format looks like this: `--enabled-modules mod1,mod2`. 
+
+The extended format is designed to allow module to monitor more than one resource server. For example, when we need to do cleanups in multiple database servers we have to enable the module as usual, and in addition, we have to supply configuration describing a) how many servers do we want to monitor and b) how to connect to those multiple servers. The extended format looks like this: `--enabled-modules mod1=server1;server2,mod2`. In this example we have provided the extended module format for module named "mod1". Here "mod1" was given instruction to monitor two resource servers named "server1" and "server2". These names are arbitrary. They are aliases allowing to group relevant configuration details together.
+Following this example, we can now review how we can pass the connection details for those two servers "server1", "server2". Lets assume that our "mod1" needs four options for connecting to the resource server: HOST,PORT,USER,PASS. These four options need to have different values for each of our two servers. So, to make `mod1` fully functional it is expected that developer will pass eight options in total. The idea is to prefix each option with the resource server name. The following example will enable `mod1` and pass relevant connection details:
+
+```
+--enabled-modules mod1=server1;server2,mod2 \
+\
+--server1-host=127.0.0.1 \
+--server1-port=3000 \
+--server1-user=user1 \
+--server1-pass=admin \
+\
+--server2-host=127.0.0.2 \
+--server2-port=3000 \
+--server2-user=user2 \
+--server2-pass=admin
+```
+
+The same config can we re-written to use environment variables instead:
+
+```
+export SERVER1_HOST=127.0.0.1
+export SERVER1_PORT=3000
+export SERVER1_USER=user1
+export SERVER1_PASS=admin
+
+export SERVER2_HOST=127.0.0.2
+export SERVER2_PORT=3000
+export SERVER2_USER=user2
+export SERVER2_PASS=admin
+
+--enabled-modules mod1=server1;server2,mod2
+```
+
+Please note that names such as "mod1" and "mod2" were chosen only to simplify the explanation. Brownie does not recognise these module names. Below is the list of module names currently supported.
 
 *Postgresql*
 

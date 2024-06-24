@@ -1,7 +1,36 @@
+import { ValueReader } from "./config.js"
+import { logger } from "./logger.js"
+
 export enum ResourceStatus {
   SKIP = "SKIP",
   CLEAN = "CLEAN",
   RETAIN = "RETAIN"
+}
+
+// This is visible for testing only
+export const readParameterValue: ValueReader = (params: Map<string, string>, param: string, isRequired?: boolean, defaultValue?: any): any | undefined => {
+  const value = params.get(param)
+  if (value === undefined || (`${ value }`.trim().length == 0)) {
+    const envName = param.replaceAll("--", "").replaceAll("-", "_").toUpperCase()
+    logger.debug("readParameterValue(): Cannot find parameter '%s'. Reading environment variable: %s", param, envName)
+
+    const envValue = process.env[envName]
+    if (!envValue && !defaultValue && isRequired) throw new Error(`Missing required parameter "${ param }" or env variable: ${ envName }`)
+    if (envValue) {
+      logger.info("readParameterValue(): Parameter '%s' was loaded from env.%s", param, envName)
+      return envValue
+    }
+
+    if (!isRequired) {
+      logger.info("readParameterValue(): Parameter '%s' is optional, skipping...", param)
+      return undefined
+    }
+
+    logger.info("readParameterValue(): Cannot find env variable '%s'. Fallback to default value: '%s'", envName, defaultValue)
+    return defaultValue
+  }
+
+  return value
 }
 
 export const evaluateResource = (resourceName: string, pattern: RegExp, date: Date, retentionMinutes: number): ResourceStatus => {
