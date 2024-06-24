@@ -9,7 +9,7 @@
     "sourceMap": true,
     "outDir": "dist"
   },
-  "include": ["src/**/**/*.ts", "test/**/*.ts", "test/**/**/*.ts"],
+  "include": ["src/**/**/*.ts", "test/**/*.ts", "test/**/**/*.ts", "src/index.ts"],
   "exclude": [
       "build",
       "dist",
