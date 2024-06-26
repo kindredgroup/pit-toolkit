@@ -1,0 +1,42 @@
+{
+  "name": "@kindredgroup/pit-post-test-actions",
+  "version": "1.2.1-dev",
+  "description": "The execiutor of post-test actions",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/chai-as-promised": "^7.1.8",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.8.9",
+    "@types/sinon": "^17.0.2",
+    "@types/uuid": "^9.0.8",
+    "c8": "^8.0.1",
+    "chai": "^4.3.10",
+    "chai-as-promised": "^7.1.1",
+    "copyfiles": "^2.4.1",
+    "esmock": "^2.6.0",
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "copy.templates": "cd src/teams && copyfiles *.json ../../dist/src/teams ",
+    "build": "npm run clean && npx tsc && npm run copy.templates",
+    "test": "npm run build && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
+    "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && node $PIT_POST_TEST_NODE_OPTIONS dist/src/index.js",
+    "start": "node $PIT_POST_TEST_NODE_OPTIONS dist/src/index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "winston": "^3.11.0"
+  }
+}

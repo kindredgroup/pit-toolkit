@@ -41,11 +41,9 @@ else
     else
         # ref must just be sha
         git clone -q $repo $dir
-        echo $(cd $dir; git checkout -b "branch_$ref" $ref)
+        $(cd $dir; git checkout -q -b "branch_$ref" $ref)
     fi
 fi
-
-echo $(cd $dir; echo ''; git log --oneline -3)
 
 COMMIT_SHA=$(cd $dir && git log --pretty=format:"%h" -1)
 
