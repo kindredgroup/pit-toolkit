@@ -1,0 +1,33 @@
+{
+  "name": "@kindredgroup/pit-post-test-actions",
+  "version": "1.2.1-dev",
+  "description": "The execiutor of post-test actions",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindredgroup/pit-toolkit.git"
+  },
+  "author": "kindredgroup",
+  "license": "MIT",
+  "homepage": "https://github.com/kindredgroup/pit-toolkit#readme",
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/chai-as-promised": "^7.1.8",
+    "@types/express": "^4.17.21",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.8.9",
+    "@types/sinon": "^17.0.2",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npx tsc",
+    "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && node $PIT_POST_TEST_NODE_OPTIONS dist/index.js",
+    "start": "node $PIT_POST_TEST_NODE_OPTIONS dist/index.js"
+  },
+  "dependencies": {
+    "winston": "^3.11.0"
+  }
+}

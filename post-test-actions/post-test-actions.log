@@ -1,0 +1,2 @@
+find ../k8s-deployer/tmp-run2/ci-home/pit2024-05-22_041016454_local_1_talos-certifier-load-test -name pit-report.json
+../k8s-deployer/tmp-run2/ci-home/pit2024-05-22_041016454_local_1_talos-certifier-load-test/reports-talos-certifier-load-test_pit-87132a0-run2-1e1-1/pit-report.json
