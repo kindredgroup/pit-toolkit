@@ -106,7 +106,7 @@ HELM_TEMPLATE="${HELM_TEMPLATE} ${HELM_OVERWRITES} ${SERVICE_NAME} ./${CHART_PAC
 helm package ./deployment/helm --debug --app-version=$IMAGE_TAG
 if [ "${PIT_DEBUG_HELM}" == "true" ];
 then
-  echo "helm $HELM_TEMPLATE > \"./${SERVICE_NAME}-helm-debug.log\""
+  echo "helm $HELM_TEMPLATE" > "./${SERVICE_NAME}-helm-template.log"
   helm $HELM_TEMPLATE > "./${SERVICE_NAME}-helm-debug.log"
 fi
 
