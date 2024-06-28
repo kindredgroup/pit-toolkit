@@ -18,7 +18,6 @@ then
 fi
 set +o allexport
 
-KAFKA_BROKERS=$(echo "${KAFKA_BROKERS}" | sed 's/,/\\,/g')
 TIMESTAMP_PATTERN=$(echo "${TIMESTAMP_PATTERN}" | sed 's/,/\\,/g')
 ENABLED_MODULES=$(echo "${ENABLED_MODULES}" | sed 's/,/\\,/g')
 
@@ -33,20 +32,63 @@ HELM_OVERWRITES="\
   --set SECRET_STORE_NAME=${SECRET_STORE_NAME} \
   --set IMAGE_TAG=${IMAGE_TAG} \
   --set SERVICE_NAME=${SERVICE_NAME} \
-  --set PGDATABASE=${PGDATABASE} \
-  --set PGHOST=${PGHOST} \
-  --set PGPORT=${PGPORT} \
-  --set PGUSER=${PGUSER} \
-  --set PGPASSWORD=${PGPASSWORD} \
-  --set KAFKA_BROKERS=${KAFKA_BROKERS} \
-  --set KAFKA_PORT=${KAFKA_PORT} \
-  --set KAFKA_USERNAME=${KAFKA_USERNAME} \
-  --set KAFKA_PASSWORD=${KAFKA_PASSWORD} \
   --set BROWNIE_DEPLOY_DEV_SECRET_STORE=${BROWNIE_DEPLOY_DEV_SECRET_STORE} \
   --set BROWNIE_NODE_OPTIONS=${BROWNIE_NODE_OPTIONS} \
   --set pod.repository=${REGISTRY_URL}/${SERVICE_NAME} \
   --set TIMESTAMP_PATTERN=${TIMESTAMP_PATTERN} \
   --set RETENTION_PERIOD=${RETENTION_PERIOD}"
+
+# This function takes a list of server names and a list of properties to be configured for each server
+# It is expected that env variables holding values of these properties are already exported. This function
+# will prepare a long list of helm --set a=b statements, where "a" is property to be overwritten and set
+# for chart, and "b" is the value of that property dynamically fetched from environment.
+getModuleOverwrites() {
+  CONFIG_NAMES=$1
+  PROPERTIES=$2
+  helmListName=$3
+  CONFIGS=""
+  configNamesAsArray=""
+  if [ "${CONFIG_NAMES}" != "" ];
+  then
+    for cfgName in ${CONFIG_NAMES};
+    do
+      cfgUpperName=$(echo $cfgName | tr "[:lower:]" "[:upper:]")
+      cfgLowerName=$(echo $cfgName | tr "[:upper:]" "[:lower:]")
+      if [ "${configNamesAsArray}" != "" ]; then configNamesAsArray="${configNamesAsArray},"; fi
+      configNamesAsArray="${configNamesAsArray}${cfgLowerName}"
+
+      for settingName in $PROPERTIES;
+      do
+        varName="${cfgUpperName}_${settingName}"
+        varValue=$(printenv "${varName}" | sed 's/,/\\,/g')
+        CONFIGS="${CONFIGS} --set ${varName}=${varValue}"
+      done
+    done
+    # this section prepares to pass all config names as a single array using helm syntax for arrays: --set something={v1,v2,v3} which is the same as having
+    # this in the yaml something: [ "v1", "v2", "v3" ]. Chart needs this to do futher iteration using helm "range" function.
+    configNamesAsArray="{${configNamesAsArray}}" # special syntax for arrays
+    CONFIGS="${CONFIGS} --set ${helmListName}=${configNamesAsArray}"
+  else
+    for settingName in $PROPERTIES;
+    do
+      varValue=$(printenv "${settingName}")
+      CONFIGS="${CONFIGS} --set ${settingName}=${varValue}"
+    done
+  fi
+  echo "${CONFIGS}"
+}
+
+if [ "${POSTGRESQL_CONFIG_NAMES}" != "" ];
+then
+  POSTGRESQL_CONFIGS=$(getModuleOverwrites "${POSTGRESQL_CONFIG_NAMES}" "PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE" "POSTGRESQL_CONFIG_NAMES")
+  HELM_OVERWRITES="${HELM_OVERWRITES} ${POSTGRESQL_CONFIGS}"
+fi
+
+if [ "${KAFKA_CONFIG_NAMES}" != "" ];
+then
+  KAFKA_CONFIGS=$(getModuleOverwrites "${KAFKA_CONFIG_NAMES}" "KAFKA_BROKERS KAFKA_PORT KAFKA_USERNAME KAFKA_PASSWORD SASL_MECHANISM")
+  HELM_OVERWRITES="${HELM_OVERWRITES} ${KAFKA_CONFIGS}"
+fi
 
 HELM_ARGS="upgrade --install --atomic --timeout 120s --namespace ${K8S_NAMESPACE}"
 HELM_TEMPLATE="template --debug --namespace ${K8S_NAMESPACE}"
@@ -69,5 +111,6 @@ fi
 echo "Helm command is"
 echo "helm $HELM_ARGS"
 
-helm $HELM_ARGS
+cat "./${SERVICE_NAME}-helm-debug.log"
+#helm $HELM_ARGS
 rm $CHART_PACKAGE
