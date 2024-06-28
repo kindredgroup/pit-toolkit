@@ -61,7 +61,10 @@ getModuleOverwrites() {
       do
         varName="${cfgUpperName}_${settingName}"
         varValue=$(printenv "${varName}" | sed 's/,/\\,/g')
-        CONFIGS="${CONFIGS} --set ${varName}=${varValue}"
+        if [ "${varValue}" != "" ];
+        then
+          CONFIGS="${CONFIGS} --set ${varName}=${varValue}"
+        fi
       done
     done
     # this section prepares to pass all config names as a single array using helm syntax for arrays: --set something={v1,v2,v3} which is the same as having
@@ -72,7 +75,10 @@ getModuleOverwrites() {
     for settingName in $PROPERTIES;
     do
       varValue=$(printenv "${settingName}")
-      CONFIGS="${CONFIGS} --set ${settingName}=${varValue}"
+      if [ "${varValue}" != "" ];
+      then
+        CONFIGS="${CONFIGS} --set ${settingName}=${varValue}"
+      fi
     done
   fi
   echo "${CONFIGS}"
