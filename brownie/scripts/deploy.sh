@@ -74,7 +74,7 @@ getModuleOverwrites() {
   else
     for settingName in $PROPERTIES;
     do
-      varValue=$(printenv "${settingName}")
+      varValue=$(printenv "${settingName}" | sed 's/,/\\,/g')
       if [ "${varValue}" != "" ];
       then
         CONFIGS="${CONFIGS} --set ${settingName}=${varValue}"
