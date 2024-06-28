@@ -113,6 +113,5 @@ fi
 echo "Helm command is"
 echo "helm $HELM_ARGS"
 
-cat "./${SERVICE_NAME}-helm-debug.log"
-#helm $HELM_ARGS
+helm $HELM_ARGS
 rm $CHART_PACKAGE
