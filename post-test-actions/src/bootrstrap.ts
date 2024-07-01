@@ -3,7 +3,6 @@ import * as fs from "fs"
 import { Config } from "./config.js"
 import { logger } from "./logger.js"
 import { PublisherConfig } from "./teams/config.js"
-import e from "express"
 
 export const readParams = (): Config => {
   logger.debug("readParams()... ARGS \n%s", JSON.stringify(process.argv, null, 2))
