@@ -11,6 +11,7 @@ export class Config {
   static PARAM_DRY_RUN = "--dry-run"
   static PARAM_WORKSPACE = "--workspace"
   static PARAM_EXIT_CODE = "--exit-code-on-test-failure"
+  static PARAM_APP_ROOT = "--app-root-dir"
 
   static parseActions = (csvValues: string): Array<ActionType> => {
     if (!csvValues) return []
@@ -30,6 +31,7 @@ export class Config {
     readonly dryRun: boolean,
     readonly workspaceDir: string,
     readonly existCode: number,
+    readonly appRootDir: string,
     readonly teamsConfig?: PublisherConfig,
   ) {}
 }

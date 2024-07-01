@@ -42,6 +42,7 @@ export const readParams = (): Config => {
     !("false" === params.get(Config.PARAM_DRY_RUN)),
     params.get(Config.PARAM_WORKSPACE),
     exitCode,
+    params.get(Config.PARAM_APP_ROOT),
     !params.has(PublisherConfig.PARAM_WEBHOOK) ? undefined : new PublisherConfig(params.get(PublisherConfig.PARAM_WEBHOOK))
   )
 

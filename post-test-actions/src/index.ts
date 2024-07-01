@@ -18,7 +18,7 @@ const main = async () => {
   logger.info("%s", JSON.stringify(config, null, 2))
 
   logger.info("Searching for report files in '%s'", config.workspaceDir)
-  const lookupResultsRaw = NodeShell.execSync(`scripts/find-reports.sh ${ config.workspaceDir }`)
+  const lookupResultsRaw = NodeShell.execSync(`${config.appRootDir}/scripts/find-reports.sh ${ config.workspaceDir }`)
   if (lookupResultsRaw.toString().length == 0) {
     logger.info("There are no PIT reports found in '%s'", config.workspaceDir)
     process.exit(1)
