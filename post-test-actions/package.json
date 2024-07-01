@@ -28,6 +28,7 @@
     "start": "node $PIT_POST_TEST_NODE_OPTIONS dist/index.js"
   },
   "dependencies": {
+    "node-fetch": "^3.3.2",
     "winston": "^3.11.0"
   }
 }
