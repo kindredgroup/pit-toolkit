@@ -30,7 +30,7 @@ export class Config {
     readonly testFailActions: ActionType[],
     readonly dryRun: boolean,
     readonly workspaceDir: string,
-    readonly existCode: number,
+    readonly exitCode: number,
     readonly appRootDir: string,
     readonly teamsConfig?: PublisherConfig,
   ) {}

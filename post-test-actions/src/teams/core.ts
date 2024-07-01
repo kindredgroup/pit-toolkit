@@ -12,8 +12,8 @@ type BodyType = {
 }
 
 export class TeamsPublisher {
-  static init(config: PublisherConfig, dryRun: boolean): TeamsPublisher {
-    const template = fs.readFileSync("src/teams/post-template.json", "utf8")
+  static init(config: PublisherConfig, appRoot: string, dryRun: boolean): TeamsPublisher {
+    const template = fs.readFileSync(`${appRoot}/dist/src/teams/post-template.json`, "utf8")
     return new TeamsPublisher(config, template, dryRun)
   }
 

@@ -41,7 +41,7 @@ const main = async () => {
     hadFailures = hadFailures || didTestFail(report)
 
     if (config.teamsConfig) {
-      const teams = TeamsPublisher.init(config.teamsConfig, config.dryRun)
+      const teams = TeamsPublisher.init(config.teamsConfig, config.appRootDir, config.dryRun)
       teams.executeActions(config, report)
     } else {
       logger.warn("Teams publisher module is not active.")
@@ -49,8 +49,8 @@ const main = async () => {
   }
 
   if (hadFailures) {
-    logger.info("Some of the analysed tests had %s outcome. The process will exist with code: %s", TestOutcomeType.FAIL, config.existCode)
-    process.exit(config.existCode)
+    logger.info("Some of the analysed tests had %s outcome. The process will exist with code: %s", TestOutcomeType.FAIL, config.exitCode)
+    process.exit(config.exitCode)
   }
 }
 

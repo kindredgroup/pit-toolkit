@@ -29,7 +29,8 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && npx tsc",
+    "copy.templates": "cd src/teams && copyfiles *.json ../../dist/src/teams ",
+    "build": "npm run clean && npx tsc && npm run copy.templates",
     "test": "npm run build && c8 --reporter=html --reporter=text mocha --timeout 10000 --recursive dist/test/ --loader=esmock",
     "dev.start": "set -o allexport; source .env ; set +o allexport; npm run build && node $PIT_POST_TEST_NODE_OPTIONS dist/index.js",
     "start": "node $PIT_POST_TEST_NODE_OPTIONS dist/index.js"
