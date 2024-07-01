@@ -3,6 +3,7 @@ import * as fs from "fs"
 import { Config } from "./config.js"
 import { logger } from "./logger.js"
 import { PublisherConfig } from "./teams/config.js"
+import e from "express"
 
 export const readParams = (): Config => {
   logger.debug("readParams()... ARGS \n%s", JSON.stringify(process.argv, null, 2))
@@ -19,8 +20,8 @@ export const readParams = (): Config => {
 
   logger.info("Application started with arguments: \n%s", JSON.stringify(Object.fromEntries(params), null, 2))
 
-  if (!params.has(Config.PARAM_WORKSPACE_DIR)) throw new Error(`The parameter '${ Config.PARAM_WORKSPACE_DIR }' is required.`)
-  const workspace = params.get(Config.PARAM_WORKSPACE_DIR)
+  if (!params.has(Config.PARAM_WORKSPACE)) throw new Error(`The parameter '${ Config.PARAM_WORKSPACE }' is required.`)
+  const workspace = params.get(Config.PARAM_WORKSPACE)
   if (!doesDirectoryExist(workspace)) {
     throw new Error(`The is no workspace directory at '${ workspace }'.`)
   }
@@ -28,11 +29,19 @@ export const readParams = (): Config => {
   const actionsPass = Config.parseActions(params.get(Config.PARAM_TEST_PASS_ACTIONS))
   const actionsFail = Config.parseActions(params.get(Config.PARAM_TEST_FAIL_ACTIONS))
 
+  let exitCode: number = 0
+  if (params.has(Config.PARAM_EXIT_CODE)) {
+    const existCodeRaw = params.get(Config.PARAM_EXIT_CODE)
+    exitCode = parseInt(existCodeRaw)
+    if (isNaN(exitCode)) throw new Error(`The exist code must be a simple integer. Current value is: ${existCodeRaw}`)
+  }
+
   const config = new Config(
     actionsPass,
     actionsFail,
     !("false" === params.get(Config.PARAM_DRY_RUN)),
-    params.get(Config.PARAM_WORKSPACE_DIR),
+    params.get(Config.PARAM_WORKSPACE),
+    exitCode,
     !params.has(PublisherConfig.PARAM_WEBHOOK) ? undefined : new PublisherConfig(params.get(PublisherConfig.PARAM_WEBHOOK))
   )
 

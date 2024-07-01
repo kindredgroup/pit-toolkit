@@ -9,7 +9,8 @@ export class Config {
   static PARAM_TEST_PASS_ACTIONS = "--test-pass-actions"
   static PARAM_TEST_FAIL_ACTIONS = "--test-fail-actions"
   static PARAM_DRY_RUN = "--dry-run"
-  static PARAM_WORKSPACE_DIR = "--workspace-dir"
+  static PARAM_WORKSPACE = "--workspace"
+  static PARAM_EXIT_CODE = "--exit-code-on-test-failure"
 
   static parseActions = (csvValues: string): Array<ActionType> => {
     if (!csvValues) return []
@@ -28,6 +29,7 @@ export class Config {
     readonly testFailActions: ActionType[],
     readonly dryRun: boolean,
     readonly workspaceDir: string,
-    readonly teamsConfig?: PublisherConfig
+    readonly existCode: number,
+    readonly teamsConfig?: PublisherConfig,
   ) {}
 }

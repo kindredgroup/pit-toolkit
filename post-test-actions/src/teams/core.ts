@@ -4,6 +4,7 @@ import { TestOutcomeType, TestReport } from "../report/schema-v1.js"
 import { PublisherConfig } from "./config.js"
 import { logger } from "../logger.js"
 import { ActionType, Config } from "../config.js"
+import { didTestFail } from "../report/utils.js"
 
 type BodyType = {
   type: string,
@@ -100,7 +101,7 @@ export class TeamsPublisher {
   }
 
   async executeActions(config: Config, report: TestReport) {
-    const isFailure = report.scenarios.flatMap(s => s.streams.map(st => st.outcome).filter(o => o === TestOutcomeType.FAIL)).length > 0
+    const isFailure = didTestFail(report)
     if (isFailure && !config.testFailActions.includes(ActionType.POST_TO_TEAMS)) {
       logger.info("Test has failed: \"%s\". No action is required from teams/TeamsPublisher module.", report.name)
       return

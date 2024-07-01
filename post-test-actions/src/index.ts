@@ -2,9 +2,10 @@ import { logger } from "./logger.js"
 
 import * as fs from "fs"
 import * as NodeShell from "node:child_process"
-import { TestReport } from "./report/schema-v1.js"
+import { TestOutcomeType, TestReport } from "./report/schema-v1.js"
 import { TeamsPublisher } from "./teams/core.js"
 import { readParams } from "./bootrstrap.js"
+import { didTestFail } from "./report/utils.js"
 
 const main = async () => {
   const config = readParams()
@@ -24,9 +25,11 @@ const main = async () => {
   }
   const lookupResults = lookupResultsRaw.toString().split("\n").map(v => v.trim()).filter(v => v.length > 0)
   // process each report file....
+
+  let hadFailures = false
+
   for (let lookupResult of lookupResults) {
     logger.info("Processing: %s", lookupResult)
-
     const reportContent = fs.readFileSync(lookupResult.toString().trim(), "utf8")
     let report: TestReport
     try {
@@ -35,12 +38,19 @@ const main = async () => {
       throw Error("Unable to parse report content as JSON", { cause: e })
     }
 
+    hadFailures = hadFailures || didTestFail(report)
+
     if (config.teamsConfig) {
       const teams = TeamsPublisher.init(config.teamsConfig, config.dryRun)
       teams.executeActions(config, report)
     } else {
       logger.warn("Teams publisher module is not active.")
     }
+  }
+
+  if (hadFailures) {
+    logger.info("Some of the analysed tests had %s outcome. The process will exist with code: %s", TestOutcomeType.FAIL, config.existCode)
+    process.exit(config.existCode)
   }
 }
 
