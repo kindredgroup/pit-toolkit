@@ -1,5 +1,18 @@
 # Tools for deploying and executing Performance and Integration Tests
 
+## The content of PIT toolkit
+
+The list below is arranged in the order of significance
+
+- [k8s-deployer app](k8s-deployer/README.md)
+- lock-manager app
+- pit-report-ui app
+- [post-test-actions](post-test-actions/README.md)
+- [brownie app](brownie/README.md)
+
+
+
+
 ## PIT Concept
 
 The process starts when GIT event, such as merge or push, is picked up by project pipeline. This may be coded as Jenkins pipeline or as GitHub Actions workflow.
@@ -18,13 +31,13 @@ PIT Toolkit has a built-in capability of deploying components into K8s namespace
 2. PIT iterates over test suites and deploys required dependencies into K8s namespace (the graph).
 3. One of graph entries is known as Test Runner App. Test Runner App is an application capable of running performance or integration tests against multiple components. To start tests PIT sends HTTP request to Test Runner App, for example `POST /start`.
 
-At this point we have:
+Once we reach this stage we will have:
 - Lock Manager app is deployed in the namespace.
 - The set of locks obtained by PIT.
 - Graph of components deployed in the namespace.
 - Test Runner App is deployed in the namespace and executing tests.
 
-Upon deployment, Lock Manager will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the namespace. This DB is permanent it survives the lifespan of temporary namespace where Lock Manager is running. The DB is used to implement exclusivity over components (graph) used in the tests. Multiple instances of Lock Manager may be present in the K8s cluster each sitting in its own temporary namespace. With the help of locking only one test suite will ever run at the same time unless there is no dependency between tests.
+Upon deployment, Lock Manager will prepare its database. It is expected that permanent database server prepared upfront and is accessible from the namespace. This DB is permanent, it survives the lifespan of temporary namespace where Lock Manager is running. The DB is used to implement exclusivity over components (graph) used in the tests. Multiple instances of Lock Manager may be present in the K8s cluster each sitting in its own temporary namespace. With the help of locking only one test suite will ever run at the same time unless there is no dependency between tests.
 
 All tests are divided into test suites as defined in the relevant section of pitfile. Pitfile may contain a mixed definition of local and remote test suites.
 
@@ -42,7 +55,7 @@ The responsibilities of all mentioned components are defined as:
 
 - Checks out PIT app and launches it
 
-**PIT Toolkit**
+**PIT Toolkit (k8s-deployer)**
 
 - Parses `pitfile.yml`
 - Executes main PIT logic described above
@@ -67,6 +80,14 @@ The responsibilities of all mentioned components are defined as:
 
 - Defines test suites
 - Describes components graph for each test suite
+
+**Brownie App**
+
+- Periodically scans old resources previously by PIT and deletes them
+
+**Post Test Actions App**
+
+- After tests have finished and reports were generated, PTA app parses the report and executed additional actions.
 
 ![](./docs/arch.png)
 
@@ -202,6 +223,10 @@ testSuites:
 | `k8s-deployer/scripts` | Various scripts to assist with deployer functionality |
 | `k8s-deployer/tmp` | Temporary directory which is used when running local deployer during development |
 | `k8s-deployer/report-template.html` | The HTML template for report UI |
+| `brownie/` | The cleanup solution |
+| `brownie/deployment/helm` | The deployment configs for K8s |
+| `post-test-actions/` | The executor of additional actions |
+| `post-test-actions/scripts/` | Various scripts to assist with executing additioanl actions |
 | `pit-report-ui` | The SPA project producing mini "website" to display the details of PIT report |
 | `examples/node-1/` | The example of application integrated with PIT |
 | `examples/node-1/deployment/helm` | The deployment configs for K8s |
