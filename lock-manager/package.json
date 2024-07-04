@@ -1,6 +1,6 @@
 {
   "name": "lock-manager",
-  "version": "1.2.2-dev",
+  "version": "1.3.0",
   "description": "The lock manager application of PIT toolkit",
   "type": "module",
   "main": "dist/index.js",
