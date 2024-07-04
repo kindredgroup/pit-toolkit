@@ -51,6 +51,11 @@ The Action ID is `tag-git-repository`.
 | --git-repository-url | The URL of project to be tagged. | `--git-repository-url "https://..."` |
 | --git-ref            | The tag name, the branch name or commit sha. The tag will be added to this commit. | `--git-ref "12abc0f"` or `--git-ref "refs/remotes/origin/master"` or `--git-ref "refs/tags/my-tag"` |
 
+| Environment variable | Description                        |
+|----------------------|------------------------------------|
+| USER_NAME  | The Git username to use for push commands.   |
+| USER_EMAIL | The Git user email to use for push commands. |
+
 When PTA is executing the action `tag-git-repository`, it will do the following:
 - checkout the project into temporary directory,
 - locate the commit which should to be tagged,
@@ -82,6 +87,9 @@ The following example configures PTA to post message to Teams if test fail and a
 cd pit-toolkit/post-test-actions
 npm ci
 npm run build
+
+export USER_NAME=...
+export USER_EMAIL=...
 
 node --max-heap-size=256 dist/src/index.js \
   --app-root-dir $(pwd) \
