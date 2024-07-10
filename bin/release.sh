@@ -146,9 +146,10 @@ echo """
 Bumping versions of all apps to $NEW_VERSION
   
 Bumping versions of the following NPMs:
-  - brownie       $NEW_VERSION
-  - k8-deployer   $NEW_VERSION
-  - lock-manager  $NEW_VERSION  
+  - brownie            $NEW_VERSION
+  - k8-deployer        $NEW_VERSION
+  - lock-manager       $NEW_VERSION
+  - post-test-actions  $NEW_VERSION
 """
 
 versionApp() {
@@ -176,6 +177,7 @@ apps="'brownie', 'lock-manager', 'k8s-deployer'"
 versionApp "brownie" $NEW_VERSION
 versionApp "lock-manager" $NEW_VERSION
 versionApp "k8s-deployer" $NEW_VERSION
+versionApp "post-test-actions" $NEW_VERSION
 
 git add --all
 git commit -a -m "chore(npm): Release $NEW_VERSION of ${apps}" --no-verify
@@ -200,6 +202,7 @@ echo ""
 versionApp "brownie" "${NEXT_VERSION}" "next"
 versionApp "lock-manager" "${NEXT_VERSION}" "next"
 versionApp "k8s-deployer" "${NEXT_VERSION}" "next"
+versionApp "post-test-actions" "${NEXT_VERSION}" "next"
 
 git add --all
 git commit -a -m "chore(npm): Set dev version of ${apps} to $NEXT_VERSION" --no-verify
