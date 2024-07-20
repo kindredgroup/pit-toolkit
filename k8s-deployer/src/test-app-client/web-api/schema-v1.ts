@@ -38,15 +38,13 @@ export class NativeReport {
 }
 
 export class ExecutedTestScenario {
-  metadata: Object = {}
-
   constructor(
     readonly name: string,
     readonly startTime: Date,
     readonly endTime: Date,
     readonly streams: Array<report.TestStream>,
     readonly componentIds: Array<string> = new Array(),
-    metadata?: Object
+    readonly metadata?: Object
   ) {}
 }
 
