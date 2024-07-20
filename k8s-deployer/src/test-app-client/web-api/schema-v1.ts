@@ -44,7 +44,7 @@ export class ExecutedTestScenario {
     readonly endTime: Date,
     readonly streams: Array<report.TestStream>,
     readonly componentIds: Array<string> = new Array(),
-    readonly metadata?: Object
+    public metadata?: Object
   ) {}
 }
 
