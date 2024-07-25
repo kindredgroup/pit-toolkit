@@ -2,13 +2,17 @@
 
 namespace=$1
 service=$2
-filter=$3
-
-logFile="${namespace}_${service}_pod_${container}.log"
+containerName=$3
+filter=$4
 
 podId=$(kubectl get pods -n $namespace -l "app.kubernetes.io/name=${service}" --field-selector="status.phase=Running" -o jsonpath="{.items[].metadata.name}")
 
 args="-f -n ${namespace} ${podId}"
+
+if [ "${containerName}" != "" ];
+then
+  args="${args} -c ${containerName}"
+fi
 
 if [ "${filter}" != "" ];
 then
