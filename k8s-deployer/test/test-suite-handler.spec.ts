@@ -74,7 +74,11 @@ describe("Deployment happy path", async () => {
             name: "comp-1-name",
             id: "comp-1",
             location: { type: LocationType.Local },
-            deploy: { command: "deployment/pit/deploy.sh", statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" }}
+            deploy: { command: "deployment/pit/deploy.sh", statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" }},
+            logTailing: {
+              enabled: true,
+              containerName: "comp-1-specific-container"
+            }
           }
         ]
       }
@@ -279,11 +283,16 @@ describe("Deployment happy path", async () => {
     ).be.true
 
     // assert that log tailing was invoked
-    chai.expect(nodeShellSpawnStub.callCount).eq(1)
+    chai.expect(nodeShellSpawnStub.callCount).eq(2)
 
     chai.expect(nodeShellSpawnStub.getCall(0).calledWith(
       "k8s-deployer/scripts/tail-container-log.sh",
-      [ namespace, "comp-1-test-app" ]
+      [ namespace, "comp-1", "comp-1-specific-container" ]
+    )).be.true
+
+    chai.expect(nodeShellSpawnStub.getCall(1).calledWith(
+        "k8s-deployer/scripts/tail-container-log.sh",
+        [ namespace, "comp-1-test-app", "" ]
     )).be.true
   })
 

@@ -13,7 +13,7 @@ export class PodLogTail {
     readonly logFilePath: string) {
   }
 
-  start(): PodLogTail {
+  start(containerName = ""): PodLogTail {
     if (this.tailer) throw new Error(`Tailer is already attached to process with PID: ${this.tailer.pid}`)
 
     // creating streams
@@ -22,7 +22,7 @@ export class PodLogTail {
 
     this.tailer = NodeShell.spawn(
       "k8s-deployer/scripts/tail-container-log.sh",
-      [ this.namespace, this.service ],
+      [ this.namespace, this.service, containerName ],
       {
         detached: true,
         stdio: [ 'ignore', out, err ]

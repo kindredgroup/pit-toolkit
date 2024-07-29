@@ -49,7 +49,7 @@ export class TestScenario {
     readonly endTime: Date,
     readonly streams: Array<TestStream>,
     readonly components: Array<Component>,
-    metadata?: Object
+    readonly metadata?: Object
   ) {}
 }
 

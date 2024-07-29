@@ -274,10 +274,10 @@ export const tailLogs = (suites: Array<DeployedTestSuite>, pitfile: Schema.PitFi
 
   const logTailers = new Array()
 
-  const tailLog = (workspace: string, ns: Namespace, serviceName: string) => {
-    const logFile = `${ workspace }/logs/pod-${ serviceName }-${ ns }.log`
+  const tailLog = (workspace: string, ns: Namespace, serviceName: string, containerName?: string) => {
+    const logFile = `${ workspace }/logs/pod-${ serviceName }-${ ns }${containerName ? "-" + containerName : ""}.log`
     const tailer = new PodLogTail(ns, serviceName, logFile)
-    logTailers.push(tailer.start())
+    logTailers.push(tailer.start(containerName))
   }
 
   for (let suite of suites) {
@@ -285,8 +285,7 @@ export const tailLogs = (suites: Array<DeployedTestSuite>, pitfile: Schema.PitFi
       const shouldTailLog = service.component.logTailing?.enabled === true
       if (!shouldTailLog) continue
 
-      const serviceName = (service.component.logTailing.containerName != undefined) ? service.component.logTailing.containerName : service.component.id
-      tailLog(suite.workspace, suite.namespace, serviceName)
+      tailLog(suite.workspace, suite.namespace, service.component.id, service.component.logTailing.containerName)
     }
 
     if (suite.graphDeployment.testApp.component.logTailing?.enabled) {
