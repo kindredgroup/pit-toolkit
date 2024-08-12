@@ -6,6 +6,8 @@ import { KafkaConfig } from "./modules/kafka/config.js"
 import { PgConfig } from "./modules/pg/config.js"
 import * as KafkaModule from "./modules/kafka/implementation.js"
 import * as PgModule from "./modules/pg/implementation.js"
+import * as ElasticsearchModule from "./modules//elasticsearch/implementation.js"
+import { ElasticsearchConfig } from "./modules/elasticsearch/config.js"
 
 const main = async () => {
   const rawParams = process.argv.slice(2)
@@ -31,6 +33,12 @@ const main = async () => {
       await KafkaModule.clean(moduleName, config, moduleConfig)
     }
   }
+
+  if (config.isModuleEnabled(ElasticsearchConfig.MODULE_NAME)) {
+    for (let [moduleName, moduleConfig] of config.elasticsearchModules.entries()) {
+      await ElasticsearchModule.clean(moduleName, config, moduleConfig)
+    }
+  }
 }
 
 const printConfig = (config: Config) => {
@@ -40,6 +48,9 @@ const printConfig = (config: Config) => {
   }
   for (let module of config.kafkaModules.keys()) {
     cleanedConfig.kafkaModules[module] = { ...config.kafkaModules.get(module), password: "*** hidden ***" }
+  }
+  for (let module of config.elasticsearchModules.keys()) {
+    cleanedConfig.elasticsearchModules[module] = { ...config.elasticsearchModules.get(module), password: "*** hidden ***" }
   }
   logger.info("main(), Parsed configuration: \n%s", JSON.stringify({ ...cleanedConfig, timestampPattern: config.timestampPattern.toString() }, null, 2))
 }
