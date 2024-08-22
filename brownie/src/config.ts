@@ -1,3 +1,4 @@
+import { ElasticsearchConfig } from "./modules/elasticsearch/config.js"
 import { KafkaConfig } from "./modules/kafka/config.js"
 import { PgConfig } from "./modules/pg/config.js"
 
@@ -21,6 +22,7 @@ export class Config {
     readonly enabledModules: Map<string, ModuleConfig>,
     readonly pgModules: Map<string, PgConfig>,
     readonly kafkaModules: Map<string, KafkaConfig>,
+    readonly elasticsearchModules: Map<string, ElasticsearchConfig>,
     readonly timestampPattern: RegExp,
     readonly retentionMinutes: number,
     readonly dryRun: boolean
@@ -50,7 +52,7 @@ export class ModuleConfig {
 
 export const parseModules = (rawConfig: string): Map<string, ModuleConfig> => {
   // rawConfig = "postgres=pg1;pg2;pg3,kafka=k1;k2;k3,elastic"
-  const supportedModules = [ PgConfig.MODULE_NAME, KafkaConfig.MODULE_NAME ]
+  const supportedModules = [ PgConfig.MODULE_NAME, KafkaConfig.MODULE_NAME, ElasticsearchConfig.MODULE_NAME ]
   const rawModules = rawConfig.split(",")
   if (rawModules.length > 5) {
     // this is very unlikely scenario
