@@ -22,6 +22,9 @@ export const clean = async (moduleName: string, config: Config, moduleConfig: El
   const client = new Client({
     auth: basicAuth,
     nodes: nodes as string[],
+    tls: {
+      rejectUnauthorized: false,
+    },
   })
 
   logger.info("%s.clean(): Connecting to Elasticsearch server...", moduleName)
