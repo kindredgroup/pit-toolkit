@@ -96,18 +96,25 @@ export const deployApplication = async (
     let command = instructions.command
     if (options?.namespace) command = `${ command } ${ options.namespace }`
 
-    const allParams = new Array()
-    // first pass params delcared in the pitfile
-    if (instructions.params) {
-      instructions.params.forEach(v => allParams.push(v))
+    const fnCmdWithParams = (cmd: string, pitfileParams?: Array<string>, deployOptions?: DeployOptions) => {
+      const result = cmd
+      const allParams = new Array()
+      // first pass params delcared in the pitfile
+      if (pitfileParams) {
+        pitfileParams.forEach(v => allParams.push(v))
+      }
+      // then pass additional params computed by deployer
+      if (deployOptions?.deployerParams) {
+        deployOptions.deployerParams.forEach(v => allParams.push(v))
+      }
+      for (let param of allParams) {
+        result = `${result} ${param}`
+      }
+
+      return result
     }
-    // then pass additional params computed by deployer
-    if (options?.deployerParams) {
-      options.deployerParams.forEach(v => allParams.push(v))
-    }
-    for (let param of allParams) {
-      command = `${command} ${param}`
-    }
+    
+    command = fnCmdWithParams(command, instructions.params, options)
 
     const logFileName = `${ workspace }/logs/deploy-${ namespace }-${ appId }.log`
     const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
@@ -145,6 +152,8 @@ export const deployApplication = async (
     try {
       let command = instructions.statusCheck.command
       if (options?.namespace) command = `${ command } ${ options?.namespace }`
+
+      command = fnCmdWithParams(command, instructions.params)
       await Shell.exec(command, { homeDir: appDirectory })
 
       logger.info("Success")
