@@ -80,6 +80,24 @@ export const cloneFromGit = async (appId: string, location: Schema.Location, tar
   return commitSha
 }
 
+const addParamsToCommand = (cmd: string, pitfileParams?: Array<string>, deployOptions?: DeployOptions) => {
+  let result = cmd
+  const allParams = new Array()
+  // first pass params delcared in the pitfile
+  if (pitfileParams) {
+    pitfileParams.forEach(v => allParams.push(v))
+  }
+  // then pass additional params computed by deployer
+  if (deployOptions?.deployerParams) {
+    deployOptions.deployerParams.forEach(v => allParams.push(v))
+  }
+  for (let param of allParams) {
+    result = `${result} ${param}`
+  }
+
+  return result
+}
+
 export const deployApplication = async (
   workspace: string,
   namespace: Namespace,
@@ -89,24 +107,6 @@ export const deployApplication = async (
   deployCheckFrequencyMs?: number,
   options?: DeployOptions) => {
   await isExecutable(`${ appDirectory }/${ instructions.command }`)
-
-  const fnCmdWithParams = (cmd: string, pitfileParams?: Array<string>, deployOptions?: DeployOptions) => {
-    let result = cmd
-    const allParams = new Array()
-    // first pass params delcared in the pitfile
-    if (pitfileParams) {
-      pitfileParams.forEach(v => allParams.push(v))
-    }
-    // then pass additional params computed by deployer
-    if (deployOptions?.deployerParams) {
-      deployOptions.deployerParams.forEach(v => allParams.push(v))
-    }
-    for (let param of allParams) {
-      result = `${result} ${param}`
-    }
-
-    return result
-  }
   
   try {
     // Invoke deployment script
@@ -114,7 +114,7 @@ export const deployApplication = async (
     let command = instructions.command
     if (options?.namespace) command = `${ command } ${ options.namespace }`
     
-    command = fnCmdWithParams(command, instructions.params, options)
+    command = addParamsToCommand(command, instructions.params, options)
 
     const logFileName = `${ workspace }/logs/deploy-${ namespace }-${ appId }.log`
     const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
@@ -153,7 +153,7 @@ export const deployApplication = async (
       let command = instructions.statusCheck.command
       if (options?.namespace) command = `${ command } ${ options?.namespace }`
 
-      command = fnCmdWithParams(command, instructions.params)
+      command = addParamsToCommand(command, instructions.params)
       await Shell.exec(command, { homeDir: appDirectory })
 
       logger.info("Success")
@@ -179,7 +179,8 @@ const undeployApplication = async (
 
     logsDir = logsDir || `${ workspace }/logs`
     const logFileName = `${ logsDir }/undeploy-${ namespace }-${ appId }.log`
-    const command = `${ instructions.command } ${ namespace }`
+    let command = `${ instructions.command } ${ namespace }`
+    command = addParamsToCommand(command, instructions.params)
 
     const opts: any = { homeDir: appDirectory, logFileName, timeoutMs, tailTarget: (line: string) => {
       if (line.toLowerCase().startsWith("error:")) {
