@@ -97,7 +97,7 @@ export const deployApplication = async (
     if (options?.namespace) command = `${ command } ${ options.namespace }`
 
     const fnCmdWithParams = (cmd: string, pitfileParams?: Array<string>, deployOptions?: DeployOptions) => {
-      const result = cmd
+      let result = cmd
       const allParams = new Array()
       // first pass params delcared in the pitfile
       if (pitfileParams) {
