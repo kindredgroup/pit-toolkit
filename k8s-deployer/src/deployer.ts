@@ -90,29 +90,29 @@ export const deployApplication = async (
   options?: DeployOptions) => {
   await isExecutable(`${ appDirectory }/${ instructions.command }`)
 
+  const fnCmdWithParams = (cmd: string, pitfileParams?: Array<string>, deployOptions?: DeployOptions) => {
+    let result = cmd
+    const allParams = new Array()
+    // first pass params delcared in the pitfile
+    if (pitfileParams) {
+      pitfileParams.forEach(v => allParams.push(v))
+    }
+    // then pass additional params computed by deployer
+    if (deployOptions?.deployerParams) {
+      deployOptions.deployerParams.forEach(v => allParams.push(v))
+    }
+    for (let param of allParams) {
+      result = `${result} ${param}`
+    }
+
+    return result
+  }
+  
   try {
     // Invoke deployment script
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     let command = instructions.command
     if (options?.namespace) command = `${ command } ${ options.namespace }`
-
-    const fnCmdWithParams = (cmd: string, pitfileParams?: Array<string>, deployOptions?: DeployOptions) => {
-      let result = cmd
-      const allParams = new Array()
-      // first pass params delcared in the pitfile
-      if (pitfileParams) {
-        pitfileParams.forEach(v => allParams.push(v))
-      }
-      // then pass additional params computed by deployer
-      if (deployOptions?.deployerParams) {
-        deployOptions.deployerParams.forEach(v => allParams.push(v))
-      }
-      for (let param of allParams) {
-        result = `${result} ${param}`
-      }
-
-      return result
-    }
     
     command = fnCmdWithParams(command, instructions.params, options)
 
