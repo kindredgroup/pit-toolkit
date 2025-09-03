@@ -1,6 +1,6 @@
 {
   "name": "brownie",
-  "version": "2.0.1",
+  "version": "2.1.0-dev",
   "description": "The resource cleanup application of PIT toolkit",
   "type": "module",
   "main": "dist/index.js",
