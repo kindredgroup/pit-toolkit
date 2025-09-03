@@ -1,6 +1,6 @@
 {
   "name": "@kindredgroup/pit-post-test-actions",
-  "version": "2.1.0-dev",
+  "version": "2.0.1",
   "description": "The execiutor of post-test actions",
   "type": "module",
   "main": "dist/index.js",
