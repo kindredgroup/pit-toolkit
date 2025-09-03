@@ -3,17 +3,13 @@ import { ModuleConfig, ValueReader } from "../../config.js"
 export class ElasticsearchConfig {
   static MODULE_NAME: string = "elasticsearch"
 
-  static PARAM_BROKER_PROTOCOL: string = "--elasticsearch-broker-protocol"
-  static PARAM_BROKERS: string = "--elasticsearch-brokers"
-  static PARAM_PORT: string = "--elasticsearch-port"
+  static PARAM_URL: string = "--elasticsearch-url"
   static PARAM_USERNAME: string = "--elasticsearch-username"
   static PARAM_PASSWORD: string = "--elasticsearch-password"
 
   constructor(
     readonly moduleName: string,
-    readonly brokerProtocol: string,
-    readonly brokers: string,
-    readonly port: string,
+    readonly url: string,
     readonly username: string,
     readonly password: string,
   ) {}
@@ -33,9 +29,7 @@ export class ElasticsearchConfig {
     const prefix = name === ElasticsearchConfig.MODULE_NAME ? "" : name
     return new ElasticsearchConfig(
       name,
-      valueReader(params, getParamName(ElasticsearchConfig.PARAM_BROKER_PROTOCOL, prefix), true, "https"),
-      valueReader(params, getParamName(ElasticsearchConfig.PARAM_BROKERS, prefix), true),
-      valueReader(params, getParamName(ElasticsearchConfig.PARAM_PORT, prefix), true),
+      valueReader(params, getParamName(ElasticsearchConfig.PARAM_URL, prefix), true),
       valueReader(params, getParamName(ElasticsearchConfig.PARAM_USERNAME, prefix), true),
       valueReader(params, getParamName(ElasticsearchConfig.PARAM_PASSWORD, prefix), true),
     )

@@ -1,7 +1,7 @@
 import { Client, ClientOptions } from "@elastic/elasticsearch"
 import { CatIndicesResponse } from "@elastic/elasticsearch/lib/api/types.js"
-import { logger } from "../../logger.js"
 import { Config } from "../../config.js"
+import { logger } from "../../logger.js"
 import { ResourceStatus, evaluateResource } from "../../utils.js"
 import { ElasticsearchConfig } from "./config.js"
 
@@ -10,18 +10,15 @@ export const clean = async (moduleName: string, config: Config, moduleConfig: El
 
   let cleanedCount = 0
 
-  const { brokerProtocol = "https", brokers, port, username, password } = moduleConfig
+  const { url, username, password } = moduleConfig
 
   const basicAuth: ClientOptions["auth"] = username && password ? { password, username } : undefined
 
-  const nodes = brokers
-    .split(",")
-    .map((b) => b.trim())
-    .map((hostname: string) => `${brokerProtocol}://${hostname}:${port}`)
+  const nodes = url.split(",").map((b) => b.trim())
 
   const client = new Client({
     auth: basicAuth,
-    nodes: nodes as string[],
+    nodes: nodes,
     tls: {
       rejectUnauthorized: false,
     },
