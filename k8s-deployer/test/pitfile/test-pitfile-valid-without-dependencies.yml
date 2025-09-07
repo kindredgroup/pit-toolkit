@@ -1,0 +1,43 @@
+version: 1.0
+projectName: Backward Compatibility Test Example (no dependsOn field)
+
+lockManager:
+  enabled: false
+
+testSuites:
+  - name: Backward Compatibility Test Suite (no dependsOn field)
+    id: backward-compatibility-test
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          - name: Component A
+            id: component-a
+            deploy:
+              command: "echo 'component-a deployed'"
+            undeploy:
+              command: "echo 'component-a undeployed'"
+
+          - name: Component B
+            id: component-b
+            deploy:
+              command: "echo 'component-b deployed'"
+            undeploy:
+              command: "echo 'component-b undeployed'"
+
+          - name: Component C
+            id: component-c
+            deploy:
+              command: "echo 'component-c deployed'"
+            undeploy:
+              command: "echo 'component-c undeployed'"
