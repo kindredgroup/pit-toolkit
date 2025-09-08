@@ -1,0 +1,83 @@
+version: 1.0
+projectName: Complex Dependency Test Example
+
+lockManager:
+  enabled: false
+
+testSuites:
+  - name: Complex Dependency Test Suite
+    id: complex-dependency-test
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          - name: Database
+            id: database
+            deploy:
+              command: "echo 'database deployed'"
+            undeploy:
+              command: "echo 'database undeployed'"
+
+          - name: Message Queue
+            id: message-queue
+            deploy:
+              command: "echo 'message queue deployed'"
+            undeploy:
+              command: "echo 'message queue undeployed'"
+
+          - name: API Service
+            id: api-service
+            dependsOn:
+              - database
+              - message-queue
+            deploy:
+              command: "echo 'api-service deployed'"
+            undeploy:
+              command: "echo 'api-service undeployed'"
+
+          - name: Cache Service
+            id: cache-service
+            dependsOn:
+              - database
+            deploy:
+              command: "echo 'cache service deployed'"
+            undeploy:
+              command: "echo 'cache service undeployed'"
+
+          - name: Backend For Frontend
+            id: backend-for-frontend
+            dependsOn:
+              - api-service
+              - cache-service
+            deploy:
+              command: "echo 'backend for frontend deployed'"
+            undeploy:
+              command: "echo 'backend for frontend undeployed'"
+
+          - name: Frontend
+            id: frontend
+            dependsOn:
+              - backend-for-frontend
+            deploy:
+              command: "echo 'frontend deployed'"
+            undeploy:
+              command: "echo 'frontend undeployed'"
+
+          - name: Task Worker
+            id: task-worker
+            dependsOn:
+              - message-queue
+            deploy:
+              command: "echo 'task worker deployed'"
+            undeploy:
+              command: "echo 'task worker undeployed'"
