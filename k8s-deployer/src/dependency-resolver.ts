@@ -171,8 +171,7 @@ export const topologicalSort = (components: Array<Schema.DeployableComponent>): 
     }
 
     // Sort current level by original order defined in the pitfile
-    // The deployment and undeployment order on the same dependency level follows the component definition order
-    // This behaviour is consistent with the existing behaviour, thus maintaining backward compatibility
+    // The deployment order on the same dependency level follows the component definition order
     currentLevel.sort((a, b) => {
       const aIndex = components.findIndex(c => c.id === a.id)
       const bIndex = components.findIndex(c => c.id === b.id)
@@ -190,8 +189,7 @@ export const topologicalSort = (components: Array<Schema.DeployableComponent>): 
 /**
  * Return components in reverse order for undeployment
  * Only reverse dependency levels but maintain original component definition order within each level
- * The deployment and undeployment order on the same dependency level follows the component definition order
- * This behaviour is consistent with the existing behaviour, thus maintaining backward compatibility
+ * The undeployment order on the same dependency level follows the component definition order
  */
 export const reverseTopologicalSort = (sortResult: TopologicalSortResult): Array<Schema.DeployableComponent> => [...sortResult.levels].reverse().flat()
 
