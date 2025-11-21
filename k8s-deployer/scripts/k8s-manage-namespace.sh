@@ -114,6 +114,9 @@ then
       exit 1
     fi
 
+    echo "Labeling namespace ${NS} for Istio sidecar injection..."
+    kubectl label namespace $NS istio-injection=enabled --overwrite
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # We think that namespace was created. Lets double check that hierarchy was setup
     totalAttempts=$((($TIMEOUT_SECONDS - ($sleepDuration * $iteration)) / $sleepDuration))
