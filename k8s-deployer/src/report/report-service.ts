@@ -43,6 +43,8 @@ export const store = async (
     throw new Error(message, { cause: e })
   }
 
+  // Only publish to git repository if configured
+  if (!config.report.gitRepository) return
   let storageDir = prefix                               // this gives natural directory order by date and time
   storageDir = `${ storageDir }_${ testSuiteId }`       // this gives indication what has generated the report
   storageDir = `${ storageDir }_${ namespace }`         // the unique suffix when multiple suites are usied in the same test session
