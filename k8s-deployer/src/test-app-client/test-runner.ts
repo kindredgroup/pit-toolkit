@@ -60,12 +60,9 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
         startTime, endTime, scenarios
       )
 
-      if (config.report.gitRepository) {
-        await Report.store(prefix, config, deployedSuite.namespace, deployedSuite.workspace, deployedSuite.testSuite.id, testReport)
-      } else {
-        logger.info("\n%s", JSON.stringify(testReport, null, 2))
-      }
-
+      // Always save the report locally
+      await Report.store(prefix, config, deployedSuite.namespace, deployedSuite.workspace, deployedSuite.testSuite.id, testReport)
+      logger.info("\n%s", JSON.stringify(testReport, null, 2))
     } catch (e) {
       logger.error("Error executing test: '%s'", deployedSuite.testSuite.id)
       logger.error(e)
