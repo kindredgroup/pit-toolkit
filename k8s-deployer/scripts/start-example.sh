@@ -44,6 +44,7 @@ USER_NAME=$8
 USER_EMAIL=$9
 
 DO_NOT_CREATE_PROJECT_DIR=${10}
+TEST_RUNNER_APP_PORT=${11}
 
 PROJECT_ROOT=$(pwd)
 APP_NAME=$(basename $PROJECT_DIR)
@@ -162,6 +163,7 @@ LAUNCH_ARGS="$PROJECT_ROOT/dist/src/index.js \
   --cluster-url $CLUSTER_URL \
   --enable-cleanups true \
   --lock-manager-api-retries $LOCK_MANAGER_API_RETRIES \
+  --test-runner-app-port $TEST_RUNNER_APP_PORT \
   --target-environment local"
 
 if [ "${USER_NAME}" != "" ];
@@ -176,6 +178,19 @@ fi
 echo "LAUNCH_ARGS="
 echo "${LAUNCH_ARGS}"
 echo ""
+
+# Start kubectl proxy if USE_KUBE_PROXY is true
+if [ "${USE_KUBE_PROXY}" == "true" ]; then
+  if ! lsof -i:8001 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "Starting kubectl proxy on port 8001..."
+    kubectl proxy --port=8001 >/dev/null 2>&1 &
+    KUBECTL_PROXY_PID=$!
+    trap "kill ${KUBECTL_PROXY_PID} 2>/dev/null || true" EXIT
+    sleep 2
+  else
+    echo "kubectl proxy is already running on port 8001"
+  fi
+fi
 
 node $LAUNCH_ARGS
 
