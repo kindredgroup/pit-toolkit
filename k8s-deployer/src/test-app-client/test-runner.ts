@@ -43,8 +43,13 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
       const scenarios = reportEnvelope.executedScenarios.map(s => {
         const components = s.componentIds.map(testedComponentId => {
           const deployedComponent = deployedSuite.graphDeployment.components.find(graphNode => testedComponentId === graphNode.component.id)
+          if (!deployedComponent) {
+            logger.warn("Test suite: '%s' - component with id '%s' was not found in deployment graph, skipping", deployedSuite.testSuite.id, testedComponentId)
+            return null
+          }
           return new ReportSchema.Component(deployedComponent.component.id, deployedComponent.commitSha)
         })
+        .filter((component): component is ReportSchema.Component => component !== null)
 
         const scenario = new ReportSchema.TestScenario(s.name, s.startTime, s.endTime, s.streams, components, s.metadata)
         return scenario
@@ -55,12 +60,9 @@ export const runAll = async (prefix: Prefix, config: Config, testSuites: Array<D
         startTime, endTime, scenarios
       )
 
-      if (config.report.gitRepository) {
-        await Report.store(prefix, config, deployedSuite.namespace, deployedSuite.workspace, deployedSuite.testSuite.id, testReport)
-      } else {
-        logger.info("\n%s", JSON.stringify(testReport, null, 2))
-      }
-
+      // Always save the report locally
+      await Report.store(prefix, config, deployedSuite.namespace, deployedSuite.workspace, deployedSuite.testSuite.id, testReport)
+      logger.info("\n%s", JSON.stringify(testReport, null, 2))
     } catch (e) {
       logger.error("Error executing test: '%s'", deployedSuite.testSuite.id)
       logger.error(e)
