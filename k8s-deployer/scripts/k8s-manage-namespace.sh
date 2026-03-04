@@ -80,6 +80,8 @@ then
     echo "Creating namespace: ${NS} under parent ${PARENT_NS}, this may take some time..."
 
     kubectl hns create $NS -n $PARENT_NS
+    kubectl label namespaces $PARENT_NS istio.io/rev=1-17-2 --overwrite
+    kubectl label namespaces $NS istio.io/rev=1-17-2 --overwrite
     returnStatus=$(($?+0))
 
     if [ $returnStatus -ne 0 ];
