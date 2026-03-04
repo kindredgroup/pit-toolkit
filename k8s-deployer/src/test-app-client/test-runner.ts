@@ -159,14 +159,35 @@ const runSuite = async (config: Config, spec: DeployedTestSuite, schemaValidator
       reportsNative: { endpoint: `${baseUrl}/reports/native`, options: { method: "GET", headers: { "Accept": "application/zip, application/json" } } }
     }
 
-    const httpResponse = await fetch(
-      api.start.endpoint,
-      { ...api.start.options, body: webapi.StartRequest.json(testSuiteId) }
-    )
+    // Retry logic: try every 1s
+    const maxAttempts = 60
+    const retryDelayMs = 1000
+    let httpResponse: Response | undefined
+    let lastError: any
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        logger.info("Attempt %d to start test suite '%s' via %s", attempt, testSuiteId, api.start.endpoint)
+        httpResponse = await fetch(
+          api.start.endpoint,
+          { ...api.start.options, body: webapi.StartRequest.json(testSuiteId) }
+        )
+        if (httpResponse.ok) {
+          logger.info("Test suite '%s' started successfully on attempt %d", testSuiteId, attempt)
+          break
+        }
+        lastError = new Error(httpResponse.statusText)
+        logger.warn("Attempt %d failed: %s", attempt, httpResponse.statusText)
+      } catch (e) {
+        lastError = e
+        logger.warn("Attempt %d threw error: %s", attempt, e.message)
+      }
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs))
+      }
+    }
 
-    if (!httpResponse.ok) {
-      // TODO: handle http statuses
-      throw new Error(httpResponse.statusText)
+    if (!httpResponse || !httpResponse.ok) {
+      throw lastError || new Error("Failed to start test suite after retries")
     }
 
     const startResult = await httpResponse.json() as webapi.StartResponse
