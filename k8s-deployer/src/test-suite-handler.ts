@@ -40,19 +40,33 @@ export const generatePrefixByDate = (date: Date, env: string): Prefix => {
  *  2. test app for the graph.
  */
 const deployGraph = async (config: Config, workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
-  const deployments: Array<DeployedComponent> = new Array()
-  for (let i = 0; i < graph.components.length; i++) {
-    const componentSpec = graph.components[i]
-    logger.info("")
-    logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", i + 1, graph.components.length, componentSpec.name, testSuiteId)
-    logger.info("")
-    const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
-    deployments.push(new DeployedComponent(commitSha, componentSpec))
-  }
-  logger.info("")
+  // const deployments: Array<DeployedComponent> = new Array()
+  // for (let i = 0; i < graph.components.length; i++) {
+  //   const componentSpec = graph.components[i]
+  //   logger.info("")
+  //   logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", i + 1, graph.components.length, componentSpec.name, testSuiteId)
+  //   logger.info("")
+  //   const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
+  //   deployments.push(new DeployedComponent(commitSha, componentSpec))
+  // }
+  // logger.info("")
 
-  logger.info("%s Deploying test app \"%s\" for suite \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
-  logger.info("")
+  // logger.info("%s Deploying test app \"%s\" for suite \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
+  // logger.info("")
+
+  // if (testAppDirForRemoteTestSuite) {
+  //   // When suite is remote its pitfile is sitting within test app itself.
+  //   // We just downloaded pitfile from remote location into workspace
+  //   logger.info(
+  //     "Overwriting 'graph.testApp.location.path' to '%s' for testApp: '%s'",
+  //     testAppDirForRemoteTestSuite, graph.testApp.name
+  //   )
+  //   graph.testApp.location.path = testAppDirForRemoteTestSuite
+  // }
+  // const params = [ testSuiteId ]
+  // const testAppCommitSha = await Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
+  // logger.info("")
+  // return new GraphDeploymentResult(deployments, new DeployedComponent(testAppCommitSha, graph.testApp))
 
   if (testAppDirForRemoteTestSuite) {
     // When suite is remote its pitfile is sitting within test app itself.
@@ -63,10 +77,45 @@ const deployGraph = async (config: Config, workspace: string, testSuiteId: strin
     )
     graph.testApp.location.path = testAppDirForRemoteTestSuite
   }
-  const params = [ testSuiteId ]
-  const testAppCommitSha = await Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
+
   logger.info("")
-  return new GraphDeploymentResult(deployments, new DeployedComponent(testAppCommitSha, graph.testApp))
+  logger.info("Deploying %d component(s) and test app \"%s\" for suite \"%s\" in parallel...", graph.components.length, graph.testApp.name, testSuiteId)
+  logger.info("")
+
+  // do all component deployments in parallel
+  const componentPromises = graph.components.map(async (componentSpec, i) => {
+    logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", i + 1, graph.components.length, componentSpec.name, testSuiteId)
+    const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
+    logger.info("Graph component (%s of %s) \"%s\" for suite \"%s\" has been deployed.", i + 1, graph.components.length, componentSpec.name, testSuiteId)
+    return new DeployedComponent(commitSha, componentSpec)
+  })
+
+  const testAppPromise = (async () => {
+    logger.info("%s Deploying test app \"%s\" for suite \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
+    const params = [ testSuiteId ]
+    const testAppCommitSha = await Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
+    logger.info("%s Test app \"%s\" for suite \"%s\" has been deployed. %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
+    return new DeployedComponent(testAppCommitSha, graph.testApp)
+  })()
+
+  // Wait for everything to be ready
+  const [deployments, testApp] = await Promise.all([
+    Promise.all(componentPromises),
+    testAppPromise
+  ])
+
+  logger.info("")
+  logger.info("Deployment of %d component(s) and test app \"%s\" for suite \"%s\" complete.", graph.components.length, graph.testApp.name, testSuiteId)
+  logger.info("")
+
+  return new GraphDeploymentResult(deployments, testApp)
+
+
+
+
+  ////////////////// SERIAL CODE BELOW (for easier troubleshooting and better logs readability) //////////////////
+
+
 }
 
 const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string): Promise<Schema.PitFile> => {
