@@ -81,13 +81,6 @@ const deployGraph = async (config: Config, workspace: string, testSuiteId: strin
   logger.info("")
 
   return new GraphDeploymentResult(deployments, testApp)
-
-
-
-
-  ////////////////// SERIAL CODE BELOW (for easier troubleshooting and better logs readability) //////////////////
-
-
 }
 
 const downloadPitFile = async (testSuite: Schema.TestSuite, destination: string): Promise<Schema.PitFile> => {
