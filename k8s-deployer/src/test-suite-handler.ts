@@ -40,34 +40,6 @@ export const generatePrefixByDate = (date: Date, env: string): Prefix => {
  *  2. test app for the graph.
  */
 const deployGraph = async (config: Config, workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
-  // const deployments: Array<DeployedComponent> = new Array()
-  // for (let i = 0; i < graph.components.length; i++) {
-  //   const componentSpec = graph.components[i]
-  //   logger.info("")
-  //   logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", i + 1, graph.components.length, componentSpec.name, testSuiteId)
-  //   logger.info("")
-  //   const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
-  //   deployments.push(new DeployedComponent(commitSha, componentSpec))
-  // }
-  // logger.info("")
-
-  // logger.info("%s Deploying test app \"%s\" for suite \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
-  // logger.info("")
-
-  // if (testAppDirForRemoteTestSuite) {
-  //   // When suite is remote its pitfile is sitting within test app itself.
-  //   // We just downloaded pitfile from remote location into workspace
-  //   logger.info(
-  //     "Overwriting 'graph.testApp.location.path' to '%s' for testApp: '%s'",
-  //     testAppDirForRemoteTestSuite, graph.testApp.name
-  //   )
-  //   graph.testApp.location.path = testAppDirForRemoteTestSuite
-  // }
-  // const params = [ testSuiteId ]
-  // const testAppCommitSha = await Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
-  // logger.info("")
-  // return new GraphDeploymentResult(deployments, new DeployedComponent(testAppCommitSha, graph.testApp))
-
   if (testAppDirForRemoteTestSuite) {
     // When suite is remote its pitfile is sitting within test app itself.
     // We just downloaded pitfile from remote location into workspace
