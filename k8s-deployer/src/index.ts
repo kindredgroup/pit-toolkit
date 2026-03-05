@@ -26,6 +26,12 @@ const main = async () => {
   logger.info("--------------------- Cleaning up --------------------- ")
   logger.info("")
 
+
+  logger.info("Waiting for 5 minutes before starting the cleanup to allow time for post-test investigation if needed...")  
+  const sleep = new Promise(resolve => setTimeout(resolve, 300_000))
+  await sleep
+
+
   if (config.enableCleanups) {
     for (let deployments of artefacts) {
       await SuiteHandler.undeployAll(config, file, deployments)
