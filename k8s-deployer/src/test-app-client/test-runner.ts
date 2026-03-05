@@ -258,6 +258,7 @@ const waitUntilFinish = async (
       httpResponse = await fetch(statusUrl, api.status.options)
     } catch (e) {
       // allow x number of failed polls and then give up
+      logger.info("Test suite: '%s' - error polling status endpoint %s for session: '%s' ", testSuiteId, statusUrl, sessionId)
       if (++failuresCount < MAX_TECH_FAILURES) {
         const sleep = new Promise(resolve => setTimeout(resolve, retryTimeoutMs))
         await sleep
