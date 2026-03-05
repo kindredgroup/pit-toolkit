@@ -180,8 +180,6 @@ const runSuite = async (config: Config, spec: DeployedTestSuite, schemaValidator
     }
     logger.info("Test suite: '%s' - started using session: %s", testSuiteId, startResult.sessionId)
 
-    logger.info("Test suite: '%s' - session: %s, testSuite.timeoutSeconds: %s, config.testTimeoutMs: %s", testSuiteId, startResult.sessionId, spec.testSuite.timeoutSeconds, config.testTimeoutMs)
-    
     const testTimeoutMs = spec.testSuite.timeoutSeconds * 1_000 || config.testTimeoutMs
     await waitUntilFinish(api, testSuiteId, startResult.sessionId, config.testStatusPollFrequencyMs, testTimeoutMs, 1_000)
 
@@ -253,15 +251,11 @@ const waitUntilFinish = async (
       sessionId
     })
     const statusUrl = `${api.status.endpoint}?${queryParams}`
-    let response;
     try {
       logger.info(statusUrl)
       httpResponse = await fetch(statusUrl, api.status.options)
-      response = await httpResponse.json()
-      logger.info("Test suite: '%s' - status endpoint %s for session: '%s' returned %s (%s)", testSuiteId, statusUrl, sessionId, httpResponse.statusText, JSON.stringify(response))
     } catch (e) {
       // allow x number of failed polls and then give up
-      logger.info("Test suite: '%s' - error polling status endpoint %s for session: '%s' ", testSuiteId, statusUrl, sessionId)
       if (++failuresCount < MAX_TECH_FAILURES) {
         const sleep = new Promise(resolve => setTimeout(resolve, retryTimeoutMs))
         await sleep
@@ -278,14 +272,16 @@ const waitUntilFinish = async (
       throw new Error(`Unable to fetch status of previously started test: '${testSuiteId}'. Error: '${httpResponse.statusText}'`)
     }
 
+    const reponse = await httpResponse.json()
+
     const { schemaValidator, schemaPath } = api.status.validator
-    const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), response)
+    const isResponseValid = schemaValidator.validate(getSchemaRef(schemaPath.Response), reponse)
 
     if (!isResponseValid) {
-      throw new ApiSchemaValidationError(schemaValidator.errorsText(), statusUrl, JSON.stringify(response))
+      throw new ApiSchemaValidationError(schemaValidator.errorsText(), statusUrl, JSON.stringify(reponse))
 
     }
-    const statusQueryResult = webapi.StatusResponse.create(response)
+    const statusQueryResult = webapi.StatusResponse.create(reponse)
     if (statusQueryResult.status === webapi.TestStatus.COMPLETED) break
 
     if (statusQueryResult.status === webapi.TestStatus.ERROR) {
