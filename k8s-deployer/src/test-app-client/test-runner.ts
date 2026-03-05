@@ -256,6 +256,8 @@ const waitUntilFinish = async (
     try {
       logger.info(statusUrl)
       httpResponse = await fetch(statusUrl, api.status.options)
+      const responseBody = await httpResponse.json()
+      logger.info("Test suite: '%s' - status endpoint %s for session: '%s' returned %s (%s)", testSuiteId, statusUrl, sessionId, httpResponse.statusText, JSON.stringify(responseBody))
     } catch (e) {
       // allow x number of failed polls and then give up
       logger.info("Test suite: '%s' - error polling status endpoint %s for session: '%s' ", testSuiteId, statusUrl, sessionId)
