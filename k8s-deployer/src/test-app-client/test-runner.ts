@@ -180,6 +180,8 @@ const runSuite = async (config: Config, spec: DeployedTestSuite, schemaValidator
     }
     logger.info("Test suite: '%s' - started using session: %s", testSuiteId, startResult.sessionId)
 
+    logger.info("Test suite: '%s' - session: %s, testSuite.timeoutSeconds: %s, config.testTimeoutMs: %s", testSuiteId, startResult.sessionId, spec.testSuite.timeoutSeconds, config.testTimeoutMs)
+    
     const testTimeoutMs = spec.testSuite.timeoutSeconds * 1_000 || config.testTimeoutMs
     await waitUntilFinish(api, testSuiteId, startResult.sessionId, config.testStatusPollFrequencyMs, testTimeoutMs, 1_000)
 
