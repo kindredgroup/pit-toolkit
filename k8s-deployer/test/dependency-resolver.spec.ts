@@ -4,7 +4,8 @@ import {
   validateDependencies,
   detectCyclicDependencies,
   topologicalSort,
-  reverseTopologicalSort
+  reverseTopologicalSort,
+  printDependencyGraph
 } from "../src/dependency-resolver.js"
 import { Schema } from "../src/model.js"
 import {
@@ -220,6 +221,7 @@ describe("Dependency Resolver", () => {
   })
 
   describe("topologicalSort", () => {
+
     it("should sort components without dependencies in original order", () => {
       const components: Array<Schema.DeployableComponent> = [
         {
@@ -247,6 +249,35 @@ describe("Dependency Resolver", () => {
 
       const result = topologicalSort(components)
       expect(result.sortedComponents.map(c => c.id)).to.deep.equal(["component-a", "component-b", "component-c"])
+    })
+
+    it("should preserve original order if no dependsOn fields are present", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        {
+          name: "Component X",
+          id: "component-x",
+          location: { type: Schema.LocationType.Local },
+          deploy: { command: "deploy.sh" },
+          undeploy: { command: "undeploy.sh" }
+        },
+        {
+          name: "Component Y",
+          id: "component-y",
+          location: { type: Schema.LocationType.Local },
+          deploy: { command: "deploy.sh" },
+          undeploy: { command: "undeploy.sh" }
+        },
+        {
+          name: "Component Z",
+          id: "component-z",
+          location: { type: Schema.LocationType.Local },
+          deploy: { command: "deploy.sh" },
+          undeploy: { command: "undeploy.sh" }
+        }
+      ]
+
+      const result = topologicalSort(components)
+      expect(result.sortedComponents.map(c => c.id)).to.deep.equal(["component-x", "component-y", "component-z"])
     })
 
     it("should sort components with dependencies correctly", () => {
@@ -358,6 +389,74 @@ describe("Dependency Resolver", () => {
 
       // Reverse levels only, but same order within level: frontend, api-service, cache, database
       expect(reverseResult.map(c => c.id)).to.deep.equal(["frontend", "api-service", "cache", "database"])
+    })
+  })
+
+  describe("printDependencyGraph", () => {
+    let logOutput: string[]
+    let originalLog: typeof console.log
+    beforeEach(() => {
+      logOutput = []
+      originalLog = console.log
+      console.log = (msg?: any) => logOutput.push(String(msg))
+    })
+    afterEach(() => {
+      console.log = originalLog
+    })
+
+    it("prints graph for components without dependencies", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } }
+      ]
+      printDependencyGraph(components)
+      expect(logOutput[0]).to.equal("Dependency Graph")
+      expect(logOutput).to.include("  Stage 1 │  a  b  c")
+    })
+
+    it("prints graph for components with dependencies at multiple stages", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "DB", id: "db", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: [] },
+        { name: "API", id: "api", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["db"] },
+        { name: "Cache", id: "cache", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["db"] }
+      ]
+      printDependencyGraph(components)
+      expect(logOutput[0]).to.equal("Dependency Graph")
+      expect(logOutput).to.include("  Stage 1 │  db")
+      expect(logOutput).to.include("  Stage 2 │  api  cache")
+      expect(logOutput).to.include("  db ──▶ api")
+      expect(logOutput).to.include("  db ──▶ cache")
+    })
+
+    it("prints graph for chained dependencies", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: [] },
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] },
+        { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["b"] }
+      ]
+      printDependencyGraph(components)
+      expect(logOutput[0]).to.equal("Dependency Graph")
+      expect(logOutput).to.include("  Stage 1 │  a")
+      expect(logOutput).to.include("  Stage 2 │  b")
+      expect(logOutput).to.include("  Stage 3 │  c")
+      expect(logOutput).to.include("  a ──▶ b")
+      expect(logOutput).to.include("  b ──▶ c")
+    })
+
+    it("annotates parallel components with ⚡ and prints a legend", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true },
+        { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true }
+      ]
+      printDependencyGraph(components)
+      expect(logOutput[0]).to.equal("Dependency Graph")
+      expect(logOutput).to.include("  Stage 1 │  a")
+      expect(logOutput).to.include("  Stage 2 │  b ⚡  c ⚡")
+      expect(logOutput).to.include("  a ──▶ b")
+      expect(logOutput).to.include("  a ──▶ c")
+      expect(logOutput).to.include("  ⚡ = deployed concurrently within stage")
     })
   })
 })

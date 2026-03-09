@@ -359,7 +359,8 @@ describe("Deployment happy path", async () => {
       .returns(
         {
           ok: true,
-          json: async () => { return new webapi.ReportResponse("session-2", testSuiteId, webapi.TestStatus.COMPLETED, report) }
+          // Serialize then parse to simulate real HTTP JSON: Date objects become ISO strings
+          json: async () => JSON.parse(JSON.stringify(new webapi.ReportResponse("session-2", testSuiteId, webapi.TestStatus.COMPLETED, report)))
         }
       )
 

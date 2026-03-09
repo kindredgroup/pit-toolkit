@@ -9,7 +9,7 @@ import * as PifFileLoader from "./pitfile/pitfile-loader.js"
 import { PodLogTail } from "./pod-log-tail.js"
 import * as Shell from "./shell-facade.js"
 import * as TestRunner from "./test-app-client/test-runner.js"
-import { topologicalSort, reverseTopologicalSort } from "./dependency-resolver.js"
+import { topologicalSort, reverseTopologicalSort, printDependencyGraph } from "./dependency-resolver.js"
 
 export const generatePrefix = (env: string): Prefix => {
   return generatePrefixByDate(new Date(), env)
@@ -37,27 +37,55 @@ export const generatePrefixByDate = (date: Date, env: string): Prefix => {
 
 /**
  * Deploying:
- *  1. all components in the graph in the topological order
+ *  1. all components in the graph in topological order, deploying parallel-flagged components concurrently within each level
  *  2. test app for the graph.
  */
 const deployGraph = async (config: Config, workspace: string, testSuiteId: string, graph: Schema.Graph, namespace: Namespace, testAppDirForRemoteTestSuite?: string): Promise<GraphDeploymentResult> => {
   // Dependencies are already validated in main(), so it's safe to directly sort here.
-  const { sortedComponents } = topologicalSort(graph.components)
+  const { sortedComponents, levels } = topologicalSort(graph.components)
 
   logger.info("")
   logger.info("Dependency Resolution for %s:", testSuiteId)
   logger.info("Deployment order: %s", sortedComponents.map(c => c.id).join(" → "))
   logger.info("")
 
-  // Deploy components in topological order
-  const deployments: Array<DeployedComponent> = new Array()
-  for (let i = 0; i < sortedComponents.length; i++) {
-    const componentSpec = sortedComponents[i]
-    logger.info("")
-    logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", i + 1, sortedComponents.length, componentSpec.name, testSuiteId)
-    logger.info("")
-    const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
-    deployments.push(new DeployedComponent(commitSha, componentSpec))
+  logger.info("")
+  logger.info("Dependency Graph for %s:", testSuiteId)
+  printDependencyGraph(graph.components)
+  logger.info("")
+
+  // Deploy components level by level. Within each level, components with parallel:true are deployed concurrently.
+  const deployments: Array<DeployedComponent> = []
+  let componentIndex = 0
+  for (const level of levels) {
+    const parallelGroup = level.filter(c => c.parallel === true)
+    const sequentialGroup = level.filter(c => c.parallel !== true)
+
+    // Deploy all parallel-flagged components in this level concurrently
+    if (parallelGroup.length > 0) {
+      logger.info("")
+      logger.info("Deploying %d component(s) in parallel for suite \"%s\": %s", parallelGroup.length, testSuiteId, parallelGroup.map(c => c.id).join(", "))
+      const parallelResults = await Promise.all(
+        parallelGroup.map(async componentSpec => {
+          const idx = ++componentIndex
+          logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", idx, sortedComponents.length, componentSpec.name, testSuiteId)
+          const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
+          logger.info("Graph component \"%s\" for suite \"%s\" deployed.", componentSpec.name, testSuiteId)
+          return new DeployedComponent(commitSha, componentSpec)
+        })
+      )
+      deployments.push(...parallelResults)
+    }
+
+    // Deploy sequential components one by one
+    for (const componentSpec of sequentialGroup) {
+      const idx = ++componentIndex
+      logger.info("")
+      logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", idx, sortedComponents.length, componentSpec.name, testSuiteId)
+      logger.info("")
+      const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
+      deployments.push(new DeployedComponent(commitSha, componentSpec))
+    }
   }
   logger.info("")
 

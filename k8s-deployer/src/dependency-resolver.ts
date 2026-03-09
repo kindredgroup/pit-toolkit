@@ -208,3 +208,28 @@ const reconstructCyclePath = (startId: string, parent: Map<string, string>): Arr
 
   return path
 }
+
+/**
+ * Print the dependency graph in a visually grouped format.
+ * Components that can be deployed in parallel are shown together and annotated.
+ */
+export const printDependencyGraph = (components: Array<Schema.DeployableComponent>): void => {
+  const { levels } = topologicalSort(components)
+  const sep = "─".repeat(40)
+  const edges = components.flatMap(c => (c.dependsOn ?? []).map(dep => `  ${dep} ──▶ ${c.id}`))
+
+  console.log("Dependency Graph")
+  console.log(sep)
+  levels.forEach((level, idx) =>
+    console.log(`  Stage ${idx + 1} │  ${level.map(c => c.parallel ? `${c.id} ⚡` : c.id).join("  ")}`)
+  )
+  if (edges.length > 0) {
+    console.log(sep)
+    edges.forEach(e => console.log(e))
+  }
+  if (components.some(c => c.parallel)) {
+    console.log(sep)
+    console.log("  ⚡ = deployed concurrently within stage")
+  }
+  console.log(sep)
+}
