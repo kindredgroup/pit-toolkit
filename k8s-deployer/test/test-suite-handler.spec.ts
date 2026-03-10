@@ -15,7 +15,7 @@ import * as webapi from "../src/test-app-client/web-api/schema-v1.js"
 import { generatePrefixByDate } from "../src/test-suite-handler.js"
 
 describe("Helper functions", () => {
-  it ("should generate readable date prefix", () => {
+  it("should generate readable date prefix", () => {
     const date = new Date('March 1, 2024 00:00:00.123 UTC')
     const prefix = generatePrefixByDate(date, "desktop")
 
@@ -27,7 +27,7 @@ describe("Deployment happy path", async () => {
   let prefix = "12345"
   let testSuiteId = "t1"
   const namespace = "nsChild"
-  const workspace = `${ prefix }_${ testSuiteId }`
+  const workspace = `${prefix}_${testSuiteId}`
   const k8DeployerConfig: Config = {
     commitSha: "sha4567",
     workspace: "/tmp/some/dir",
@@ -75,7 +75,7 @@ describe("Deployment happy path", async () => {
             name: "comp-1-name",
             id: "comp-1",
             location: { type: LocationType.Local },
-            deploy: { command: "deployment/pit/deploy.sh", statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" }},
+            deploy: { command: "deployment/pit/deploy.sh", statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" } },
             logTailing: {
               enabled: true,
               containerName: "comp-1-specific-container"
@@ -86,7 +86,7 @@ describe("Deployment happy path", async () => {
     }
   }
 
-  it ("processTestSuite", async () => {
+  it("processTestSuite", async () => {
 
     const report = {
       executedScenarios: [
@@ -94,7 +94,7 @@ describe("Deployment happy path", async () => {
           "t1-sc1",
           new Date(),
           new Date(new Date().getTime() + 20_000),
-          [ new TestStream("t1-sc1-stream1", [ new ScalarMetric("tps", 100) ], [ new ScalarMetric("tps", 101) ], TestOutcomeType.PASS) ],
+          [new TestStream("t1-sc1-stream1", [new ScalarMetric("tps", 100)], [new ScalarMetric("tps", 101)], TestOutcomeType.PASS)],
           ["comp-1"]
         )
       ]
@@ -126,7 +126,7 @@ describe("Deployment happy path", async () => {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     const httpClientStub = sinon.stub()
-    httpClientStub.withArgs(sinon.match(`\/${ namespace }\.${ testSuiteId }\/start`), sinon.match.any).returns({
+    httpClientStub.withArgs(sinon.match(`\/${namespace}\.${testSuiteId}\/start`), sinon.match.any).returns({
       ok: true,
       json: async () => new webapi.StartResponse("session-1", testSuiteId)
     })
@@ -134,13 +134,13 @@ describe("Deployment happy path", async () => {
       ok: true,
       json: async () => new webapi.StatusResponse("session-1", testSuiteId, webapi.TestStatus.RUNNING)
     }
-    const respStatusCompleted = { ok: true, json: async () => new webapi.StatusResponse("session-1", testSuiteId, webapi.TestStatus.COMPLETED)}
-    httpClientStub.withArgs(sinon.match(`\/${ namespace }\.${ testSuiteId }\/status\?sessionId=session-1`), sinon.match.any)
+    const respStatusCompleted = { ok: true, json: async () => new webapi.StatusResponse("session-1", testSuiteId, webapi.TestStatus.COMPLETED) }
+    httpClientStub.withArgs(sinon.match(`\/${namespace}\.${testSuiteId}\/status\?sessionId=session-1`), sinon.match.any)
       .onFirstCall().returns(respStatusRunning)
       .onSecondCall().returns(respStatusRunning)
       .onThirdCall().returns(respStatusCompleted)
 
-    httpClientStub.withArgs(sinon.match(`\/${ namespace }\.${ testSuiteId }\/reports\?sessionId=session-1`), sinon.match.any)
+    httpClientStub.withArgs(sinon.match(`\/${namespace}\.${testSuiteId}\/reports\?sessionId=session-1`), sinon.match.any)
       .returns(
         {
           ok: true,
@@ -177,7 +177,8 @@ describe("Deployment happy path", async () => {
         "child_process": {
           spawn: (script: string, args: string[], opts: SpawnOptions[]) => {
             // delegate spawining calls to stub and record them for later assertion
-            return nodeShellSpawnStub(script, args, opts) }
+            return nodeShellSpawnStub(script, args, opts)
+          }
         }
       }
     )
@@ -185,14 +186,14 @@ describe("Deployment happy path", async () => {
     const SuiteHandler = await esmock(
       "../src/test-suite-handler.js",
       {
-        "../src/k8s.js": { ...K8s, generateNamespaceName:() => namespace  } ,
-        "../src/pod-log-tail.js": { ...PodLogTail  }
+        "../src/k8s.js": { ...K8s, generateNamespaceName: () => namespace },
+        "../src/pod-log-tail.js": { ...PodLogTail }
       },
       {
-        "../src/logger.js": { logger: { debug: () => {}, info: () => {}, warn: (s: string, a: any) => { logger.warn(s, a) }, error: (s: string, a: any) => { logger.error(s, a) } } },
+        "../src/logger.js": { logger: { debug: () => { }, info: () => { }, warn: (s: string, a: any) => { logger.warn(s, a) }, error: (s: string, a: any) => { logger.error(s, a) } } },
         "node-fetch": httpImportMock,
         "../src/shell-facade.js": shellImportMock,
-        "fs": { promises: { access: async (path: string, mode: number) => await fsAccessStubs(path, mode) }}
+        "fs": { promises: { access: async (path: string, mode: number) => await fsAccessStubs(path, mode) } }
       },
     )
 
@@ -204,7 +205,7 @@ describe("Deployment happy path", async () => {
       projectName: "TestPitFile",
       version: SchemaVersion.VERSION_1_0,
       lockManager: { enabled: true },
-      testSuites: [ testSuite ]
+      testSuites: [testSuite]
     }
 
     await SuiteHandler.processTestSuite(prefix, k8DeployerConfig, pitfile, testSuiteNumber, testSuite)
@@ -290,16 +291,16 @@ describe("Deployment happy path", async () => {
 
     chai.expect(nodeShellSpawnStub.getCall(0).calledWith(
       "k8s-deployer/scripts/tail-container-log.sh",
-      [ namespace, "comp-1", "comp-1-specific-container" ]
+      [namespace, "comp-1", "comp-1-specific-container"]
     )).be.true
 
     chai.expect(nodeShellSpawnStub.getCall(1).calledWith(
-        "k8s-deployer/scripts/tail-container-log.sh",
-        [ namespace, "comp-1-test-app", "" ]
+      "k8s-deployer/scripts/tail-container-log.sh",
+      [namespace, "comp-1-test-app", ""]
     )).be.true
   })
 
-  it ("processTestSuite with a different workspace", async () => {
+  it("processTestSuite with a different workspace", async () => {
     prefix = '23456'
     testSuiteId = 't2'
     const testSuite2 = JSON.parse(JSON.stringify(testSuite))
@@ -312,7 +313,7 @@ describe("Deployment happy path", async () => {
           "t2-sc2",
           new Date(),
           new Date(new Date().getTime() + 20_000),
-          [ new TestStream("t2-sc2-stream1", [ new ScalarMetric("tps", 100) ], [ new ScalarMetric("tps", 101) ], TestOutcomeType.PASS) ],
+          [new TestStream("t2-sc2-stream1", [new ScalarMetric("tps", 100)], [new ScalarMetric("tps", 101)], TestOutcomeType.PASS)],
           ["comp-2"]
         )
       ]
@@ -344,7 +345,7 @@ describe("Deployment happy path", async () => {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     const httpClientStub = sinon.stub()
-    httpClientStub.withArgs(sinon.match(`\/${ namespace }\.${ testSuiteId }\/start`), sinon.match.any).returns({
+    httpClientStub.withArgs(sinon.match(`\/${namespace}\.${testSuiteId}\/start`), sinon.match.any).returns({
       ok: true,
       json: async () => new webapi.StartResponse("session-2", testSuiteId)
     })
@@ -352,13 +353,13 @@ describe("Deployment happy path", async () => {
       ok: true,
       json: async () => new webapi.StatusResponse("session-2", testSuiteId, webapi.TestStatus.RUNNING)
     }
-    const respStatusCompleted = { ok: true, json: async () => new webapi.StatusResponse("session-2", testSuiteId, webapi.TestStatus.COMPLETED)}
-    httpClientStub.withArgs(sinon.match(`\/${ namespace }\.${ testSuiteId }\/status\?sessionId=session-2`), sinon.match.any)
+    const respStatusCompleted = { ok: true, json: async () => new webapi.StatusResponse("session-2", testSuiteId, webapi.TestStatus.COMPLETED) }
+    httpClientStub.withArgs(sinon.match(`\/${namespace}\.${testSuiteId}\/status\?sessionId=session-2`), sinon.match.any)
       .onFirstCall().returns(respStatusRunning)
       .onSecondCall().returns(respStatusRunning)
       .onThirdCall().returns(respStatusCompleted)
 
-    httpClientStub.withArgs(sinon.match(`\/${ namespace }\.${ testSuiteId }\/reports\?sessionId=session-2`), sinon.match.any)
+    httpClientStub.withArgs(sinon.match(`\/${namespace}\.${testSuiteId}\/reports\?sessionId=session-2`), sinon.match.any)
       .returns(
         {
           ok: true,
@@ -396,7 +397,8 @@ describe("Deployment happy path", async () => {
         "child_process": {
           spawn: (script: string, args: string[], opts: SpawnOptions[]) => {
             // delegate spawining calls to stub and record them for later assertion
-            return nodeShellSpawnStub(script, args, opts) }
+            return nodeShellSpawnStub(script, args, opts)
+          }
         }
       }
     )
@@ -404,14 +406,14 @@ describe("Deployment happy path", async () => {
     const SuiteHandler = await esmock(
       "../src/test-suite-handler.js",
       {
-        "../src/k8s.js": { ...K8s, generateNamespaceName:() => namespace  } ,
-        "../src/pod-log-tail.js": { ...PodLogTail  }
+        "../src/k8s.js": { ...K8s, generateNamespaceName: () => namespace },
+        "../src/pod-log-tail.js": { ...PodLogTail }
       },
       {
-        "../src/logger.js": { logger: { debug: () => {}, info: () => {}, warn: (s: string, a: any) => { logger.warn(s, a) }, error: (s: string, a: any) => { logger.error(s, a) } } },
+        "../src/logger.js": { logger: { debug: () => { }, info: () => { }, warn: (s: string, a: any) => { logger.warn(s, a) }, error: (s: string, a: any) => { logger.error(s, a) } } },
         "node-fetch": httpImportMock,
         "../src/shell-facade.js": shellImportMock,
-        "fs": { promises: { access: async (path: string, mode: number) => await fsAccessStubs(path, mode) }}
+        "fs": { promises: { access: async (path: string, mode: number) => await fsAccessStubs(path, mode) } }
       },
     )
 
@@ -423,7 +425,7 @@ describe("Deployment happy path", async () => {
       projectName: "TestPitFile",
       version: SchemaVersion.VERSION_1_0,
       lockManager: { enabled: true },
-      testSuites: [ testSuite2 ]
+      testSuites: [testSuite2]
     }
 
     await SuiteHandler.processTestSuite(prefix, k8DeployerConfig, pitfile, testSuiteNumber, testSuite2)
@@ -492,7 +494,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     esmock(
       "../src/test-suite-handler.js",
       { "../src/deployer.js": { deployComponent: deployStub } },
-      { "../src/logger.js": { logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } } }
+      { "../src/logger.js": { logger: { debug: () => { }, info: () => { }, warn: () => { }, error: () => { } } } }
     )
 
   it("returns GraphDeploymentResult with all deployed components", async () => {
@@ -537,7 +539,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     chai.expect(completed).to.include.members(["B", "C"])
   })
 
-  it("deploys mixed parallel/sequential at same level concurrently", async () => {
+  it("sequential components at same level wait for parallel ones to complete first", async () => {
     const gates: Record<string, Gate> = { B: makeGate(), C: makeGate(), testApp: makeGate() }
     const started: string[] = []
     const completed: string[] = []
@@ -547,20 +549,22 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
       completed.push(spec.id)
       return `sha-${spec.id}`
     })
+
     const SuiteHandler = await loadWithStub(deployStub)
-    // B is parallel:true, C has no parallel flag — same dependency level, so neither waits on the other
+    // B is parallel:true, C has no parallel flag — same dependency level
     const graph = {
       testApp: makeSpec("testApp", { parallel: true }),
       components: [makeSpec("B", { parallel: true }), makeSpec("C")]
     }
     const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
-    // B (parallelGroup) and C (sequentialGroup) fire their respective chains simultaneously —
-    // both should be in-flight before either completes
+    // B (parallelGroup) starts immediately; C (sequentialGroup) must wait for B to finish
     chai.expect(started).to.include("B")
-    chai.expect(started).to.include("C")
-    chai.expect(completed).to.not.include("B")
-    chai.expect(completed).to.not.include("C")
+    chai.expect(started).to.not.include("C")
+    // Release B — C should now be able to start
     gates["B"].resolve()
+    await new Promise(r => setTimeout(r, 0)) // flush async chains
+    chai.expect(completed).to.include("B")
+    chai.expect(started).to.include("C")
     gates["C"].resolve()
     gates["testApp"].resolve()
     await deployPromise
@@ -597,15 +601,20 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     chai.expect(started).to.not.include("C")
     chai.expect(started).to.not.include("D")
 
-    // Resolve A — level 2 (B and C) should start
+    // Resolve A — level 2: B (parallel) starts first; C (sequential) waits for B
     gates["A"].resolve()
     await new Promise(r => setTimeout(r, 0))
     chai.expect(started).to.include("B")
+    chai.expect(started).to.not.include("C")
+    chai.expect(started).to.not.include("D")
+
+    // Resolve B — C (sequential) can now start
+    gates["B"].resolve()
+    await new Promise(r => setTimeout(r, 0))
     chai.expect(started).to.include("C")
     chai.expect(started).to.not.include("D")
 
-    // Resolve B and C — level 3 (D) should start
-    gates["B"].resolve()
+    // Resolve C — level 3 (D) should start
     gates["C"].resolve()
     await new Promise(r => setTimeout(r, 0))
     chai.expect(started).to.include("D")

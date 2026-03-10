@@ -461,10 +461,24 @@ describe("Dependency Resolver", () => {
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
       expect(logOutput).to.include("  Stage 1 │  a")
-      expect(logOutput).to.include("  Stage 2 │  b 🔀  c 🔀")
+      expect(logOutput).to.include("  Stage 2 │  [b 🔀  c 🔀]")
       expect(logOutput).to.include("  Stage 3 │  test-app")
       expect(logOutput).to.include("  a ──▶ b")
       expect(logOutput).to.include("  a ──▶ c")
+      expect(logOutput).to.include("  🔀 = concurrent deployment")
+    })
+
+    it("shows mixed parallel/sequential at same level as [parallel] → sequential", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true },
+        { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] }
+      ]
+      printDependencyGraph({ testApp, components })
+      expect(logOutput[0]).to.equal("Dependency Graph")
+      expect(logOutput).to.include("  Stage 1 │  a")
+      expect(logOutput).to.include("  Stage 2 │  [b 🔀] → c")
+      expect(logOutput).to.include("  Stage 3 │  test-app")
       expect(logOutput).to.include("  🔀 = concurrent deployment")
     })
 

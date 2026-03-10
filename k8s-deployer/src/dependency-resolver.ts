@@ -221,9 +221,20 @@ export const printDependencyGraph = (graph: Schema.Graph): void => {
   const { components, testApp } = graph
   const { levels } = topologicalSort(components)
   const sep = "─".repeat(40)
-  const label = (c: Schema.DeployableComponent) => c.parallel ? `${c.id} 🔀` : c.id
   const edges = components.flatMap(c => (c.dependsOn ?? []).map(dep => `  ${dep} ──▶ ${c.id}`))
   const anyConcurrent = components.some(c => c.parallel) || testApp.parallel === true
+
+  // Format a single dependency level into a display string.
+  // Parallel components are grouped in brackets; sequential follow after an arrow.
+  // e.g. "[B 🔀  C 🔀] → D  E" or "[B 🔀] → C" or "A  B" (all sequential)
+  const formatLevel = (level: Array<Schema.DeployableComponent>): string => {
+    const parallel = level.filter(c => c.parallel === true)
+    const sequential = level.filter(c => c.parallel !== true)
+    const parallelPart = parallel.length > 0 ? `[${parallel.map(c => `${c.id} 🔀`).join("  ")}]` : ""
+    const sequentialPart = sequential.map(c => c.id).join("  ")
+    if (parallelPart && sequentialPart) return `${parallelPart} → ${sequentialPart}`
+    return parallelPart || sequentialPart
+  }
 
   console.log("Dependency Graph")
   console.log(sep)
@@ -231,14 +242,14 @@ export const printDependencyGraph = (graph: Schema.Graph): void => {
   if (testApp.parallel === true) {
     // testApp runs concurrently with the entire component chain — show it in a separate section
     levels.forEach((level, idx) =>
-      console.log(`  Stage ${idx + 1} │  ${level.map(label).join("  ")}`)
+      console.log(`  Stage ${idx + 1} │  ${formatLevel(level)}`)
     )
     console.log(sep)
-    console.log(`  ${label(testApp)}  (concurrent with component stages)`)
+    console.log(`  ${testApp.id} 🔀  (concurrent with component stages)`)
   } else {
     // testApp runs after all components — append it as the final stage
     levels.forEach((level, idx) =>
-      console.log(`  Stage ${idx + 1} │  ${level.map(label).join("  ")}`)
+      console.log(`  Stage ${idx + 1} │  ${formatLevel(level)}`)
     )
     console.log(`  Stage ${levels.length + 1} │  ${testApp.id}`)
   }

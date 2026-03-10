@@ -70,36 +70,31 @@ export const deployGraph = async (config: Config, workspace: string, testSuiteId
       const parallelGroup = level.filter(c => c.parallel === true)
       const sequentialGroup = level.filter(c => c.parallel !== true)
 
-      // Fire both groups concurrently; await both before moving to the next level.
-      const parallelChain = parallelGroup.length > 0
-        ? (async () => {
-            logger.info("")
-            logger.info("Deploying %d component(s) in parallel for suite \"%s\": %s", parallelGroup.length, testSuiteId, parallelGroup.map(c => c.id).join(", "))
-            const results = await Promise.all(
-              parallelGroup.map(async componentSpec => {
-                const idx = ++componentIndex
-                logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", idx, sortedComponents.length, componentSpec.name, testSuiteId)
-                const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
-                logger.info("Graph component \"%s\" for suite \"%s\" deployed.", componentSpec.name, testSuiteId)
-                return new DeployedComponent(commitSha, componentSpec)
-              })
-            )
-            deployments.push(...results)
-          })()
-        : Promise.resolve()
+      // First, deploy parallel-flagged components concurrently.
+      // Then, once all parallel components at this level are done, deploy sequential ones in order.
+      if (parallelGroup.length > 0) {
+        logger.info("")
+        logger.info("Deploying %d component(s) in parallel for suite \"%s\": %s", parallelGroup.length, testSuiteId, parallelGroup.map(c => c.id).join(", "))
+        const results = await Promise.all(
+          parallelGroup.map(async componentSpec => {
+            const idx = ++componentIndex
+            logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", idx, sortedComponents.length, componentSpec.name, testSuiteId)
+            const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
+            logger.info("Graph component \"%s\" for suite \"%s\" deployed.", componentSpec.name, testSuiteId)
+            return new DeployedComponent(commitSha, componentSpec)
+          })
+        )
+        deployments.push(...results)
+      }
 
-      const sequentialChain = (async () => {
-        for (const componentSpec of sequentialGroup) {
-          const idx = ++componentIndex
-          logger.info("")
-          logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", idx, sortedComponents.length, componentSpec.name, testSuiteId)
-          logger.info("")
-          const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
-          deployments.push(new DeployedComponent(commitSha, componentSpec))
-        }
-      })()
-
-      await Promise.all([parallelChain, sequentialChain])
+      for (const componentSpec of sequentialGroup) {
+        const idx = ++componentIndex
+        logger.info("")
+        logger.info("Deploying graph component (%s of %s) \"%s\" for suite \"%s\"...", idx, sortedComponents.length, componentSpec.name, testSuiteId)
+        logger.info("")
+        const commitSha = await Deployer.deployComponent(config, workspace, componentSpec, namespace)
+        deployments.push(new DeployedComponent(commitSha, componentSpec))
+      }
     }
   })()
 
