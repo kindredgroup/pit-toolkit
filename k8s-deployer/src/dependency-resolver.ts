@@ -210,24 +210,44 @@ const reconstructCyclePath = (startId: string, parent: Map<string, string>): Arr
 }
 
 /**
- * Print the dependency graph in a visually grouped format.
- * Components that can be deployed in parallel are shown together and annotated.
+ * Print the full deployment graph including testApp placement.
+ *
+ * - Components are shown in topological stages.
+ * - If testApp.parallel === true it is shown in a separate concurrent section
+ *   (it runs alongside all component stages).
+ * - Otherwise testApp is shown as the final sequential stage after all components.
  */
-export const printDependencyGraph = (components: Array<Schema.DeployableComponent>): void => {
+export const printDependencyGraph = (graph: Schema.Graph): void => {
+  const { components, testApp } = graph
   const { levels } = topologicalSort(components)
   const sep = "─".repeat(40)
+  const label = (c: Schema.DeployableComponent) => c.parallel ? `${c.id} 🔀` : c.id
   const edges = components.flatMap(c => (c.dependsOn ?? []).map(dep => `  ${dep} ──▶ ${c.id}`))
+  const anyConcurrent = components.some(c => c.parallel) || testApp.parallel === true
 
   console.log("Dependency Graph")
   console.log(sep)
-  levels.forEach((level, idx) =>
-    console.log(`  Stage ${idx + 1} │  ${level.map(c => c.parallel ? `${c.id} 🔀` : c.id).join("  ")}`)
-  )
+
+  if (testApp.parallel === true) {
+    // testApp runs concurrently with the entire component chain — show it in a separate section
+    levels.forEach((level, idx) =>
+      console.log(`  Stage ${idx + 1} │  ${level.map(label).join("  ")}`)
+    )
+    console.log(sep)
+    console.log(`  ${label(testApp)}  (concurrent with component stages)`)
+  } else {
+    // testApp runs after all components — append it as the final stage
+    levels.forEach((level, idx) =>
+      console.log(`  Stage ${idx + 1} │  ${level.map(label).join("  ")}`)
+    )
+    console.log(`  Stage ${levels.length + 1} │  ${testApp.id}`)
+  }
+
   if (edges.length > 0) {
     console.log(sep)
     edges.forEach(e => console.log(e))
   }
-  if (components.some(c => c.parallel)) {
+  if (anyConcurrent) {
     console.log(sep)
     console.log("  🔀 = concurrent deployment")
   }

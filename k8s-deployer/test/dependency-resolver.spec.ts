@@ -395,6 +395,11 @@ describe("Dependency Resolver", () => {
   describe("printDependencyGraph", () => {
     let logOutput: string[]
     let originalLog: typeof console.log
+    const testApp: Schema.DeployableComponent = {
+      name: "test-app", id: "test-app",
+      location: { type: Schema.LocationType.Local },
+      deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }
+    }
     beforeEach(() => {
       logOutput = []
       originalLog = console.log
@@ -410,9 +415,10 @@ describe("Dependency Resolver", () => {
         { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
         { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } }
       ]
-      printDependencyGraph(components)
+      printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
       expect(logOutput).to.include("  Stage 1 │  a  b  c")
+      expect(logOutput).to.include("  Stage 2 │  test-app")
     })
 
     it("prints graph for components with dependencies at multiple stages", () => {
@@ -421,10 +427,11 @@ describe("Dependency Resolver", () => {
         { name: "API", id: "api", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["db"] },
         { name: "Cache", id: "cache", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["db"] }
       ]
-      printDependencyGraph(components)
+      printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
       expect(logOutput).to.include("  Stage 1 │  db")
       expect(logOutput).to.include("  Stage 2 │  api  cache")
+      expect(logOutput).to.include("  Stage 3 │  test-app")
       expect(logOutput).to.include("  db ──▶ api")
       expect(logOutput).to.include("  db ──▶ cache")
     })
@@ -435,11 +442,12 @@ describe("Dependency Resolver", () => {
         { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] },
         { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["b"] }
       ]
-      printDependencyGraph(components)
+      printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
       expect(logOutput).to.include("  Stage 1 │  a")
       expect(logOutput).to.include("  Stage 2 │  b")
       expect(logOutput).to.include("  Stage 3 │  c")
+      expect(logOutput).to.include("  Stage 4 │  test-app")
       expect(logOutput).to.include("  a ──▶ b")
       expect(logOutput).to.include("  b ──▶ c")
     })
@@ -450,12 +458,28 @@ describe("Dependency Resolver", () => {
         { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true },
         { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true }
       ]
-      printDependencyGraph(components)
+      printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
       expect(logOutput).to.include("  Stage 1 │  a")
       expect(logOutput).to.include("  Stage 2 │  b 🔀  c 🔀")
+      expect(logOutput).to.include("  Stage 3 │  test-app")
       expect(logOutput).to.include("  a ──▶ b")
       expect(logOutput).to.include("  a ──▶ c")
+      expect(logOutput).to.include("  🔀 = concurrent deployment")
+    })
+
+    it("shows testApp in a concurrent section when testApp.parallel is true", () => {
+      const parallelTestApp: Schema.DeployableComponent = { ...testApp, id: "my-test-app", parallel: true }
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] }
+      ]
+      printDependencyGraph({ testApp: parallelTestApp, components })
+      expect(logOutput[0]).to.equal("Dependency Graph")
+      expect(logOutput).to.include("  Stage 1 │  a")
+      expect(logOutput).to.include("  Stage 2 │  b")
+      expect(logOutput).to.include("  my-test-app 🔀  (concurrent with component stages)")
+      expect(logOutput).to.not.include("  Stage 3 │  my-test-app")
       expect(logOutput).to.include("  🔀 = concurrent deployment")
     })
   })

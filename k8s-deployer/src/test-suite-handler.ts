@@ -46,7 +46,7 @@ export const deployGraph = async (config: Config, workspace: string, testSuiteId
 
   logger.info("")
   logger.info("Dependency Graph for %s:", testSuiteId)
-  printDependencyGraph(graph.components)
+  printDependencyGraph(graph)
   logger.info("")
 
   if (testAppDirForRemoteTestSuite) {
