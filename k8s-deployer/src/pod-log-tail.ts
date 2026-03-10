@@ -22,7 +22,7 @@ export class PodLogTail {
 
     this.tailer = NodeShell.spawn(
       "k8s-deployer/scripts/tail-container-log.sh",
-      [ this.namespace, this.service, containerName ],
+      [ this.namespace, this.service, containerName, "", this.logFilePath.replace(/\.log$/, "") ],
       {
         detached: true,
         stdio: [ 'ignore', out, err ]
