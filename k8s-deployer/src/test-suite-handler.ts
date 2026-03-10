@@ -103,13 +103,23 @@ export const deployGraph = async (config: Config, workspace: string, testSuiteId
     }
   })()
 
-  // Deploy test app concurrently with the component levels; deployGraph does not return until both are done.
   logger.info("%s Deploying test app \"%s\" for suite \"%s\" %s", LOG_SEPARATOR_LINE, graph.testApp.name, testSuiteId, LOG_SEPARATOR_LINE)
   const params = [ testSuiteId ]
-  const deployTestAppPromise = Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
-    .then(commitSha => new DeployedComponent(commitSha, graph.testApp))
 
-  const [ , testAppDeployedComponent] = await Promise.all([deployComponentsPromise, deployTestAppPromise])
+  let testAppDeployedComponent: DeployedComponent
+  if (graph.parallelTestApp === true) {
+    // Deploy test app concurrently with the component levels (opt-in).
+    // Only use this when the test app can start independently of the components.
+    const deployTestAppPromise = Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
+      .then(commitSha => new DeployedComponent(commitSha, graph.testApp))
+    const [ , resolved] = await Promise.all([deployComponentsPromise, deployTestAppPromise])
+    testAppDeployedComponent = resolved
+  } else {
+    // Default: wait for all components to be ready before deploying the test app.
+    await deployComponentsPromise
+    const commitSha = await Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)
+    testAppDeployedComponent = new DeployedComponent(commitSha, graph.testApp)
+  }
 
   logger.info("")
   return new GraphDeploymentResult(deployments, testAppDeployedComponent)

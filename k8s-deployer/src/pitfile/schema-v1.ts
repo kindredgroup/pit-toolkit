@@ -67,6 +67,12 @@ export class DeployableComponent {
 export class Graph {
   testApp: DeployableComponent
   components: Array<DeployableComponent>
+  /**
+   * When true, the test app is deployed concurrently with the component chain.
+   * Only enable this if the test app can start independently of the components.
+   * Defaults to false (sequential: test app starts after all components are ready).
+   */
+  parallelTestApp?: boolean
 }
 
 export class Deployment {
