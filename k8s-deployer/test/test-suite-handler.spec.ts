@@ -220,10 +220,11 @@ describe("Deployment happy path", async () => {
     chai.expect(fsAccessStubs.getCall(2).calledWith("lock-manager/deployment/pit/is-deployment-ready.sh")).be.true
     chai.expect(fsAccessStubs.getCall(3).calledWith("23456_t1/comp-1")).be.false
     chai.expect(fsAccessStubs.getCall(3).calledWith("./comp-1")).be.true
-    chai.expect(fsAccessStubs.getCall(4).calledWith("comp-1/deployment/pit/deploy.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(5).calledWith("comp-1/deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(6).calledWith("./comp-1-test-app")).be.true
-    chai.expect(fsAccessStubs.getCall(7).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
+    // testApp deploys concurrently with comp-1, so its directory check interleaves
+    chai.expect(fsAccessStubs.getCall(4).calledWith("./comp-1-test-app")).be.true
+    chai.expect(fsAccessStubs.getCall(5).calledWith("comp-1/deployment/pit/deploy.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(6).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(7).calledWith("comp-1/deployment/pit/is-deployment-ready.sh")).be.true
     chai.expect(fsAccessStubs.getCall(8).calledWith("comp-1-test-app/deployment/pit/is-deployment-ready.sh")).be.true
 
     // check shell calls
@@ -258,23 +259,24 @@ describe("Deployment happy path", async () => {
       { homeDir: "lock-manager" })
     ).be.true
 
+    // testApp deploys concurrently with comp-1, so git log calls interleave
     chai.expect(execStub.getCall(5).calledWith(`cd comp-1 && git log --pretty=format:"%h" -1`)).be.true
 
-    chai.expect(execStub.getCall(6).calledWith(
+    chai.expect(execStub.getCall(6).calledWith(`cd comp-1-test-app && git log --pretty=format:"%h" -1`)).be.true
+
+    chai.expect(execStub.getCall(7).calledWith(
       "deployment/pit/deploy.sh nsChild",
       { homeDir: "comp-1", logFileName: "12345_t1/logs/deploy-nsChild-comp-1.log", tailTarget: sinon.match.any })
     ).be.true
 
-    chai.expect(execStub.getCall(7).calledWith(
-      "deployment/pit/is-deployment-ready.sh nsChild",
-      { homeDir: "comp-1" }
-    )).be.true
-
-    chai.expect(execStub.getCall(8).calledWith(`cd comp-1-test-app && git log --pretty=format:"%h" -1`)).be.true
-
-    chai.expect(execStub.getCall(9).calledWith(
+    chai.expect(execStub.getCall(8).calledWith(
       "deployment/pit/deploy.sh nsChild t1",
       { homeDir: "comp-1-test-app", logFileName: `12345_t1/logs/deploy-nsChild-comp-1-test-app.log`, tailTarget: sinon.match.any })
+    ).be.true
+
+    chai.expect(execStub.getCall(9).calledWith(
+      "deployment/pit/is-deployment-ready.sh nsChild",
+      { homeDir: "comp-1" })
     ).be.true
 
     chai.expect(execStub.getCall(10).calledWith(
@@ -435,10 +437,202 @@ describe("Deployment happy path", async () => {
     chai.expect(fsAccessStubs.getCall(2).calledWith("lock-manager/deployment/pit/is-deployment-ready.sh")).be.true
     chai.expect(fsAccessStubs.getCall(3).calledWith("23456_t2/comp-1")).be.false
     chai.expect(fsAccessStubs.getCall(3).calledWith("./comp-1")).be.true
-    chai.expect(fsAccessStubs.getCall(4).calledWith("./deployment/pit/deploy.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(5).calledWith("./deployment/pit/is-deployment-ready.sh")).be.true
-    chai.expect(fsAccessStubs.getCall(6).calledWith("./comp-1-test-app")).be.true
-    chai.expect(fsAccessStubs.getCall(7).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
+    // testApp deploys concurrently with comp-1, so its directory check interleaves
+    chai.expect(fsAccessStubs.getCall(4).calledWith("./comp-1-test-app")).be.true
+    chai.expect(fsAccessStubs.getCall(5).calledWith("./deployment/pit/deploy.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(6).calledWith("comp-1-test-app/deployment/pit/deploy.sh")).be.true
+    chai.expect(fsAccessStubs.getCall(7).calledWith("./deployment/pit/is-deployment-ready.sh")).be.true
     chai.expect(fsAccessStubs.getCall(8).calledWith("comp-1-test-app/deployment/pit/is-deployment-ready.sh")).be.true
+  })
+})
+
+describe("deployGraph - deployment ordering and concurrency", async () => {
+  const config: Config = {
+    commitSha: "test-sha",
+    workspace: "/tmp",
+    clusterUrl: "http://localhost",
+    parentNamespace: "ns",
+    subNamespacePrefix: DEFAULT_SUB_NAMESPACE_PREFIX,
+    subNamespaceGeneratorType: SUB_NAMESPACE_GENERATOR_TYPE_DATE,
+    pitfile: "pitfile.yml",
+    namespaceTimeoutSeconds: 2,
+    report: {},
+    targetEnv: "test",
+    testStatusPollFrequencyMs: 100,
+    testTimeoutMs: 1000,
+    deployCheckFrequencyMs: 100,
+    params: new Map(),
+    useMockLockManager: false,
+    servicesAreExposedViaProxy: false,
+    lockManagerApiRetries: 1,
+    enableCleanups: false,
+    testRunnerAppPort: 80
+  }
+  const namespace = "test-ns"
+  const testSuiteId = "suite-1"
+  const workspace = "test-workspace"
+
+  type Gate = { resolve: () => void; promise: Promise<void> }
+  const makeGate = (): Gate => {
+    let resolve!: () => void
+    const promise = new Promise<void>(r => { resolve = r })
+    return { resolve, promise }
+  }
+
+  const makeSpec = (id: string, opts: { parallel?: boolean; dependsOn?: string[] } = {}) => ({
+    name: `${id}-name`, id,
+    location: { type: LocationType.Local },
+    deploy: { command: `${id}/deploy.sh`, statusCheck: { command: `${id}/ready.sh` } },
+    undeploy: { command: `${id}/undeploy.sh` },
+    ...opts
+  })
+
+  const loadWithStub = async (deployStub: sinon.SinonStub) =>
+    esmock(
+      "../src/test-suite-handler.js",
+      { "../src/deployer.js": { deployComponent: deployStub } },
+      { "../src/logger.js": { logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } } }
+    )
+
+  it("returns GraphDeploymentResult with all deployed components", async () => {
+    const deployStub = sinon.stub().callsFake(async (_cfg, _ws, spec) => `sha-${spec.id}`)
+    const SuiteHandler = await loadWithStub(deployStub)
+    const graph = {
+      testApp: makeSpec("test-app"),
+      components: [makeSpec("comp-a"), makeSpec("comp-b")]
+    }
+    const result = await SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
+    chai.expect(result.components).to.have.length(2)
+    chai.expect(result.components.map((d: any) => d.component.id)).to.include.members(["comp-a", "comp-b"])
+    chai.expect(result.testApp.component.id).to.equal("test-app")
+    chai.expect(result.testApp.commitSha).to.equal("sha-test-app")
+  })
+
+  it("deploys parallel-flagged components concurrently", async () => {
+    const gates: Record<string, Gate> = { B: makeGate(), C: makeGate(), testApp: makeGate() }
+    const started: string[] = []
+    const completed: string[] = []
+    const deployStub = sinon.stub().callsFake(async (_cfg, _ws, spec) => {
+      started.push(spec.id)
+      await gates[spec.id].promise
+      completed.push(spec.id)
+      return `sha-${spec.id}`
+    })
+    const SuiteHandler = await loadWithStub(deployStub)
+    const graph = {
+      testApp: makeSpec("testApp"),
+      components: [makeSpec("B", { parallel: true }), makeSpec("C", { parallel: true })]
+    }
+    const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
+    // Both B and C should have started before either completes
+    chai.expect(started).to.include("B")
+    chai.expect(started).to.include("C")
+    chai.expect(completed).to.not.include("B")
+    chai.expect(completed).to.not.include("C")
+    gates["B"].resolve()
+    gates["C"].resolve()
+    gates["testApp"].resolve()
+    await deployPromise
+    chai.expect(completed).to.include.members(["B", "C"])
+  })
+
+  it("deploys mixed parallel/sequential at same level concurrently", async () => {
+    const gates: Record<string, Gate> = { B: makeGate(), C: makeGate(), testApp: makeGate() }
+    const started: string[] = []
+    const completed: string[] = []
+    const deployStub = sinon.stub().callsFake(async (_cfg, _ws, spec) => {
+      started.push(spec.id)
+      await gates[spec.id].promise
+      completed.push(spec.id)
+      return `sha-${spec.id}`
+    })
+    const SuiteHandler = await loadWithStub(deployStub)
+    // B is parallel:true, C has no parallel flag — same dependency level, so neither waits on the other
+    const graph = {
+      testApp: makeSpec("testApp"),
+      components: [makeSpec("B", { parallel: true }), makeSpec("C")]
+    }
+    const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
+    // B (parallelGroup) and C (sequentialGroup) fire their respective chains simultaneously —
+    // both should be in-flight before either completes
+    chai.expect(started).to.include("B")
+    chai.expect(started).to.include("C")
+    chai.expect(completed).to.not.include("B")
+    chai.expect(completed).to.not.include("C")
+    gates["B"].resolve()
+    gates["C"].resolve()
+    gates["testApp"].resolve()
+    await deployPromise
+    chai.expect(completed).to.include.members(["B", "C"])
+  })
+
+  it("second dependency level does not start until first level completes", async () => {
+    // Topology: A → B(parallel), A → C, B → D, C → D
+    const gates: Record<string, Gate> = {
+      A: makeGate(), B: makeGate(), C: makeGate(), D: makeGate(), testApp: makeGate()
+    }
+    const started: string[] = []
+    const deployStub = sinon.stub().callsFake(async (_cfg, _ws, spec) => {
+      started.push(spec.id)
+      await gates[spec.id].promise
+      return `sha-${spec.id}`
+    })
+    const SuiteHandler = await loadWithStub(deployStub)
+    const graph = {
+      testApp: makeSpec("testApp"),
+      components: [
+        makeSpec("A"),
+        makeSpec("B", { parallel: true, dependsOn: ["A"] }),
+        makeSpec("C", { dependsOn: ["A"] }),
+        makeSpec("D", { dependsOn: ["B", "C"] })
+      ]
+    }
+    const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
+
+    // Level 1: only A started; testApp is already in-flight concurrently
+    chai.expect(started).to.include("A")
+    chai.expect(started).to.include("testApp")
+    chai.expect(started).to.not.include("B")
+    chai.expect(started).to.not.include("C")
+    chai.expect(started).to.not.include("D")
+
+    // Resolve A — level 2 (B and C) should start
+    gates["A"].resolve()
+    await new Promise(r => setTimeout(r, 0))
+    chai.expect(started).to.include("B")
+    chai.expect(started).to.include("C")
+    chai.expect(started).to.not.include("D")
+
+    // Resolve B and C — level 3 (D) should start
+    gates["B"].resolve()
+    gates["C"].resolve()
+    await new Promise(r => setTimeout(r, 0))
+    chai.expect(started).to.include("D")
+
+    gates["D"].resolve()
+    gates["testApp"].resolve()
+    await deployPromise
+  })
+
+  it("deploys test app concurrently with the component chain", async () => {
+    const gates: Record<string, Gate> = { A: makeGate(), testApp: makeGate() }
+    const started: string[] = []
+    const deployStub = sinon.stub().callsFake(async (_cfg, _ws, spec) => {
+      started.push(spec.id)
+      await gates[spec.id].promise
+      return `sha-${spec.id}`
+    })
+    const SuiteHandler = await loadWithStub(deployStub)
+    const graph = {
+      testApp: makeSpec("testApp"),
+      components: [makeSpec("A")]
+    }
+    const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
+    // A and testApp should both be in-flight before either completes
+    chai.expect(started).to.include("A")
+    chai.expect(started).to.include("testApp")
+    gates["A"].resolve()
+    gates["testApp"].resolve()
+    await deployPromise
   })
 })
