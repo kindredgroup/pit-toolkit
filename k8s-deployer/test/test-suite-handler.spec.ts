@@ -57,7 +57,6 @@ describe("Deployment happy path", async () => {
     location: { type: LocationType.Local },
     deployment: {
       graph: {
-        parallelTestApp: true,
         testApp: {
           name: "comp-1-test-app-name",
           id: "comp-1-test-app",
@@ -68,7 +67,8 @@ describe("Deployment happy path", async () => {
           },
           logTailing: {
             enabled: true
-          }
+          },
+          parallel: true
         },
         components: [
           {
@@ -499,8 +499,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     const deployStub = sinon.stub().callsFake(async (_cfg, _ws, spec) => `sha-${spec.id}`)
     const SuiteHandler = await loadWithStub(deployStub)
     const graph = {
-      parallelTestApp: true,
-      testApp: makeSpec("test-app"),
+      testApp: makeSpec("test-app", { parallel: true }),
       components: [makeSpec("comp-a"), makeSpec("comp-b")]
     }
     const result = await SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
@@ -522,8 +521,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     })
     const SuiteHandler = await loadWithStub(deployStub)
     const graph = {
-      parallelTestApp: true,
-      testApp: makeSpec("testApp"),
+      testApp: makeSpec("testApp", { parallel: true }),
       components: [makeSpec("B", { parallel: true }), makeSpec("C", { parallel: true })]
     }
     const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
@@ -552,8 +550,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     const SuiteHandler = await loadWithStub(deployStub)
     // B is parallel:true, C has no parallel flag — same dependency level, so neither waits on the other
     const graph = {
-      parallelTestApp: true,
-      testApp: makeSpec("testApp"),
+      testApp: makeSpec("testApp", { parallel: true }),
       components: [makeSpec("B", { parallel: true }), makeSpec("C")]
     }
     const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)
@@ -583,8 +580,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     })
     const SuiteHandler = await loadWithStub(deployStub)
     const graph = {
-      parallelTestApp: true,
-      testApp: makeSpec("testApp"),
+      testApp: makeSpec("testApp", { parallel: true }),
       components: [
         makeSpec("A"),
         makeSpec("B", { parallel: true, dependsOn: ["A"] }),
@@ -629,8 +625,7 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     })
     const SuiteHandler = await loadWithStub(deployStub)
     const graph = {
-      parallelTestApp: true,
-      testApp: makeSpec("testApp"),
+      testApp: makeSpec("testApp", { parallel: true }),
       components: [makeSpec("A")]
     }
     const deployPromise = SuiteHandler.deployGraph(config, workspace, testSuiteId, graph, namespace)

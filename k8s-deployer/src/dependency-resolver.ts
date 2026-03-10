@@ -221,7 +221,7 @@ export const printDependencyGraph = (components: Array<Schema.DeployableComponen
   console.log("Dependency Graph")
   console.log(sep)
   levels.forEach((level, idx) =>
-    console.log(`  Stage ${idx + 1} │  ${level.map(c => c.parallel ? `${c.id} ⚡` : c.id).join("  ")}`)
+    console.log(`  Stage ${idx + 1} │  ${level.map(c => c.parallel ? `${c.id} 🔀` : c.id).join("  ")}`)
   )
   if (edges.length > 0) {
     console.log(sep)
@@ -229,7 +229,7 @@ export const printDependencyGraph = (components: Array<Schema.DeployableComponen
   }
   if (components.some(c => c.parallel)) {
     console.log(sep)
-    console.log("  ⚡ = deployed concurrently within stage")
+    console.log("  🔀 = concurrent deployment")
   }
   console.log(sep)
 }

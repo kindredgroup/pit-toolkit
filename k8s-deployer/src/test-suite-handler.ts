@@ -107,7 +107,7 @@ export const deployGraph = async (config: Config, workspace: string, testSuiteId
   const params = [ testSuiteId ]
 
   let testAppDeployedComponent: DeployedComponent
-  if (graph.parallelTestApp === true) {
+  if (graph.testApp.parallel === true) {
     // Deploy test app concurrently with the component levels (opt-in).
     // Only use this when the test app can start independently of the components.
     const deployTestAppPromise = Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)

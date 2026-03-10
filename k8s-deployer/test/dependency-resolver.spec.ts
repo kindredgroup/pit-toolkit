@@ -444,7 +444,7 @@ describe("Dependency Resolver", () => {
       expect(logOutput).to.include("  b ──▶ c")
     })
 
-    it("annotates parallel components with ⚡ and prints a legend", () => {
+    it("annotates parallel components with 🔀 and prints a legend", () => {
       const components: Array<Schema.DeployableComponent> = [
         { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
         { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true },
@@ -453,10 +453,10 @@ describe("Dependency Resolver", () => {
       printDependencyGraph(components)
       expect(logOutput[0]).to.equal("Dependency Graph")
       expect(logOutput).to.include("  Stage 1 │  a")
-      expect(logOutput).to.include("  Stage 2 │  b ⚡  c ⚡")
+      expect(logOutput).to.include("  Stage 2 │  b 🔀  c 🔀")
       expect(logOutput).to.include("  a ──▶ b")
       expect(logOutput).to.include("  a ──▶ c")
-      expect(logOutput).to.include("  ⚡ = deployed concurrently within stage")
+      expect(logOutput).to.include("  🔀 = concurrent deployment")
     })
   })
 })
