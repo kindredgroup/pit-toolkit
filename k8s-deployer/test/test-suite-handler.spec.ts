@@ -287,12 +287,12 @@ describe("Deployment happy path", async () => {
 
     chai.expect(nodeShellSpawnStub.getCall(0).calledWith(
       "k8s-deployer/scripts/tail-container-log.sh",
-      [ namespace, "comp-1", "comp-1-specific-container" ]
+      [ namespace, "comp-1", "comp-1-specific-container", "", "12345_t1/logs/pod-comp-1-nsChild-comp-1-specific-container" ]
     )).be.true
 
     chai.expect(nodeShellSpawnStub.getCall(1).calledWith(
         "k8s-deployer/scripts/tail-container-log.sh",
-        [ namespace, "comp-1-test-app", "" ]
+        [ namespace, "comp-1-test-app", "", "", "12345_t1/logs/pod-comp-1-test-app-nsChild" ]
     )).be.true
   })
 
