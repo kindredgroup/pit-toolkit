@@ -3,6 +3,8 @@ import * as NodeShell from "node:child_process"
 import * as fs from "node:fs"
 import { Namespace } from "./model.js"
 
+export const TAIL_SCRIPT = "k8s-deployer/scripts/tail-container-log.sh"
+
 export class PodLogTail {
 
   private tailer?: NodeShell.ChildProcess
@@ -21,7 +23,7 @@ export class PodLogTail {
     const err = fs.openSync(this.logFilePath, 'a')
 
     this.tailer = NodeShell.spawn(
-      "k8s-deployer/scripts/tail-container-log.sh",
+      TAIL_SCRIPT,
       [ this.namespace, this.service, containerName, "", this.logFilePath.replace(/\.log$/, "") ],
       {
         detached: true,
@@ -43,7 +45,7 @@ export class PodLogTail {
     if (wasStopped) {
       logger.info("PodLogTail.stop(): The log tailer with PID %s has been stopped", pid)
     } else {
-      logger.warn("PodLogTail.stop(): Unable to stop the log tailer with PID %s. Has it  been stopped already?", pid)
+      logger.warn("PodLogTail.stop(): Unable to stop the log tailer with PID %s. Has it been stopped already?", pid)
     }
 
     return wasStopped
