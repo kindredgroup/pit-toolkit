@@ -67,8 +67,8 @@ export const deployGraph = async (config: Config, workspace: string, testSuiteId
   let componentIndex = 0
   const deployComponentsPromise = (async () => {
     for (const level of levels) {
-      const parallelGroup = level.filter(c => c.parallel === true)
-      const sequentialGroup = level.filter(c => c.parallel !== true)
+      const parallelGroup = level.filter(c => c.deploy.parallel === true)
+      const sequentialGroup = level.filter(c => c.deploy.parallel !== true)
 
       // First, deploy parallel-flagged components concurrently.
       // Then, once all parallel components at this level are done, deploy sequential ones in order.
@@ -102,7 +102,7 @@ export const deployGraph = async (config: Config, workspace: string, testSuiteId
   const params = [ testSuiteId ]
 
   let testAppDeployedComponent: DeployedComponent
-  if (graph.testApp.parallel === true) {
+  if (graph.testApp.deploy.parallel === true) {
     // Deploy test app concurrently with the component levels (opt-in).
     // Only use this when the test app can start independently of the components.
     const deployTestAppPromise = Deployer.deployComponent(config, workspace, graph.testApp, namespace, params)

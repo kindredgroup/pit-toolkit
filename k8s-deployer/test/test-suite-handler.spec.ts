@@ -63,12 +63,12 @@ describe("Deployment happy path", async () => {
           location: { type: LocationType.Local },
           deploy: {
             command: "deployment/pit/deploy.sh",
-            statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" }
+            statusCheck: { timeoutSeconds: 1, command: "deployment/pit/is-deployment-ready.sh" },
+            parallel: true
           },
           logTailing: {
             enabled: true
-          },
-          parallel: true
+          }
         },
         components: [
           {
@@ -485,9 +485,9 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
   const makeSpec = (id: string, opts: { parallel?: boolean; dependsOn?: string[] } = {}) => ({
     name: `${id}-name`, id,
     location: { type: LocationType.Local },
-    deploy: { command: `${id}/deploy.sh`, statusCheck: { command: `${id}/ready.sh` } },
+    deploy: { command: `${id}/deploy.sh`, statusCheck: { command: `${id}/ready.sh` }, parallel: opts.parallel },
     undeploy: { command: `${id}/undeploy.sh` },
-    ...opts
+    ...(opts.dependsOn !== undefined ? { dependsOn: opts.dependsOn } : {})
   })
 
   const loadWithStub = async (deployStub: sinon.SinonStub) =>

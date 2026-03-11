@@ -213,7 +213,7 @@ const reconstructCyclePath = (startId: string, parent: Map<string, string>): Arr
  * Print the full deployment graph including testApp placement.
  *
  * - Components are shown in topological stages.
- * - If testApp.parallel === true it is shown in a separate concurrent section
+ * - If testApp.deploy.parallel === true it is shown in a separate concurrent section
  *   (it runs alongside all component stages).
  * - Otherwise testApp is shown as the final sequential stage after all components.
  */
@@ -222,14 +222,14 @@ export const printDependencyGraph = (graph: Schema.Graph): void => {
   const { levels } = topologicalSort(components)
   const sep = "─".repeat(40)
   const edges = components.flatMap(c => (c.dependsOn ?? []).map(dep => `  ${dep} ──▶ ${c.id}`))
-  const anyConcurrent = components.some(c => c.parallel) || testApp.parallel === true
+  const anyConcurrent = components.some(c => c.deploy.parallel) || testApp.deploy.parallel === true
 
   // Format a single dependency level into a display string.
   // Parallel components are grouped in brackets; sequential follow after an arrow.
   // e.g. "[B 🔀  C 🔀] → D  E" or "[B 🔀] → C" or "A  B" (all sequential)
   const formatLevel = (level: Array<Schema.DeployableComponent>): string => {
-    const parallel = level.filter(c => c.parallel === true)
-    const sequential = level.filter(c => c.parallel !== true)
+    const parallel = level.filter(c => c.deploy.parallel === true)
+    const sequential = level.filter(c => c.deploy.parallel !== true)
     const parallelPart = parallel.length > 0 ? `[${parallel.map(c => `${c.id} 🔀`).join("  ")}]` : ""
     const sequentialPart = sequential.map(c => c.id).join("  ")
     if (parallelPart && sequentialPart) return `${parallelPart} → ${sequentialPart}`
@@ -239,7 +239,7 @@ export const printDependencyGraph = (graph: Schema.Graph): void => {
   console.log("Dependency Graph")
   console.log(sep)
 
-  if (testApp.parallel === true) {
+  if (testApp.deploy.parallel === true) {
     // testApp runs concurrently with the entire component chain — show it in a separate section
     levels.forEach((level, idx) =>
       console.log(`  Stage ${idx + 1} │  ${formatLevel(level)}`)

@@ -455,8 +455,8 @@ describe("Dependency Resolver", () => {
     it("annotates parallel components with 🔀 and prints a legend", () => {
       const components: Array<Schema.DeployableComponent> = [
         { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
-        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true },
-        { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true }
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] },
+        { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] }
       ]
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
@@ -471,7 +471,7 @@ describe("Dependency Resolver", () => {
     it("shows mixed parallel/sequential at same level as [parallel] → sequential", () => {
       const components: Array<Schema.DeployableComponent> = [
         { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
-        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"], parallel: true },
+        { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] },
         { name: "C", id: "c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] }
       ]
       printDependencyGraph({ testApp, components })
@@ -483,7 +483,7 @@ describe("Dependency Resolver", () => {
     })
 
     it("shows testApp in a concurrent section when testApp.parallel is true", () => {
-      const parallelTestApp: Schema.DeployableComponent = { ...testApp, id: "my-test-app", parallel: true }
+      const parallelTestApp: Schema.DeployableComponent = { ...testApp, id: "my-test-app", deploy: { ...testApp.deploy, parallel: true } }
       const components: Array<Schema.DeployableComponent> = [
         { name: "A", id: "a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
         { name: "B", id: "b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["a"] }
