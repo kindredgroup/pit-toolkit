@@ -395,6 +395,7 @@ describe("Dependency Resolver", () => {
   describe("printDependencyGraph", () => {
     let logOutput: string[]
     let originalLog: typeof console.log
+    let originalDebug: typeof console.debug
     const testApp: Schema.DeployableComponent = {
       name: "test-app", id: "test-app",
       location: { type: Schema.LocationType.Local },
@@ -403,10 +404,13 @@ describe("Dependency Resolver", () => {
     beforeEach(() => {
       logOutput = []
       originalLog = console.log
+      originalDebug = console.debug
       console.log = (msg?: any) => logOutput.push(String(msg))
+      console.debug = () => {}
     })
     afterEach(() => {
       console.log = originalLog
+      console.debug = originalDebug
     })
 
     it("prints graph for components without dependencies", () => {
@@ -417,8 +421,14 @@ describe("Dependency Resolver", () => {
       ]
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
+      // Stage list
       expect(logOutput).to.include("  Stage 1 │  a  b  c")
       expect(logOutput).to.include("  Stage 2 │  test-app")
+      // ASCII art: box lines contain each node id
+      expect(logOutput.some(l => l.includes("│") && l.includes(" a "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes(" b "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes(" c "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("test-app"))).to.be.true
     })
 
     it("prints graph for components with dependencies at multiple stages", () => {
@@ -429,11 +439,15 @@ describe("Dependency Resolver", () => {
       ]
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
+      // Stage list
       expect(logOutput).to.include("  Stage 1 │  db")
       expect(logOutput).to.include("  Stage 2 │  api  cache")
       expect(logOutput).to.include("  Stage 3 │  test-app")
-      expect(logOutput).to.include("  db ──▶ api")
-      expect(logOutput).to.include("  db ──▶ cache")
+      // ASCII art
+      expect(logOutput.some(l => l.includes("│") && l.includes("db"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("api"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("cache"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("test-app"))).to.be.true
     })
 
     it("prints graph for chained dependencies", () => {
@@ -444,12 +458,16 @@ describe("Dependency Resolver", () => {
       ]
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
+      // Stage list
       expect(logOutput).to.include("  Stage 1 │  a")
       expect(logOutput).to.include("  Stage 2 │  b")
       expect(logOutput).to.include("  Stage 3 │  c")
       expect(logOutput).to.include("  Stage 4 │  test-app")
-      expect(logOutput).to.include("  a ──▶ b")
-      expect(logOutput).to.include("  b ──▶ c")
+      // ASCII art
+      expect(logOutput.some(l => l.includes("│") && l.includes(" a "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes(" b "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes(" c "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("test-app"))).to.be.true
     })
 
     it("annotates parallel components with 🔀 and prints a legend", () => {
@@ -460,12 +478,14 @@ describe("Dependency Resolver", () => {
       ]
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
+      // Stage list
       expect(logOutput).to.include("  Stage 1 │  a")
       expect(logOutput).to.include("  Stage 2 │  [b 🔀  c 🔀]")
       expect(logOutput).to.include("  Stage 3 │  test-app")
-      expect(logOutput).to.include("  a ──▶ b")
-      expect(logOutput).to.include("  a ──▶ c")
-      expect(logOutput).to.include("  🔀 = concurrent deployment")
+      // ASCII art: parallel nodes have _🔀 suffix in their box label
+      expect(logOutput.some(l => l.includes("│") && l.includes(" a "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("b_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("c_🔀"))).to.be.true
     })
 
     it("shows mixed parallel/sequential at same level as [parallel] → sequential", () => {
@@ -476,10 +496,14 @@ describe("Dependency Resolver", () => {
       ]
       printDependencyGraph({ testApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
+      // Stage list
       expect(logOutput).to.include("  Stage 1 │  a")
       expect(logOutput).to.include("  Stage 2 │  [b 🔀] → c")
       expect(logOutput).to.include("  Stage 3 │  test-app")
-      expect(logOutput).to.include("  🔀 = concurrent deployment")
+      // ASCII art
+      expect(logOutput.some(l => l.includes("│") && l.includes(" a "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("b_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes(" c "))).to.be.true
     })
 
     it("shows testApp in a concurrent section when testApp.parallel is true", () => {
@@ -490,11 +514,90 @@ describe("Dependency Resolver", () => {
       ]
       printDependencyGraph({ testApp: parallelTestApp, components })
       expect(logOutput[0]).to.equal("Dependency Graph")
+      // Stage list
       expect(logOutput).to.include("  Stage 1 │  a")
       expect(logOutput).to.include("  Stage 2 │  b")
       expect(logOutput).to.include("  my-test-app 🔀  (concurrent with component stages)")
       expect(logOutput).to.not.include("  Stage 3 │  my-test-app")
-      expect(logOutput).to.include("  🔀 = concurrent deployment")
+      // ASCII art: testApp does NOT appear as a box (it's concurrent)
+      expect(logOutput.some(l => l.includes("│") && l.includes("my-test-app"))).to.be.false
+      expect(logOutput.some(l => l.includes("│") && l.includes(" a "))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes(" b "))).to.be.true
+    })
+
+    it("A -> [B🔀, C🔀, D🔀] -> E: parallel middle layer shown in stage list brackets, ASCII art has _🔀 labels", () => {
+      const parallelTestApp: Schema.DeployableComponent = { ...testApp, deploy: { ...testApp.deploy, parallel: true } }
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "node-a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "B", id: "node-b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-a"] },
+        { name: "C", id: "node-c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-a"] },
+        { name: "D", id: "node-d", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-a"] },
+        { name: "E", id: "node-e", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-b", "node-c", "node-d"] }
+      ]
+      printDependencyGraph({ testApp: parallelTestApp, components })
+      // Stage list
+      expect(logOutput).to.include("  Stage 1 │  node-a")
+      expect(logOutput).to.include("  Stage 2 │  [node-b 🔀  node-c 🔀  node-d 🔀]")
+      expect(logOutput).to.include("  Stage 3 │  node-e")
+      // testApp concurrent
+      expect(logOutput).to.include("  test-app 🔀  (concurrent with component stages)")
+      expect(logOutput).to.not.include("  Stage 4 │  test-app")
+      // ASCII art: parallel nodes use _🔀 suffix; sequential node-a and node-e are plain
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-a"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-b_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-c_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-d_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-e"))).to.be.true
+    })
+
+    it("A -> [B🔀, C🔀, D] -> E: mixed middle layer shown as [parallel] → sequential in stage list", () => {
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "A", id: "node-a", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" } },
+        { name: "B", id: "node-b", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-a"] },
+        { name: "C", id: "node-c", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-a"] },
+        { name: "D", id: "node-d", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-a"] },
+        { name: "E", id: "node-e", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" }, undeploy: { command: "undeploy.sh" }, dependsOn: ["node-b", "node-c", "node-d"] }
+      ]
+      printDependencyGraph({ testApp, components })
+      // Stage list
+      expect(logOutput).to.include("  Stage 1 │  node-a")
+      expect(logOutput).to.include("  Stage 2 │  [node-b 🔀  node-c 🔀] → node-d")
+      expect(logOutput).to.include("  Stage 3 │  node-e")
+      expect(logOutput).to.include("  Stage 4 │  test-app")
+      // ASCII art
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-b_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-c_🔀"))).to.be.true
+      expect(logOutput.some(l => l.includes("│") && l.includes("node-d"))).to.be.true
+    })
+
+    it("multi-stage graph: stage list and ASCII art correct, concurrent testApp banner, cross-ancestry edges", () => {
+      const parallelTestApp: Schema.DeployableComponent = { ...testApp, id: "test-app", deploy: { ...testApp.deploy, parallel: true } }
+      const components: Array<Schema.DeployableComponent> = [
+        { name: "Infra",    id: "infra",    location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" } },
+        { name: "Config",   id: "config",   location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" },                 undeploy: { command: "undeploy.sh" } },
+        { name: "Auth",     id: "auth",     location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["infra"] },
+        { name: "Cache",    id: "cache",    location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["infra"] },
+        { name: "Registry", id: "registry", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" },                 undeploy: { command: "undeploy.sh" }, dependsOn: ["infra", "config"] },
+        { name: "API",       id: "api",       location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["auth", "cache"] },
+        { name: "Worker",    id: "worker",    location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["cache", "registry"] },
+        { name: "Scheduler", id: "scheduler", location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" },                 undeploy: { command: "undeploy.sh" }, dependsOn: ["registry"] },
+        { name: "Gateway",   id: "gateway",   location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh" },                 undeploy: { command: "undeploy.sh" }, dependsOn: ["api", "worker", "scheduler"] },
+        { name: "Frontend",  id: "frontend",  location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["gateway"] },
+        { name: "Admin",     id: "admin",     location: { type: Schema.LocationType.Local }, deploy: { command: "deploy.sh", parallel: true }, undeploy: { command: "undeploy.sh" }, dependsOn: ["gateway"] }
+      ]
+      printDependencyGraph({ testApp: parallelTestApp, components })
+      // Stage list
+      expect(logOutput).to.include("  Stage 1 │  [infra 🔀] → config")
+      expect(logOutput).to.include("  Stage 2 │  [auth 🔀  cache 🔀] → registry")
+      expect(logOutput).to.include("  Stage 3 │  [api 🔀  worker 🔀] → scheduler")
+      expect(logOutput).to.include("  Stage 4 │  gateway")
+      expect(logOutput).to.include("  Stage 5 │  [frontend 🔀  admin 🔀]")
+      // testApp concurrent
+      expect(logOutput).to.include("  test-app 🔀  (concurrent with component stages)")
+      // ASCII art: all node ids appear in box lines
+      for (const id of ["infra_🔀", "config", "auth_🔀", "cache_🔀", "registry", "api_🔀", "worker_🔀", "scheduler", "gateway", "frontend_🔀", "admin_🔀"]) {
+        expect(logOutput.some(l => l.includes("│") && l.includes(id)), `expected box for ${id}`).to.be.true
+      }
     })
   })
 })

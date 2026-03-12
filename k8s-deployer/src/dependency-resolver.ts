@@ -1,4 +1,5 @@
 import { Schema } from "./model.js"
+import { mermaidToAscii } from "mermaid-ascii"
 import {
   CyclicDependencyError,
   InvalidDependencyError,
@@ -209,58 +210,100 @@ const reconstructCyclePath = (startId: string, parent: Map<string, string>): Arr
   return path
 }
 
+// Returns the mermaid node identifier for a component.
+// Parallel components get a _🔀 suffix so the box label shows the flag.
+const nodeId = (c: Schema.DeployableComponent): string =>
+  c.deploy.parallel === true ? `${c.id}_🔀` : c.id
+
+// Build a `graph TD` mermaid source string from the sorted levels + testApp.
+const buildMermaidSrc = (
+  levels: Array<Array<Schema.DeployableComponent>>,
+  components: Array<Schema.DeployableComponent>,
+  testApp: Schema.DeployableComponent
+): string => {
+  const componentMap = new Map(components.map(c => [c.id, c]))
+  const edgeLines: string[] = []
+
+  // Edges from dependsOn relationships
+  components.forEach(c => {
+    (c.dependsOn ?? []).forEach(depId => {
+      const dep = componentMap.get(depId)!
+      edgeLines.push(`  ${nodeId(dep)} --> ${nodeId(c)}`)
+    })
+  })
+
+  // Sequential testApp: connect every last-level component to the testApp node
+  if (testApp.deploy.parallel !== true && levels.length > 0) {
+    levels[levels.length - 1].forEach(c => {
+      edgeLines.push(`  ${nodeId(c)} --> ${testApp.id}`)
+    })
+  }
+
+  // Nodes that appear in no edge must be declared explicitly or they won't render
+  const edgeText = edgeLines.join("\n")
+  const allNodes = [
+    ...components,
+    ...(testApp.deploy.parallel !== true ? [testApp] : [])
+  ]
+  const isolatedDeclarations = allNodes
+    .filter(c => !edgeText.includes(nodeId(c)))
+    .map(c => `  ${nodeId(c)}`)
+
+  return ["graph TD", ...isolatedDeclarations, ...edgeLines].join("\n")
+}
+
+// Format a single dependency level into a display string.
+// Parallel components are grouped in brackets; sequential follow after an arrow.
+// e.g. "[B 🔀  C 🔀] → D  E" or "[B 🔀] → C" or "A  B" (all sequential)
+const formatLevel = (level: Array<Schema.DeployableComponent>): string => {
+  const parallel = level.filter(c => c.deploy.parallel === true)
+  const sequential = level.filter(c => c.deploy.parallel !== true)
+  const parallelPart = parallel.length > 0 ? `[${parallel.map(c => `${c.id} 🔀`).join("  ")}]` : ""
+  const sequentialPart = sequential.map(c => c.id).join("  ")
+  if (parallelPart && sequentialPart) return `${parallelPart} → ${sequentialPart}`
+  return parallelPart || sequentialPart
+}
+
 /**
  * Print the full deployment graph including testApp placement.
  *
- * - Components are shown in topological stages.
- * - If testApp.deploy.parallel === true it is shown in a separate concurrent section
- *   (it runs alongside all component stages).
- * - Otherwise testApp is shown as the final sequential stage after all components.
+ * Outputs two representations:
+ * 1. Stage list — "Stage N │ [parallel 🔀] → sequential" text summary
+ * 2. ASCII art diagram via mermaid-ascii (parallel components labelled with _🔀)
+ *
+ * If testApp.deploy.parallel === true it is shown in a concurrent banner rather
+ * than as a stage/diagram node.
  */
 export const printDependencyGraph = (graph: Schema.Graph): void => {
   const { components, testApp } = graph
   const { levels } = topologicalSort(components)
   const sep = "─".repeat(40)
-  const edges = components.flatMap(c => (c.dependsOn ?? []).map(dep => `  ${dep} ──▶ ${c.id}`))
-  const anyConcurrent = components.some(c => c.deploy.parallel) || testApp.deploy.parallel === true
-
-  // Format a single dependency level into a display string.
-  // Parallel components are grouped in brackets; sequential follow after an arrow.
-  // e.g. "[B 🔀  C 🔀] → D  E" or "[B 🔀] → C" or "A  B" (all sequential)
-  const formatLevel = (level: Array<Schema.DeployableComponent>): string => {
-    const parallel = level.filter(c => c.deploy.parallel === true)
-    const sequential = level.filter(c => c.deploy.parallel !== true)
-    const parallelPart = parallel.length > 0 ? `[${parallel.map(c => `${c.id} 🔀`).join("  ")}]` : ""
-    const sequentialPart = sequential.map(c => c.id).join("  ")
-    if (parallelPart && sequentialPart) return `${parallelPart} → ${sequentialPart}`
-    return parallelPart || sequentialPart
-  }
 
   console.log("Dependency Graph")
   console.log(sep)
 
+  // ── Stage list ────────────────────────────────────────────────────────────
   if (testApp.deploy.parallel === true) {
-    // testApp runs concurrently with the entire component chain — show it in a separate section
     levels.forEach((level, idx) =>
       console.log(`  Stage ${idx + 1} │  ${formatLevel(level)}`)
     )
     console.log(sep)
     console.log(`  ${testApp.id} 🔀  (concurrent with component stages)`)
   } else {
-    // testApp runs after all components — append it as the final stage
     levels.forEach((level, idx) =>
       console.log(`  Stage ${idx + 1} │  ${formatLevel(level)}`)
     )
     console.log(`  Stage ${levels.length + 1} │  ${testApp.id}`)
   }
 
-  if (edges.length > 0) {
-    console.log(sep)
-    edges.forEach(e => console.log(e))
-  }
-  if (anyConcurrent) {
-    console.log(sep)
-    console.log("  🔀 = concurrent deployment")
-  }
+  // ── ASCII art diagram ─────────────────────────────────────────────────────
+  console.log(sep)
+  const mermaidSrc = buildMermaidSrc(levels, components, testApp)
+  const originalDebug = console.debug
+  console.debug = () => {}
+  const asciiArt = mermaidToAscii(mermaidSrc)
+  console.debug = originalDebug
+  asciiArt.split("\n").forEach(line => console.log(line))
+
   console.log(sep)
 }

@@ -1,0 +1,287 @@
+version: 1.0
+projectName: Parallel Subgroup Test Example
+
+lockManager:
+  enabled: false
+
+testSuites:
+  # Scenario 1: A -> [B, C, D] -> E where B, C and D are all parallel
+  # A has no dependencies and is sequential.
+  # B, C, D each depend on A and are all marked parallel (they run concurrently).
+  # E depends on B, C and D and is sequential.
+  - name: All-Parallel Middle Layer
+    id: all-parallel-middle
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          - name: A
+            id: node-a
+            deploy:
+              command: "echo 'node-a deployed'"
+            undeploy:
+              command: "echo 'node-a undeployed'"
+
+          - name: B
+            id: node-b
+            dependsOn:
+              - node-a
+            deploy:
+              command: "echo 'node-b deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'node-b undeployed'"
+
+          - name: C
+            id: node-c
+            dependsOn:
+              - node-a
+            deploy:
+              command: "echo 'node-c deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'node-c undeployed'"
+
+          - name: D
+            id: node-d
+            dependsOn:
+              - node-a
+            deploy:
+              command: "echo 'node-d deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'node-d undeployed'"
+
+          - name: E
+            id: node-e
+            dependsOn:
+              - node-b
+              - node-c
+              - node-d
+            deploy:
+              command: "echo 'node-e deployed'"
+            undeploy:
+              command: "echo 'node-e undeployed'"
+
+  # Scenario 3: Multi-stage graph with mixed parallel/sequential at every level and
+  # components depending on ancestors from more than one upstream stage.
+  #
+  # Stage 0: [Infra🔀, Config]
+  # Stage 1: [Auth🔀, Cache🔀, Registry]
+  #   - Auth  depends on Infra             (parallel)
+  #   - Cache depends on Infra             (parallel)
+  #   - Registry depends on Infra + Config (sequential — spans both stage-0 roots)
+  # Stage 2: [API🔀, Worker🔀, Scheduler]
+  #   - API       depends on Auth + Cache            (parallel)
+  #   - Worker    depends on Cache + Registry        (parallel — cross-ancestry: one parallel, one sequential parent)
+  #   - Scheduler depends on Registry               (sequential)
+  # Stage 3: [Gateway]
+  #   - depends on API + Worker + Scheduler          (sequential — fan-in from all stage-2 nodes)
+  # Stage 4: [Frontend🔀, Admin🔀]
+  #   - both depend on Gateway             (parallel)
+  - name: Multi-Stage Mixed Parallel Graph
+    id: multi-stage-mixed
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+            parallel: true
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          # Stage 0 — two independent roots
+          - name: Infra
+            id: infra
+            deploy:
+              command: "echo 'infra deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'infra undeployed'"
+
+          - name: Config
+            id: config
+            deploy:
+              command: "echo 'config deployed'"
+            undeploy:
+              command: "echo 'config undeployed'"
+
+          # Stage 1 — Auth and Cache depend only on Infra (parallel);
+          #           Registry depends on both roots (sequential)
+          - name: Auth
+            id: auth
+            dependsOn:
+              - infra
+            deploy:
+              command: "echo 'auth deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'auth undeployed'"
+
+          - name: Cache
+            id: cache
+            dependsOn:
+              - infra
+            deploy:
+              command: "echo 'cache deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'cache undeployed'"
+
+          - name: Registry
+            id: registry
+            dependsOn:
+              - infra
+              - config
+            deploy:
+              command: "echo 'registry deployed'"
+            undeploy:
+              command: "echo 'registry undeployed'"
+
+          # Stage 2 — API and Worker are parallel; Scheduler is sequential.
+          #           Worker's parents span a parallel (Cache) and a sequential (Registry) node.
+          - name: API
+            id: api
+            dependsOn:
+              - auth
+              - cache
+            deploy:
+              command: "echo 'api deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'api undeployed'"
+
+          - name: Worker
+            id: worker
+            dependsOn:
+              - cache
+              - registry
+            deploy:
+              command: "echo 'worker deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'worker undeployed'"
+
+          - name: Scheduler
+            id: scheduler
+            dependsOn:
+              - registry
+            deploy:
+              command: "echo 'scheduler deployed'"
+            undeploy:
+              command: "echo 'scheduler undeployed'"
+
+          # Stage 3 — Gateway fans in from all three stage-2 nodes; sequential
+          - name: Gateway
+            id: gateway
+            dependsOn:
+              - api
+              - worker
+              - scheduler
+            deploy:
+              command: "echo 'gateway deployed'"
+            undeploy:
+              command: "echo 'gateway undeployed'"
+
+          # Stage 4 — Frontend and Admin both depend on Gateway; both parallel
+          - name: Frontend
+            id: frontend
+            dependsOn:
+              - gateway
+            deploy:
+              command: "echo 'frontend deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'frontend undeployed'"
+
+          - name: Admin
+            id: admin
+            dependsOn:
+              - gateway
+            deploy:
+              command: "echo 'admin deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'admin undeployed'"
+
+  # Scenario 2: A -> [B(parallel), C(parallel), D(sequential)] -> E
+  # E depends on B, C and D, but only B and C are marked parallel.
+  # D is sequential at the same dependency level — it must complete before E starts.
+  - name: Mixed Parallel and Sequential Middle Layer
+    id: mixed-parallel-middle
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          - name: A
+            id: node-a
+            deploy:
+              command: "echo 'node-a deployed'"
+            undeploy:
+              command: "echo 'node-a undeployed'"
+
+          - name: B
+            id: node-b
+            dependsOn:
+              - node-a
+            deploy:
+              command: "echo 'node-b deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'node-b undeployed'"
+
+          - name: C
+            id: node-c
+            dependsOn:
+              - node-a
+            deploy:
+              command: "echo 'node-c deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'node-c undeployed'"
+
+          - name: D
+            id: node-d
+            dependsOn:
+              - node-a
+            deploy:
+              command: "echo 'node-d deployed'"
+            undeploy:
+              command: "echo 'node-d undeployed'"
+
+          - name: E
+            id: node-e
+            dependsOn:
+              - node-b
+              - node-c
+              - node-d
+            deploy:
+              command: "echo 'node-e deployed'"
+            undeploy:
+              command: "echo 'node-e undeployed'"
