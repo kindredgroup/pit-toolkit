@@ -141,8 +141,9 @@ testSuites:
           name: Talos Certifier Test App
           id: talos-certifier-test-app
           location:
-            type: LOCAL # optional, defautls to 'LOCAL'
+            type: LOCAL # optional, defaults to 'LOCAL'
           deploy:
+            parallel: true # optional, default is false
             timeoutSeconds: 120
             command: deployment/pit/deploy.sh
             params: # Optional command line parameters
@@ -161,6 +162,7 @@ testSuites:
             location:
               type: LOCAL
             deploy:
+              parallel: true # optional, default is false
               command: deployment/pit/deploy.sh
               statusCheck:
                 command: deployment/pit/is-deployment-ready.sh
@@ -173,7 +175,10 @@ testSuites:
             # Lets assume Talos Certifier and Replicator (made for testing Talos Certifier) are in the same repository
             location:
               type: LOCAL
+            dependsOn:
+              - talos-certifier # optional, deployment of component will not be attempted until these dependencies are up and healthy
             deploy:
+              parallel: true # optional, default is false
               command: deployment/pit/deploy.sh
               statusCheck:
                 command: deployment/pit/is-deployment-ready.sh
@@ -189,6 +194,7 @@ testSuites:
               gitRepository: git://127.0.0.1/some-other-component.git
               gitRef: # Optional, defaults to "refs/remotes/origin/master"
             deploy:
+              parallel: false # optional
               command: deployment/pit/deploy.sh
               statusCheck:
                 command: deployment/pit/is-deployment-ready.sh
