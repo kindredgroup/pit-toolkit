@@ -38,7 +38,7 @@ const main = async () => {
             logger.error("CYCLIC DEPENDENCY DETECTED:")
             logger.error("Cycle: %s", err.cyclePath.join(' → '))
             logger.error("This creates an infinite loop and cannot be resolved.")
-            logger.error("Please fix the dependency chain in your pitfile.yml")
+            logger.error("Please fix the dependency chain in %s", config.pitfile)
           } else {
             logger.error("%s", err.message)
           }
