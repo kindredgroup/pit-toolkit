@@ -60,6 +60,7 @@ export class DeployableComponent {
   deploy: DeployInstructions
   undeploy: DeployInstructions
   logTailing?: LogTailing
+  dependsOn?: Array<string>  // Optional array of component IDs this component depends on
 }
 
 export class Graph {

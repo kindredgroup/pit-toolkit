@@ -1,0 +1,40 @@
+version: 1.0
+projectName: Cyclic Dependency Test Example
+
+lockManager:
+  enabled: false
+
+testSuites:
+  - name: Cyclic Dependency Test Suite
+    id: cyclic-test
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          - name: Component A
+            id: component-a
+            dependsOn:
+              - component-b
+            deploy:
+              command: "echo 'component-a deployed'"
+            undeploy:
+              command: "echo 'component-a undeployed'"
+
+          - name: Component B
+            id: component-b
+            dependsOn:
+              - component-a
+            deploy:
+              command: "echo 'component-b deployed'"
+            undeploy:
+              command: "echo 'component-b undeployed'"
