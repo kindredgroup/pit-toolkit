@@ -1,0 +1,102 @@
+version: 1.0
+projectName: Parallel Deploy Test Example
+
+lockManager:
+  enabled: false
+
+testSuites:
+  - name: Parallel Deploy Test Suite
+    id: parallel-deploy-test
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+            parallel: true
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          # Two independent components that deploy in parallel with each other
+          - name: Database
+            id: database
+            deploy:
+              command: "echo 'database deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'database undeployed'"
+
+          - name: Message Queue
+            id: message-queue
+            deploy:
+              command: "echo 'message queue deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'message queue undeployed'"
+
+          # Sequential component with no dependencies (no parallel flag)
+          - name: Config Service
+            id: config-service
+            deploy:
+              command: "echo 'config service deployed'"
+            undeploy:
+              command: "echo 'config service undeployed'"
+
+          # Component that depends on two parallel components, itself runs in parallel at its level
+          - name: API Service
+            id: api-service
+            dependsOn:
+              - database
+              - message-queue
+            deploy:
+              command: "echo 'api-service deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'api-service undeployed'"
+
+          # Component that depends on one parallel component, itself sequential at its level
+          - name: Cache Service
+            id: cache-service
+            dependsOn:
+              - database
+            deploy:
+              command: "echo 'cache service deployed'"
+            undeploy:
+              command: "echo 'cache service undeployed'"
+
+          # Component that depends on a mix of parallel and sequential upstream components
+          - name: Backend For Frontend
+            id: backend-for-frontend
+            dependsOn:
+              - api-service
+              - cache-service
+            deploy:
+              command: "echo 'backend for frontend deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'backend for frontend undeployed'"
+
+          # Leaf component with a single dependency, parallel at its level
+          - name: Frontend
+            id: frontend
+            dependsOn:
+              - backend-for-frontend
+            deploy:
+              command: "echo 'frontend deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'frontend undeployed'"
+
+          # Independent component that is parallel and shares its level with database/message-queue
+          - name: Metrics Collector
+            id: metrics-collector
+            deploy:
+              command: "echo 'metrics collector deployed'"
+              parallel: true
+            undeploy:
+              command: "echo 'metrics collector undeployed'"

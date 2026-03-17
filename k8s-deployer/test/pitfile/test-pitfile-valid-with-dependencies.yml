@@ -1,0 +1,57 @@
+version: 1.0
+projectName: Dependency Test Example
+
+lockManager:
+  enabled: false
+
+testSuites:
+  - name: Dependency Test Suite
+    id: dependency-test
+
+    deployment:
+      graph:
+        testApp:
+          name: Test App
+          id: test-app
+          location:
+            type: LOCAL
+          deploy:
+            command: "echo 'test app deployed'"
+          undeploy:
+            command: "echo 'test app undeployed'"
+
+        components:
+          - name: Database
+            id: database
+            deploy:
+              command: "echo 'database deployed'"
+            undeploy:
+              command: "echo 'database undeployed'"
+
+          - name: API Service
+            id: api-service
+            dependsOn:
+              - database
+            deploy:
+              command: "echo 'api-service deployed'"
+            undeploy:
+              command: "echo 'api-service undeployed'"
+
+          - name: Cache
+            id: cache
+            dependsOn:
+              - database
+            deploy:
+              command: "echo 'cache deployed'"
+            undeploy:
+              command: "echo 'cache undeployed'"
+
+          - name: Frontend
+            id: frontend
+            dependsOn:
+              - api-service
+              - cache
+            deploy:
+              command: "echo 'frontend deployed'"
+            undeploy:
+              command: "echo 'frontend undeployed'"

@@ -40,6 +40,7 @@
     "ajv": "^8.12.0",
     "express": "^4.19.2",
     "express-openapi-validator": "^5.1.6",
+    "mermaid-ascii": "^1.0.0",
     "node-fetch": "^3.3.2",
     "swagger-ui-express": "^5.0.0",
     "uuid": "^9.0.1",

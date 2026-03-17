@@ -29,6 +29,7 @@ export class DeployInstructions {
   command: string
   params?: Array<string>
   statusCheck?: StatusCheck
+  parallel?: boolean         // If true, this component may be deployed concurrently with other parallel components at the same dependency level
 }
 
 export class LockManager {
@@ -60,6 +61,7 @@ export class DeployableComponent {
   deploy: DeployInstructions
   undeploy: DeployInstructions
   logTailing?: LogTailing
+  dependsOn?: Array<string>  // Optional array of component IDs this component depends on
 }
 
 export class Graph {
