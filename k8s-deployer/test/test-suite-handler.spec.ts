@@ -13,6 +13,7 @@ import { ShellOptions } from "../src/shell-facade.js"
 import { ScalarMetric, TestOutcomeType, TestStream } from "../src/test-app-client/report/schema-v1.js"
 import * as webapi from "../src/test-app-client/web-api/schema-v1.js"
 import { generatePrefixByDate } from "../src/test-suite-handler.js"
+import { TAIL_SCRIPT } from "../src/pod-log-tail.js"
 
 describe("Helper functions", () => {
   it("should generate readable date prefix", () => {
@@ -290,13 +291,13 @@ describe("Deployment happy path", async () => {
     chai.expect(nodeShellSpawnStub.callCount).eq(2)
 
     chai.expect(nodeShellSpawnStub.getCall(0).calledWith(
-      "k8s-deployer/scripts/tail-container-log.sh",
-      [namespace, "comp-1", "comp-1-specific-container"]
+      TAIL_SCRIPT,
+      [ namespace, "comp-1", "comp-1-specific-container", "", "12345_t1/logs/pod-comp-1-nsChild-comp-1-specific-container" ]
     )).be.true
 
     chai.expect(nodeShellSpawnStub.getCall(1).calledWith(
-      "k8s-deployer/scripts/tail-container-log.sh",
-      [namespace, "comp-1-test-app", ""]
+      TAIL_SCRIPT,
+      [ namespace, "comp-1-test-app", "", "", "12345_t1/logs/pod-comp-1-test-app-nsChild" ]
     )).be.true
   })
 

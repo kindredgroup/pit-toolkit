@@ -1,7 +1,8 @@
 import { logger } from "./logger.js"
 import * as NodeShell from "node:child_process"
-import * as fs from "node:fs"
 import { Namespace } from "./model.js"
+
+export const TAIL_SCRIPT = "k8s-deployer/scripts/tail-container-log.sh"
 
 export class PodLogTail {
 
@@ -16,16 +17,12 @@ export class PodLogTail {
   start(containerName = ""): PodLogTail {
     if (this.tailer) throw new Error(`Tailer is already attached to process with PID: ${this.tailer.pid}`)
 
-    // creating streams
-    const out = fs.openSync(this.logFilePath, 'a')
-    const err = fs.openSync(this.logFilePath, 'a')
-
     this.tailer = NodeShell.spawn(
-      "k8s-deployer/scripts/tail-container-log.sh",
-      [ this.namespace, this.service, containerName ],
+      TAIL_SCRIPT,
+      [ this.namespace, this.service, containerName, "", this.logFilePath.replace(/\.log$/, "") ],
       {
         detached: true,
-        stdio: [ 'ignore', out, err ]
+        stdio: 'ignore'
       }
     )
 
@@ -43,7 +40,7 @@ export class PodLogTail {
     if (wasStopped) {
       logger.info("PodLogTail.stop(): The log tailer with PID %s has been stopped", pid)
     } else {
-      logger.warn("PodLogTail.stop(): Unable to stop the log tailer with PID %s. Has it  been stopped already?", pid)
+      logger.warn("PodLogTail.stop(): Unable to stop the log tailer with PID %s. Has it been stopped already?", pid)
     }
 
     return wasStopped
