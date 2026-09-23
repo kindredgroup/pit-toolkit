@@ -6,8 +6,13 @@ import { CommitSha, DeployedComponent, Namespace, Schema } from "./model.js"
 import { LocationType } from "./pitfile/schema-v1.js"
 import * as Shell from "./shell-facade.js"
 
+// Formats date as UTC "YYYYMMDDHHmmss", e.g. 20260923023804
+const formatDate = (date = new Date()): string =>
+  date.toISOString().replace(/\D/g, "").slice(0, 14)
+
 export class DeployOptions {
   namespace?: Namespace
+  brownieTimestamp?: string = formatDate()
   deployerParams?: Array<string>
 }
 
@@ -107,14 +112,15 @@ export const deployApplication = async (
   deployCheckFrequencyMs?: number,
   options?: DeployOptions) => {
   await isExecutable(`${ appDirectory }/${ instructions.command }`)
-  
+
   try {
     // Invoke deployment script
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
     let command = instructions.command
     if (options?.namespace) command = `${ command } ${ options.namespace }`
-    
+
     command = addParamsToCommand(command, instructions.params, options)
+    command = `${ command } --brownie-ts=${ options?.brownieTimestamp ?? formatDate() }`
 
     const logFileName = `${ workspace }/logs/deploy-${ namespace }-${ appId }.log`
     const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
