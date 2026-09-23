@@ -253,7 +253,7 @@ describe("Deployment happy path", async () => {
     )).be.true
 
     chai.expect(execStub.getCall(3).calledWith(
-      "deployment/pit/deploy.sh nsChild lock-manager",
+      sinon.match(/^deployment\/pit\/deploy\.sh nsChild lock-manager --brownie-ts=\d{14}$/),
       { homeDir: "lock-manager", logFileName: `12345_t1/logs/deploy-nsChild-lock-manager.log`, tailTarget: sinon.match.any })
     ).be.true
 
@@ -268,12 +268,12 @@ describe("Deployment happy path", async () => {
     chai.expect(execStub.getCall(6).calledWith(`cd comp-1-test-app && git log --pretty=format:"%h" -1`)).be.true
 
     chai.expect(execStub.getCall(7).calledWith(
-      "deployment/pit/deploy.sh nsChild",
+      sinon.match(/^deployment\/pit\/deploy\.sh nsChild --brownie-ts=\d{14}$/),
       { homeDir: "comp-1", logFileName: "12345_t1/logs/deploy-nsChild-comp-1.log", tailTarget: sinon.match.any })
     ).be.true
 
     chai.expect(execStub.getCall(8).calledWith(
-      "deployment/pit/deploy.sh nsChild t1",
+      sinon.match(/^deployment\/pit\/deploy\.sh nsChild t1 --brownie-ts=\d{14}$/),
       { homeDir: "comp-1-test-app", logFileName: `12345_t1/logs/deploy-nsChild-comp-1-test-app.log`, tailTarget: sinon.match.any })
     ).be.true
 
