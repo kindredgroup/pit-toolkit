@@ -9,6 +9,10 @@ export const DEFAULT_DEPLOY_CHECK_FREQUENCY = 5_000
 export const DEFAULT_TEST_TIMEOUT = 60_000
 export const DEFAULT_TEST_RUNNER_APP_PORT = 80
 
+// Formats date as UTC "YYYYMMDDHHmmss", e.g. 20260923023804
+const getBrownieTimestamp = (date = new Date()): string =>
+  date.toISOString().replace(/\D/g, "").slice(0, 14)
+
 export class TestReportConfig {
   constructor(
     readonly gitRepository?: string,
@@ -39,6 +43,7 @@ export class Config {
     readonly deployCheckFrequencyMs: number = DEFAULT_DEPLOY_CHECK_FREQUENCY,
     readonly testTimeoutMs: number = DEFAULT_TEST_TIMEOUT,
     readonly enableCleanups: boolean = true,
-    readonly testRunnerAppPort = DEFAULT_TEST_RUNNER_APP_PORT
+    readonly testRunnerAppPort = DEFAULT_TEST_RUNNER_APP_PORT,
+    readonly brownieTimestamp = getBrownieTimestamp()
   ) {}
 }

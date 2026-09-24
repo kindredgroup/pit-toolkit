@@ -6,13 +6,9 @@ import { CommitSha, DeployedComponent, Namespace, Schema } from "./model.js"
 import { LocationType } from "./pitfile/schema-v1.js"
 import * as Shell from "./shell-facade.js"
 
-// Formats date as UTC "YYYYMMDDHHmmss", e.g. 20260923023804
-const formatDate = (date = new Date()): string =>
-  date.toISOString().replace(/\D/g, "").slice(0, 14)
 
 export class DeployOptions {
   namespace?: Namespace
-  brownieTimestamp?: string = formatDate()
   deployerParams?: Array<string>
 }
 
@@ -70,7 +66,7 @@ export const cloneFromGit = async (appId: string, location: Schema.Location, tar
   logger.info("cloneFromGit(): Running: %s", fullCommand)
   const output = await Shell.exec(fullCommand)
   logger.info("\n%s", output)
-  const commitShaLine = output.split("\n").filter(line => line.trim().startsWith("COMMIT_SHA="))
+  const commitShaLine = (output as string).split("\n").filter(line => line.trim().startsWith("COMMIT_SHA="))
   if (commitShaLine.length === 0) {
     throw new Error(`Unexpected output from '${ fullCommand }'. Unable to find COMMIT_SHA token.`)
   } else if (commitShaLine.length !== 1) {
@@ -109,6 +105,7 @@ export const deployApplication = async (
   appId: string,
   appDirectory: string,
   instructions: Schema.DeployInstructions,
+  brownieTimestamp: string,
   deployCheckFrequencyMs?: number,
   options?: DeployOptions) => {
   await isExecutable(`${ appDirectory }/${ instructions.command }`)
@@ -120,7 +117,7 @@ export const deployApplication = async (
     if (options?.namespace) command = `${ command } ${ options.namespace }`
 
     command = addParamsToCommand(command, instructions.params, options)
-    command = `${ command } --brownie-ts=${ options?.brownieTimestamp ?? formatDate() }`
+    command = `${ command } --brownie-ts=${ brownieTimestamp }`
 
     const logFileName = `${ workspace }/logs/deploy-${ namespace }-${ appId }.log`
     const opts: any = { homeDir: appDirectory, logFileName, tailTarget: (line: string) => {
@@ -151,7 +148,7 @@ export const deployApplication = async (
     await sleep
 
     const elapsed = new Date().getTime() - checkStartedAt
-    if (elapsed >= instructions.statusCheck.timeoutSeconds * 1_000) {
+    if (elapsed >= (instructions.statusCheck.timeoutSeconds as number) * 1_000) {
       throw new Error(`Timeout while checking for ready status of ${ appId }. See logs for details.`)
     }
 
@@ -181,7 +178,7 @@ const undeployApplication = async (
   await isExecutable(`${appDirectory}/${instructions.command}`)
   try {
     logger.info("Invoking: '%s/%s'", appDirectory, instructions.command)
-    const timeoutMs = instructions.timeoutSeconds * 1_000
+    const timeoutMs = instructions.timeoutSeconds as number * 1_000
 
     logsDir = logsDir || `${ workspace }/logs`
     const logFileName = `${ logsDir }/undeploy-${ namespace }-${ appId }.log`
@@ -228,6 +225,7 @@ export const deployLockManager = async (config: Config, workspace: string, names
       appName,
       sourcesDirectory,
       spec.deploy,
+      config.brownieTimestamp,
       config.deployCheckFrequencyMs,
       { namespace, deployerParams: [ webAppContextRoot ] }
     )
@@ -265,10 +263,10 @@ export const deployComponent = async (
 
       logger.info("The application directory will be taken from 'id' attribute: '%s' of '%s'", appDir, spec.name)
     }
-    commitSha = await Shell.exec(`cd ${ appDir } && git log --pretty=format:"%h" -1`)
+    commitSha = await Shell.exec(`cd ${ appDir } && git log --pretty=format:"%h" -1`) as string
   }
 
-  await deployApplication(workspace, namespace, spec.id, appDir, spec.deploy, config.deployCheckFrequencyMs, { namespace, deployerParams })
+  await deployApplication(workspace, namespace, spec.id, appDir, spec.deploy, config.brownieTimestamp, config.deployCheckFrequencyMs, { namespace, deployerParams })
   return commitSha
 }
 

@@ -48,7 +48,8 @@ describe("Deployment happy path", async () => {
     servicesAreExposedViaProxy: false,
     lockManagerApiRetries: 3,
     enableCleanups: true,
-    testRunnerAppPort: 80
+    testRunnerAppPort: 80,
+    brownieTimestamp: "20260924000000"
   }
 
   const testSuiteNumber = "1"
@@ -253,7 +254,7 @@ describe("Deployment happy path", async () => {
     )).be.true
 
     chai.expect(execStub.getCall(3).calledWith(
-      sinon.match(/^deployment\/pit\/deploy\.sh nsChild lock-manager --brownie-ts=\d{14}$/),
+      "deployment/pit/deploy.sh nsChild lock-manager --brownie-ts=20260924000000",
       { homeDir: "lock-manager", logFileName: `12345_t1/logs/deploy-nsChild-lock-manager.log`, tailTarget: sinon.match.any })
     ).be.true
 
@@ -268,12 +269,12 @@ describe("Deployment happy path", async () => {
     chai.expect(execStub.getCall(6).calledWith(`cd comp-1-test-app && git log --pretty=format:"%h" -1`)).be.true
 
     chai.expect(execStub.getCall(7).calledWith(
-      sinon.match(/^deployment\/pit\/deploy\.sh nsChild --brownie-ts=\d{14}$/),
+      "deployment/pit/deploy.sh nsChild --brownie-ts=20260924000000",
       { homeDir: "comp-1", logFileName: "12345_t1/logs/deploy-nsChild-comp-1.log", tailTarget: sinon.match.any })
     ).be.true
 
     chai.expect(execStub.getCall(8).calledWith(
-      sinon.match(/^deployment\/pit\/deploy\.sh nsChild t1 --brownie-ts=\d{14}$/),
+      "deployment/pit/deploy.sh nsChild t1 --brownie-ts=20260924000000",
       { homeDir: "comp-1-test-app", logFileName: `12345_t1/logs/deploy-nsChild-comp-1-test-app.log`, tailTarget: sinon.match.any })
     ).be.true
 
@@ -470,7 +471,8 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     servicesAreExposedViaProxy: false,
     lockManagerApiRetries: 1,
     enableCleanups: false,
-    testRunnerAppPort: 80
+    testRunnerAppPort: 80,
+    brownieTimestamp: "20260924000000"
   }
   const namespace = "test-ns"
   const testSuiteId = "suite-1"
@@ -645,5 +647,51 @@ describe("deployGraph - deployment ordering and concurrency", async () => {
     gates["A"].resolve()
     gates["testApp"].resolve()
     await deployPromise
+  })
+
+  it("passes the same brownie timestamp to every deployed component", async () => {
+    // Build config via constructor so the default brownieTimestamp is generated. Pin the clock only
+    // while constructing, so any per-component regeneration during deployment would yield a different value.
+    const clock = sinon.useFakeTimers({ now: new Date("2026-09-24T00:00:00.000Z"), toFake: ["Date"] })
+    let brownieConfig: Config
+    try {
+      brownieConfig = new Config(
+        "test-sha", "/tmp", "http://localhost", "ns", DEFAULT_SUB_NAMESPACE_PREFIX, SUB_NAMESPACE_GENERATOR_TYPE_DATE,
+        "pitfile.yml", 2, {}, "test", new Map(),
+        false, false, 1, 100, 10, 1000, false, 80
+      )
+    } finally {
+      clock.restore()
+    }
+    chai.expect(brownieConfig.brownieTimestamp).eq("20260924000000")
+
+    const execStub = sinon.stub().callsFake(async (command: string) => command.includes("git log") ? "abc1234" : "")
+    const SuiteHandler = await esmock(
+      "../src/test-suite-handler.js",
+      {},
+      {
+        "../src/logger.js": { logger: { debug: () => { }, info: () => { }, warn: () => { }, error: () => { } } },
+        "../src/shell-facade.js": { exec: execStub },
+        "fs": { promises: { access: async () => true } }
+      }
+    )
+    const graph = {
+      testApp: makeSpec("testApp", { parallel: true }),
+      components: [
+        makeSpec("A"),
+        makeSpec("B", { parallel: true, dependsOn: ["A"] }),
+        makeSpec("C", { dependsOn: ["A"] })
+      ]
+    }
+
+    await SuiteHandler.deployGraph(brownieConfig, workspace, testSuiteId, graph, namespace)
+
+    const deployCommands: string[] = execStub.getCalls()
+      .map(call => call.args[0] as string)
+      .filter(command => /\/deploy\.sh /.test(command))
+    chai.expect(deployCommands.map(command => command.split("/")[0])).to.have.members(["A", "B", "C", "testApp"])
+    for (const command of deployCommands) {
+      chai.expect(command).to.match(/ --brownie-ts=20260924000000$/)
+    }
   })
 })
