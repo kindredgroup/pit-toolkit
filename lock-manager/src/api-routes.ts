@@ -96,8 +96,8 @@ export class ApiRoutes {
 
   private validateExpiryTime(timeout: number) {
     if (timeout === undefined || timeout === null) return
-
-    if (typeof timeout !== "number" || timeout < 0 || Number.isNaN(timeout)) {
+  
+    if (typeof timeout !== "number" || !Number.isFinite(timeout) || timeout < 0) {
       throw new Error("timeout should be a valid number")
     }
   }
